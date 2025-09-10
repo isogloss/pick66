@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pick66.UI\Pick66.UI.csproj" />
+    <ProjectReference Include="..\Pick66.Core\Pick66.Core.csproj" />
+    <ProjectReference Include="..\Pick66.Projection\Pick66.Projection.csproj" />
+  </ItemGroup>
+
+</Project>
