@@ -1,0 +1,110 @@
+MSBuild version 17.8.32+74df0b3f5 for .NET
+Build started 09/10/2025 22:53:43.
+     1>Project "/home/runner/work/pick66/pick66/Pick6.sln" on node 1 (Restore target(s)).
+     1>ValidateSolutionConfiguration:
+         Building solution configuration "Debug|Any CPU".
+       _GetAllRestoreProjectPathItems:
+         Determining projects to restore...
+       Restore:
+         X.509 certificate chain validation will use the fallback certificate bundle at '/usr/lib/dotnet/sdk/8.0.119/trustedroots/codesignctl.pem'.
+         X.509 certificate chain validation will use the fallback certificate bundle at '/usr/lib/dotnet/sdk/8.0.119/trustedroots/timestampctl.pem'.
+         Assets file has not changed. Skipping assets file writing. Path: /home/runner/work/pick66/pick66/src/Pick6.Projection/obj/project.assets.json
+         Assets file has not changed. Skipping assets file writing. Path: /home/runner/work/pick66/pick66/src/Pick6.UI/obj/project.assets.json
+         Assets file has not changed. Skipping assets file writing. Path: /home/runner/work/pick66/pick66/src/Pick6.Launcher/obj/project.assets.json
+         Assets file has not changed. Skipping assets file writing. Path: /home/runner/work/pick66/pick66/src/Pick6.Core/obj/project.assets.json
+         Restored /home/runner/work/pick66/pick66/src/Pick6.Core/Pick6.Core.csproj (in 52 ms).
+         Restored /home/runner/work/pick66/pick66/src/Pick6.UI/Pick6.UI.csproj (in 52 ms).
+         Restored /home/runner/work/pick66/pick66/src/Pick6.Projection/Pick6.Projection.csproj (in 51 ms).
+         Restored /home/runner/work/pick66/pick66/src/Pick6.Launcher/Pick6.Launcher.csproj (in 52 ms).
+         
+         NuGet Config files used:
+             /home/runner/.nuget/NuGet/NuGet.Config
+         
+         Feeds used:
+             https://api.nuget.org/v3/index.json
+         All projects are up-to-date for restore.
+     1>Done Building Project "/home/runner/work/pick66/pick66/Pick6.sln" (Restore target(s)).
+   1:2>Project "/home/runner/work/pick66/pick66/Pick6.sln" on node 1 (default targets).
+     1>ValidateSolutionConfiguration:
+         Building solution configuration "Debug|Any CPU".
+   1:2>Project "/home/runner/work/pick66/pick66/Pick6.sln" (1:2) is building "/home/runner/work/pick66/pick66/src/Pick6.Core/Pick6.Core.csproj" (5:9) on node 1 (default targets).
+     5>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj/Debug/net8.0/Pick6.Core.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       GenerateBuildDependencyFile:
+       Skipping target "GenerateBuildDependencyFile" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         Pick6.Core -> /home/runner/work/pick66/pick66/src/Pick6.Core/bin/Debug/net8.0/Pick6.Core.dll
+     5>Done Building Project "/home/runner/work/pick66/pick66/src/Pick6.Core/Pick6.Core.csproj" (default targets).
+   1:2>Project "/home/runner/work/pick66/pick66/Pick6.sln" (1:2) is building "/home/runner/work/pick66/pick66/src/Pick6.UI/Pick6.UI.csproj" (2:7) on node 3 (default targets).
+     2>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj/Debug/net8.0/Pick6.UI.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       _CreateAppHost:
+       Skipping target "_CreateAppHost" because all output files are up-to-date with respect to the input files.
+       _CopyOutOfDateSourceItemsToOutputDirectory:
+       Skipping target "_CopyOutOfDateSourceItemsToOutputDirectory" because all output files are up-to-date with respect to the input files.
+   1:2>Project "/home/runner/work/pick66/pick66/Pick6.sln" (1:2) is building "/home/runner/work/pick66/pick66/src/Pick6.Projection/Pick6.Projection.csproj" (3:7) on node 4 (default targets).
+     3>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+     2>GenerateBuildDependencyFile:
+       Skipping target "GenerateBuildDependencyFile" because all output files are up-to-date with respect to the input files.
+       GenerateBuildRuntimeConfigurationFiles:
+       Skipping target "GenerateBuildRuntimeConfigurationFiles" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         Pick6.UI -> /home/runner/work/pick66/pick66/src/Pick6.UI/bin/Debug/net8.0/Pick6.UI.dll
+     3>CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+     2>Done Building Project "/home/runner/work/pick66/pick66/src/Pick6.UI/Pick6.UI.csproj" (default targets).
+     3>_GenerateSourceLinkFile:
+         Source Link file 'obj/Debug/net8.0/Pick6.Projection.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       _CreateAppHost:
+       Skipping target "_CreateAppHost" because all output files are up-to-date with respect to the input files.
+       _CopyOutOfDateSourceItemsToOutputDirectory:
+       Skipping target "_CopyOutOfDateSourceItemsToOutputDirectory" because all output files are up-to-date with respect to the input files.
+       GenerateBuildDependencyFile:
+       Skipping target "GenerateBuildDependencyFile" because all output files are up-to-date with respect to the input files.
+       GenerateBuildRuntimeConfigurationFiles:
+       Skipping target "GenerateBuildRuntimeConfigurationFiles" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         Pick6.Projection -> /home/runner/work/pick66/pick66/src/Pick6.Projection/bin/Debug/net8.0/Pick6.Projection.dll
+     3>Done Building Project "/home/runner/work/pick66/pick66/src/Pick6.Projection/Pick6.Projection.csproj" (default targets).
+   1:2>Project "/home/runner/work/pick66/pick66/Pick6.sln" (1:2) is building "/home/runner/work/pick66/pick66/src/Pick6.Launcher/Pick6.Launcher.csproj" (4:6) on node 2 (default targets).
+     4>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj/Debug/net8.0/Pick6.Launcher.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       _CreateAppHost:
+       Skipping target "_CreateAppHost" because all output files are up-to-date with respect to the input files.
+       _CopyOutOfDateSourceItemsToOutputDirectory:
+       Skipping target "_CopyOutOfDateSourceItemsToOutputDirectory" because all output files are up-to-date with respect to the input files.
+       GenerateBuildDependencyFile:
+       Skipping target "GenerateBuildDependencyFile" because all output files are up-to-date with respect to the input files.
+       GenerateBuildRuntimeConfigurationFiles:
+       Skipping target "GenerateBuildRuntimeConfigurationFiles" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         Pick6.Launcher -> /home/runner/work/pick66/pick66/src/Pick6.Launcher/bin/Debug/net8.0/Pick6.Launcher.dll
+     4>Done Building Project "/home/runner/work/pick66/pick66/src/Pick6.Launcher/Pick6.Launcher.csproj" (default targets).
+     1>Done Building Project "/home/runner/work/pick66/pick66/Pick6.sln" (default targets).
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.64

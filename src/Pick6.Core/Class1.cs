@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace Pick6.Core;
 
@@ -34,14 +35,20 @@ public class GameCaptureEngine
         {
             if (_isCapturing) return false;
 
-            // First try Vulkan injection approach
-            if (_useVulkanCapture && TryStartVulkanCapture(processName))
+            // First try Vulkan injection approach (Windows only)
+            if (_useVulkanCapture && OperatingSystem.IsWindows() && TryStartVulkanCapture(processName))
             {
                 return true;
             }
 
-            // Fall back to GDI window capture
-            return StartGdiCapture(processName);
+            // Fall back to GDI window capture (Windows only)
+            if (OperatingSystem.IsWindows())
+            {
+                return StartGdiCapture(processName);
+            }
+            
+            ErrorOccurred?.Invoke(this, "Game capture is only supported on Windows");
+            return false;
         }
     }
 
@@ -82,7 +89,7 @@ public class GameCaptureEngine
             _vulkanCapture.FrameCaptured += (s, e) => FrameCaptured?.Invoke(this, e);
             _vulkanCapture.ErrorOccurred += (s, msg) => ErrorOccurred?.Invoke(this, msg);
 
-            if (_vulkanCapture.StartCapture(targetProcess.ProcessId))
+            if (OperatingSystem.IsWindows() && _vulkanCapture.StartCapture(targetProcess.ProcessId))
             {
                 _isCapturing = true;
                 return true;
@@ -97,6 +104,7 @@ public class GameCaptureEngine
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private bool StartGdiCapture(string processName)
     {
         _targetWindow = FindGameWindow(processName);
@@ -125,6 +133,7 @@ public class GameCaptureEngine
         return IntPtr.Zero;
     }
 
+    [SupportedOSPlatform("windows")]
     private void GdiCaptureLoop()
     {
         while (_isCapturing)
@@ -149,6 +158,7 @@ public class GameCaptureEngine
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private Bitmap? CaptureFrame(IntPtr windowHandle)
     {
         if (!IsWindow(windowHandle)) return null;

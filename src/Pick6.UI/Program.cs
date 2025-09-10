@@ -1,5 +1,6 @@
 using Pick6.Core;
 using System.Drawing;
+using System.Runtime.Versioning;
 
 namespace Pick6.UI;
 
@@ -43,7 +44,10 @@ public class Program
         // Setup event handlers
         captureEngine.FrameCaptured += (s, e) =>
         {
-            projectionWindow.UpdateFrame(e.Frame);
+            if (OperatingSystem.IsWindows())
+            {
+                projectionWindow.UpdateFrame(e.Frame);
+            }
         };
 
         captureEngine.ErrorOccurred += (s, e) =>
@@ -186,6 +190,7 @@ public class ProjectionWindow
         Console.WriteLine("Projection stopped.");
     }
 
+    [SupportedOSPlatform("windows")]
     public void UpdateFrame(Bitmap frame)
     {
         if (!_isProjecting) return;

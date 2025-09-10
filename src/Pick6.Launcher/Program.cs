@@ -56,7 +56,10 @@ public class Program
         // Forward captured frames to projection window
         _captureEngine.FrameCaptured += (s, e) =>
         {
-            _projectionWindow.UpdateFrame(e.Frame);
+            if (OperatingSystem.IsWindows())
+            {
+                _projectionWindow.UpdateFrame(e.Frame);
+            }
         };
 
         // Handle capture errors
