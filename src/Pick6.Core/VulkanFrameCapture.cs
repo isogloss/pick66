@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Runtime.Versioning;
 using System.Runtime.InteropServices;
 
 namespace Pick6.Core;
@@ -25,6 +26,7 @@ public class VulkanFrameCapture
     /// <summary>
     /// Start capturing frames using Vulkan injection
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public bool StartCapture(int processId)
     {
         lock (_lockObject)
@@ -76,6 +78,7 @@ public class VulkanFrameCapture
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private void CaptureLoop()
     {
         while (_isCapturing)
@@ -105,6 +108,7 @@ public class VulkanFrameCapture
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private Bitmap? ConvertFrameDataToBitmap(VulkanFrameData frameData)
     {
         try

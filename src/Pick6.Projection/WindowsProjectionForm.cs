@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace Pick6.Projection;
 
@@ -54,6 +55,7 @@ public class WindowsProjectionForm
     /// <summary>
     /// Update the frame being displayed
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public void UpdateFrame(Bitmap frame)
     {
         if (!_isProjecting) return;
@@ -65,6 +67,7 @@ public class WindowsProjectionForm
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private void CreateBorderlessWindow(int screenIndex)
     {
         // Get screen dimensions
@@ -107,6 +110,7 @@ public class WindowsProjectionForm
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private void StartRenderLoop()
     {
         _renderThread = new Thread(() =>
@@ -122,6 +126,7 @@ public class WindowsProjectionForm
         _renderThread.Start();
     }
 
+    [SupportedOSPlatform("windows")]
     private void RenderFrame()
     {
         if (_windowHandle == IntPtr.Zero) return;
@@ -155,6 +160,7 @@ public class WindowsProjectionForm
         return new Rectangle(0, 0, 1920, 1080); // Placeholder - would use actual screen API
     }
 
+    [SupportedOSPlatform("windows")]
     private IntPtr WindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
         switch (msg)
@@ -208,7 +214,7 @@ public class WindowsProjectionForm
     private static extern ushort RegisterClass(ref WNDCLASS lpWndClass);
     
     [DllImport("kernel32.dll")]
-    private static extern IntPtr GetModuleHandle(string lpModuleName);
+    private static extern IntPtr GetModuleHandle(string? lpModuleName);
     
     [DllImport("user32.dll")]
     private static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);

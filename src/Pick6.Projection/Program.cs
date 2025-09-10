@@ -1,5 +1,6 @@
 using Pick6.Core;
 using System.Drawing;
+using System.Runtime.Versioning;
 
 namespace Pick6.Projection;
 
@@ -75,6 +76,7 @@ public class BorderlessProjectionWindow
     /// <summary>
     /// Update the current frame being displayed
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public void UpdateFrame(Bitmap frame)
     {
         if (!_isProjecting) return;
@@ -86,6 +88,7 @@ public class BorderlessProjectionWindow
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private void StartWindowsProjection(int screenIndex)
     {
         // This would create an actual borderless fullscreen window on Windows
@@ -119,7 +122,14 @@ public class BorderlessProjectionWindow
                     frameCount++;
                     if (frameCount % 60 == 0) // Log every 60 frames
                     {
-                        Console.WriteLine($"Projecting frame {frameCount}: {_currentFrame.Width}x{_currentFrame.Height}");
+                        if (OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+                        {
+                            Console.WriteLine($"Projecting frame {frameCount}: {_currentFrame.Width}x{_currentFrame.Height}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Projecting frame {frameCount}");
+                        }
                     }
                 }
                 Thread.Sleep(16);
