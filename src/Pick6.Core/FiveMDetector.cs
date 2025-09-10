@@ -8,36 +8,83 @@ namespace Pick6.Core;
 /// </summary>
 public static class FiveMDetector
 {
+    // Expanded explicit names to catch common variants; wildcard scan below is the main safety net
     private static readonly string[] FIVEM_PROCESS_NAMES = {
         "FiveM",
-        "FiveM_b2060",
-        "FiveM_b2189", 
-        "FiveM_b2372",
-        "FiveM_b2545",
-        "FiveM_b2612",
-        "FiveM_b2699",
-        "FiveM_b2802",
-        "FiveM_b2944",
-        "CitizenFX"
+        "FiveM_GTAProcess",
+        "CitizenFX",
+        // Known build variants (with and without GTAProcess suffix)
+        "FiveM_b2060","FiveM_b2060_GTAProcess",
+        "FiveM_b2189","FiveM_b2189_GTAProcess",
+        "FiveM_b2372","FiveM_b2372_GTAProcess",
+        "FiveM_b2545","FiveM_b2545_GTAProcess",
+        "FiveM_b2612","FiveM_b2612_GTAProcess",
+        "FiveM_b2699","FiveM_b2699_GTAProcess",
+        "FiveM_b2802","FiveM_b2802_GTAProcess",
+        "FiveM_b2944","FiveM_b2944_GTAProcess"
     };
 
     /// <summary>
-    /// Find all running FiveM processes (traditional method)
+    /// Find all running FiveM processes (EXTREMELY broad):
+    /// - Matches explicit known names
+    /// - Wildcard-like scan of all processes by name/title tokens
+    /// - Returns only processes with a visible main window
     /// </summary>
     public static List<ProcessInfo> FindFiveMProcesses()
     {
-        var processes = new List<ProcessInfo>();
+        var results = new List<ProcessInfo>();
+        var seen = new HashSet<int>();
 
-        foreach (var processName in FIVEM_PROCESS_NAMES)
+        // 1) Explicit name matches (existing behavior + expanded list)
+        foreach (var name in FIVEM_PROCESS_NAMES)
+        {
+            TryAddByProcessName(name, results, seen);
+        }
+
+        // 2) Wildcard-like scan: extremely broad matching by name/title tokens
+        foreach (var p in Process.GetProcesses())
         {
             try
             {
-                var found = Process.GetProcessesByName(processName);
-                foreach (var process in found)
+                if (p.HasExited) continue;
+                if (p.MainWindowHandle == IntPtr.Zero) continue; // keep capture semantics
+
+                if (MatchesFiveM(p) && seen.Add(p.Id))
                 {
-                    if (process.MainWindowHandle != IntPtr.Zero)
+                    results.Add(new ProcessInfo
                     {
-                        processes.Add(new ProcessInfo
+                        ProcessId = p.Id,
+                        ProcessName = p.ProcessName,
+                        WindowTitle = p.MainWindowTitle,
+                        WindowHandle = p.MainWindowHandle
+                    });
+                }
+            }
+            catch
+            {
+                // Process inaccessible or exited; ignore
+            }
+            finally
+            {
+                try { p.Dispose(); } catch { }
+            }
+        }
+
+        return results;
+    }
+
+    private static void TryAddByProcessName(string processName, List<ProcessInfo> results, HashSet<int> seen)
+    {
+        try
+        {
+            var found = Process.GetProcessesByName(processName);
+            foreach (var process in found)
+            {
+                try
+                {
+                    if (process.MainWindowHandle != IntPtr.Zero && seen.Add(process.Id))
+                    {
+                        results.Add(new ProcessInfo
                         {
                             ProcessId = process.Id,
                             ProcessName = process.ProcessName,
@@ -45,16 +92,41 @@ public static class FiveMDetector
                             WindowHandle = process.MainWindowHandle
                         });
                     }
-                    process.Dispose();
                 }
-            }
-            catch
-            {
-                // Process might have exited, continue
+                catch { }
+                finally { try { process.Dispose(); } catch { } }
             }
         }
+        catch { }
+    }
 
-        return processes;
+    private static bool MatchesFiveM(Process p)
+    {
+        var name = string.Empty;
+        var title = string.Empty;
+        try { name = p.ProcessName ?? string.Empty; } catch { }
+        try { title = p.MainWindowTitle ?? string.Empty; } catch { }
+
+        var nl = name.ToLowerInvariant();
+        var tl = title.ToLowerInvariant();
+
+        // Extremely broad token set by request
+        bool nameHit =
+            nl.Contains("fivem") ||
+            nl.Contains("citizenfx") ||
+            nl.Contains("cfx") ||
+            nl.Contains("gtaprocess") ||
+            nl.Contains("gta5") ||
+            nl.Contains("gta_") ||
+            nl.Contains("gta");
+
+        bool titleHit =
+            tl.Contains("fivem") ||
+            tl.Contains("citizenfx") ||
+            tl.Contains("grand theft auto") ||
+            tl.Contains("gta");
+
+        return nameHit || titleHit;
     }
 
     /// <summary>
