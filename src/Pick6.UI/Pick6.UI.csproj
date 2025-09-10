@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Pick66.Core\Pick66.Core.csproj" />
+    <ProjectReference Include="..\Pick6.Core\Pick6.Core.csproj" />
   </ItemGroup>
 
 </Project>

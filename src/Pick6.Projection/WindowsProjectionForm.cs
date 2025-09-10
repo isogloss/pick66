@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 
-namespace Pick66.Projection;
+namespace Pick6.Projection;
 
 /// <summary>
 /// Windows Forms-based borderless projection window
@@ -78,7 +78,7 @@ public class WindowsProjectionForm
             hInstance = GetModuleHandle(null),
             hCursor = LoadCursor(IntPtr.Zero, IDC_ARROW),
             hbrBackground = (IntPtr)(COLOR_WINDOW + 1),
-            lpszClassName = "Pick66ProjectionWindow"
+            lpszClassName = "Pick6ProjectionWindow"
         };
 
         RegisterClass(ref wndClass);
@@ -86,8 +86,8 @@ public class WindowsProjectionForm
         // Create the window
         _windowHandle = CreateWindowEx(
             WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-            "Pick66ProjectionWindow",
-            "Pick66 Projection",
+            "Pick6ProjectionWindow",
+            "Pick6 Projection",
             WS_POPUP,
             screenBounds.X,
             screenBounds.Y,

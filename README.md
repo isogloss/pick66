@@ -1,19 +1,20 @@
-# Pick66 - OBS Game Capture Clone
+# Pick6 - OBS Game Capture Clone
 
 A real-time game capture and projection application specifically designed for FiveM, providing OBS-like screen capture functionality with borderless fullscreen projection.
 
 ## Features
 
 🎮 **FiveM Focused**: Specifically designed for FiveM game capture
+🚀 **Vulkan Injection**: Direct frame capture through DLL injection for optimal performance
 🖥️ **Borderless Projection**: Fullscreen borderless window projection similar to OBS
 ⚡ **Real-time Capture**: Low-latency frame capture with configurable FPS
-🎯 **Auto-Detection**: Automatic FiveM process detection and targeting
+🎯 **Smart Detection**: Auto-detection of FiveM processes with Vulkan support
 ⚙️ **Configurable**: Adjustable resolution, FPS, and capture settings
 📦 **Single Executable**: Self-contained launcher with no external dependencies
 
 ## Quick Start
 
-1. **Download and Run**: Simply run `Pick66.Launcher.exe`
+1. **Download and Run**: Simply run `Pick6.Launcher.exe`
 2. **Start FiveM**: Make sure FiveM is running
 3. **Quick Start**: Choose option 7 in the menu for automatic setup
 4. **Enjoy**: Your FiveM game will be projected in a borderless window
@@ -24,30 +25,30 @@ A real-time game capture and projection application specifically designed for Fi
 
 ```bash
 # Auto-start capture and projection
-Pick66.Launcher.exe --auto-start
+Pick6.Launcher.exe --auto-start
 
 # Set custom FPS
-Pick66.Launcher.exe --fps 30
+Pick6.Launcher.exe --fps 30
 
 # Set custom resolution
-Pick66.Launcher.exe --resolution 1920 1080 --fps 60
+Pick6.Launcher.exe --resolution 1920 1080 --fps 60
 
 # Show help
-Pick66.Launcher.exe --help
+Pick6.Launcher.exe --help
 ```
 
 ### Interactive Mode
 
 Run without arguments to enter interactive mode:
 
-1. **Scan for FiveM processes** - Detect running FiveM instances
-2. **Start capture** - Begin capturing frames from FiveM
+1. **Scan for FiveM processes** - Detect running FiveM instances (enhanced with Vulkan detection)
+2. **Start capture** - Begin capturing frames (uses Vulkan injection when available)
 3. **Stop capture** - Stop frame capture
 4. **Start projection** - Open borderless projection window
 5. **Stop projection** - Close projection window
 6. **Configure settings** - Adjust FPS, resolution, etc.
-7. **Quick start** - Auto-detect and start everything
-8. **Show status** - Display current system status
+7. **Quick start** - Auto-detect and start everything (prioritizes Vulkan processes)
+8. **Show status** - Display current system status including Vulkan support
 
 ## Configuration
 
@@ -72,14 +73,15 @@ Run without arguments to enter interactive mode:
 
 ## How It Works
 
-1. **Process Detection**: Scans for FiveM processes using multiple process name patterns
-2. **Window Capture**: Uses Windows GDI+ for real-time window capture
-3. **Frame Processing**: Processes captured frames with optional scaling and filtering
-4. **Projection**: Displays frames in a borderless fullscreen window for immersive viewing
+1. **Enhanced Process Detection**: Scans for FiveM processes using multiple methods including Vulkan detection
+2. **Vulkan Frame Injection**: Uses DLL injection to capture frames directly from Vulkan API calls for superior performance
+3. **Fallback Window Capture**: Falls back to Windows GDI+ for compatibility when injection is not available
+4. **Frame Processing**: Processes captured frames with optional scaling and filtering
+5. **Projection**: Displays frames in a borderless fullscreen window for immersive viewing
 
 ## FiveM Compatibility
 
-Pick66 automatically detects various FiveM versions including:
+Pick6 automatically detects various FiveM versions including:
 - FiveM (main release)
 - FiveM_b2060, FiveM_b2189, FiveM_b2372
 - FiveM_b2545, FiveM_b2612, FiveM_b2699
@@ -88,12 +90,20 @@ Pick66 automatically detects various FiveM versions including:
 
 ## Troubleshooting
 
+## Troubleshooting
+
 ### No FiveM Process Found
 - Ensure FiveM is running and fully loaded
 - Check that FiveM has a visible window (not minimized)
-- Try running Pick66 as administrator
+- Try running Pick6 as administrator for injection privileges
+
+### Vulkan Injection Failed
+- Run Pick6 as administrator to enable DLL injection
+- Ensure FiveM is using Vulkan (most modern versions do)
+- Check that no antivirus is blocking DLL injection
 
 ### Poor Performance
+- Use Vulkan injection mode for best performance (requires admin rights)
 - Lower the target FPS in settings
 - Disable hardware acceleration if experiencing issues
 - Close unnecessary applications
@@ -114,17 +124,17 @@ cd pick66
 dotnet build
 
 # Run the launcher
-dotnet run --project src/Pick66.Launcher
+dotnet run --project src/Pick6.Launcher
 ```
 
 ## Project Structure
 
 ```
 src/
-├── Pick66.Core/          # Core capture engine
-├── Pick66.UI/            # User interface
-├── Pick66.Projection/    # Projection window logic
-└── Pick66.Launcher/      # Main executable
+├── Pick6.Core/          # Core capture engine
+├── Pick6.UI/            # User interface
+├── Pick6.Projection/    # Projection window logic
+└── Pick6.Launcher/      # Main executable
 ```
 
 ## License
@@ -137,4 +147,4 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 
 ---
 
-**Note**: This application is designed for legitimate screen capture purposes. Please respect the terms of service of any games or applications you use with Pick66.
+**Note**: This application is designed for legitimate screen capture purposes. Please respect the terms of service of any games or applications you use with Pick6.

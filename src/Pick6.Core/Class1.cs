@@ -1,10 +1,11 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 
-namespace Pick66.Core;
+namespace Pick6.Core;
 
 /// <summary>
 /// Core capture engine for game window capture
+/// Now supports both Vulkan injection and GDI capture methods
 /// </summary>
 public class GameCaptureEngine
 {
@@ -12,6 +13,8 @@ public class GameCaptureEngine
     private bool _isCapturing = false;
     private Thread? _captureThread;
     private readonly object _lockObject = new();
+    private VulkanFrameCapture? _vulkanCapture;
+    private bool _useVulkanCapture = true;
 
     public event EventHandler<FrameCapturedEventArgs>? FrameCaptured;
     public event EventHandler<string>? ErrorOccurred;
@@ -23,6 +26,7 @@ public class GameCaptureEngine
 
     /// <summary>
     /// Start capturing frames from the target process
+    /// Tries Vulkan injection first, falls back to GDI capture
     /// </summary>
     public bool StartCapture(string processName)
     {
@@ -30,17 +34,14 @@ public class GameCaptureEngine
         {
             if (_isCapturing) return false;
 
-            _targetWindow = FindGameWindow(processName);
-            if (_targetWindow == IntPtr.Zero)
+            // First try Vulkan injection approach
+            if (_useVulkanCapture && TryStartVulkanCapture(processName))
             {
-                ErrorOccurred?.Invoke(this, $"Could not find window for process: {processName}");
-                return false;
+                return true;
             }
 
-            _isCapturing = true;
-            _captureThread = new Thread(CaptureLoop) { IsBackground = true };
-            _captureThread.Start();
-            return true;
+            // Fall back to GDI window capture
+            return StartGdiCapture(processName);
         }
     }
 
@@ -53,7 +54,62 @@ public class GameCaptureEngine
         {
             _isCapturing = false;
             _captureThread?.Join(1000);
+
+            _vulkanCapture?.StopCapture();
+            _vulkanCapture = null;
         }
+    }
+
+    private bool TryStartVulkanCapture(string processName)
+    {
+        try
+        {
+            // Find Vulkan processes
+            var vulkanProcesses = VulkanInjector.FindVulkanProcesses();
+            var targetProcess = vulkanProcesses.FirstOrDefault(p => 
+                p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
+
+            if (targetProcess == null)
+            {
+                ErrorOccurred?.Invoke(this, $"No Vulkan process found for: {processName}");
+                return false;
+            }
+
+            _vulkanCapture = new VulkanFrameCapture();
+            _vulkanCapture.Settings = Settings;
+            
+            // Forward events
+            _vulkanCapture.FrameCaptured += (s, e) => FrameCaptured?.Invoke(this, e);
+            _vulkanCapture.ErrorOccurred += (s, msg) => ErrorOccurred?.Invoke(this, msg);
+
+            if (_vulkanCapture.StartCapture(targetProcess.ProcessId))
+            {
+                _isCapturing = true;
+                return true;
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            ErrorOccurred?.Invoke(this, $"Vulkan capture failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    private bool StartGdiCapture(string processName)
+    {
+        _targetWindow = FindGameWindow(processName);
+        if (_targetWindow == IntPtr.Zero)
+        {
+            ErrorOccurred?.Invoke(this, $"Could not find window for process: {processName}");
+            return false;
+        }
+
+        _isCapturing = true;
+        _captureThread = new Thread(GdiCaptureLoop) { IsBackground = true };
+        _captureThread.Start();
+        return true;
     }
 
     private IntPtr FindGameWindow(string processName)
@@ -69,7 +125,7 @@ public class GameCaptureEngine
         return IntPtr.Zero;
     }
 
-    private void CaptureLoop()
+    private void GdiCaptureLoop()
     {
         while (_isCapturing)
         {
@@ -87,7 +143,7 @@ public class GameCaptureEngine
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"Capture error: {ex.Message}");
+                ErrorOccurred?.Invoke(this, $"GDI Capture error: {ex.Message}");
                 Thread.Sleep(100); // Brief pause on error
             }
         }
