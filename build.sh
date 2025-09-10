@@ -18,7 +18,7 @@ dotnet build --configuration Release
 
 # Build single-file executable for Windows
 echo "Creating single-file Windows executable..."
-dotnet publish src/Pick66.Launcher/Pick66.Launcher.csproj \
+dotnet publish src/Pick6.Launcher/Pick6.Launcher.csproj \
     --configuration Release \
     --runtime win-x64 \
     --self-contained true \
@@ -30,12 +30,12 @@ if [ $? -eq 0 ]; then
     echo "================================================"
     echo "✅ Build completed successfully!"
     echo ""
-    echo "Executable created: ./dist/Pick66.Launcher.exe"
+    echo "Executable created: ./dist/Pick6.Launcher.exe"
     echo ""
     echo "To use:"
-    echo "1. Copy Pick66.exe to target Windows machine"
-    echo "2. Run Pick66.Launcher.exe --help for options"
-    echo "3. Or run Pick66.Launcher.exe for interactive mode"
+    echo "1. Copy Pick6.Launcher.exe to target Windows machine"
+    echo "2. Run Pick6.Launcher.exe --help for options"
+    echo "3. Or run Pick6.Launcher.exe for interactive mode"
     echo "================================================"
 else
     echo "❌ Build failed!"
