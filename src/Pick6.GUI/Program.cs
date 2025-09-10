@@ -1,5 +1,7 @@
+#if WINDOWS
 using Pick6.Core;
 using Pick6.Projection;
+#endif
 
 namespace Pick6.GUI;
 
@@ -8,6 +10,7 @@ namespace Pick6.GUI;
 /// </summary>
 public class Program
 {
+#if WINDOWS
     [STAThread]
     public static void Main(string[] args)
     {
@@ -26,4 +29,11 @@ public class Program
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
+#else
+    public static void Main(string[] args)
+    {
+        Console.WriteLine("Pick6 GUI is only available on Windows. Please use Pick6.Launcher for console mode.");
+        Environment.Exit(1);
+    }
+#endif
 }
