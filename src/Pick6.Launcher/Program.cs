@@ -184,37 +184,82 @@ public class Program
 
     private static void ScanForFiveM()
     {
-        Console.WriteLine("\n=== Scanning for FiveM Processes ===");
-        var processes = FiveMDetector.FindFiveMProcesses();
+        Console.WriteLine("\n=== Scanning for FiveM Processes (Enhanced) ===");
+        var summary = FiveMDetector.GetProcessSummary();
 
-        if (processes.Count == 0)
+        if (summary.TotalProcessCount == 0)
         {
             Console.WriteLine("❌ No FiveM processes found.");
             Console.WriteLine("   Please make sure FiveM is running and try again.");
         }
         else
         {
-            Console.WriteLine($"✅ Found {processes.Count} FiveM process(es):");
-            for (int i = 0; i < processes.Count; i++)
+            Console.WriteLine($"✅ Found {summary.TotalProcessCount} FiveM process(es):");
+            
+            if (summary.VulkanProcesses.Any())
             {
-                Console.WriteLine($"   {i + 1}. {processes[i]}");
+                Console.WriteLine("\n🎮 Vulkan Processes (Preferred for injection):");
+                for (int i = 0; i < summary.VulkanProcesses.Count; i++)
+                {
+                    Console.WriteLine($"   {i + 1}. {summary.VulkanProcesses[i]}");
+                }
             }
+            
+            if (summary.TraditionalProcesses.Any())
+            {
+                Console.WriteLine("\n🖥️ Traditional Processes (Window capture fallback):");
+                for (int i = 0; i < summary.TraditionalProcesses.Count; i++)
+                {
+                    Console.WriteLine($"   {i + 1}. {summary.TraditionalProcesses[i]}");
+                }
+            }
+
+            Console.WriteLine($"\n📊 Vulkan Support: {(summary.HasVulkanSupport ? "✅ Available" : "❌ Not detected")}");
+            Console.WriteLine("   💡 Vulkan injection provides better performance than window capture");
         }
     }
 
     private static void StartCapture()
     {
-        Console.WriteLine("\n=== Starting Capture ===");
+        Console.WriteLine("\n=== Starting Capture (Enhanced) ===");
         
-        var processes = FiveMDetector.FindFiveMProcesses();
-        if (processes.Count == 0)
+        var summary = FiveMDetector.GetProcessSummary();
+        if (summary.TotalProcessCount == 0)
         {
             Console.WriteLine("❌ No FiveM processes found. Please start FiveM first.");
             return;
         }
 
-        var targetProcess = processes.First();
+        // Prioritize Vulkan processes for injection
+        ProcessInfo? targetProcess = null;
+        string captureMethod = "";
+
+        if (summary.VulkanProcesses.Any())
+        {
+            var vulkanProcess = summary.VulkanProcesses.First();
+            targetProcess = new ProcessInfo
+            {
+                ProcessId = vulkanProcess.ProcessId,
+                ProcessName = vulkanProcess.ProcessName,
+                WindowTitle = vulkanProcess.WindowTitle,
+                WindowHandle = vulkanProcess.WindowHandle
+            };
+            captureMethod = "Vulkan Injection";
+        }
+        else if (summary.TraditionalProcesses.Any())
+        {
+            targetProcess = summary.TraditionalProcesses.First();
+            captureMethod = "GDI Window Capture (fallback)";
+        }
+
+        if (targetProcess == null)
+        {
+            Console.WriteLine("❌ No suitable processes found for capture.");
+            return;
+        }
+
         Console.WriteLine($"🎯 Targeting: {targetProcess}");
+        Console.WriteLine($"📡 Method: {captureMethod}");
 
         if (_captureEngine!.StartCapture(targetProcess.ProcessName))
         {
@@ -225,6 +270,7 @@ public class Program
         else
         {
             Console.WriteLine("❌ Failed to start capture.");
+            Console.WriteLine("   💡 Try running as administrator for injection support");
         }
     }
 
@@ -294,18 +340,39 @@ public class Program
 
     private static void QuickStart()
     {
-        Console.WriteLine("\n=== Quick Start ===");
+        Console.WriteLine("\n=== Quick Start (Enhanced) ===");
         Console.WriteLine("🚀 Auto-detecting FiveM and starting capture + projection...");
 
-        var processes = FiveMDetector.FindFiveMProcesses();
-        if (processes.Count == 0)
+        var summary = FiveMDetector.GetProcessSummary();
+        if (summary.TotalProcessCount == 0)
         {
             Console.WriteLine("❌ No FiveM processes found. Please start FiveM first.");
             return;
         }
 
-        var targetProcess = processes.First();
-        Console.WriteLine($"🎯 Found: {targetProcess}");
+        // Prioritize Vulkan processes
+        ProcessInfo? targetProcess = null;
+        string method = "";
+
+        if (summary.VulkanProcesses.Any())
+        {
+            var vulkanProcess = summary.VulkanProcesses.First();
+            targetProcess = new ProcessInfo
+            {
+                ProcessId = vulkanProcess.ProcessId,
+                ProcessName = vulkanProcess.ProcessName,
+                WindowTitle = vulkanProcess.WindowTitle,
+                WindowHandle = vulkanProcess.WindowHandle
+            };
+            method = "Vulkan injection";
+        }
+        else
+        {
+            targetProcess = summary.TraditionalProcesses.First();
+            method = "window capture";
+        }
+
+        Console.WriteLine($"🎯 Found: {targetProcess} ({method})");
 
         if (_captureEngine!.StartCapture(targetProcess.ProcessName))
         {
@@ -314,11 +381,13 @@ public class Program
             Console.WriteLine("✅ Projection started!");
             Console.WriteLine();
             Console.WriteLine("🎮 Pick6 is now running! The game should be projected in a borderless window.");
+            Console.WriteLine($"   📡 Using: {method}");
             Console.WriteLine("   Press any key to return to the main menu.");
         }
         else
         {
             Console.WriteLine("❌ Failed to start capture.");
+            Console.WriteLine("   💡 For Vulkan injection, try running as administrator");
         }
     }
 
@@ -327,23 +396,48 @@ public class Program
         Console.WriteLine("\n=== System Status ===");
         Console.WriteLine();
         
-        var processes = FiveMDetector.FindFiveMProcesses();
-        Console.WriteLine($"FiveM Processes: {processes.Count}");
+        var summary = FiveMDetector.GetProcessSummary();
+        Console.WriteLine($"FiveM Processes: {summary.TotalProcessCount}");
+        Console.WriteLine($"  - Vulkan Processes: {summary.VulkanProcesses.Count}");
+        Console.WriteLine($"  - Traditional Processes: {summary.TraditionalProcesses.Count}");
+        Console.WriteLine($"Vulkan Support: {(summary.HasVulkanSupport ? "✅ Available" : "❌ Not detected")}");
         
         // This would check actual capture/projection status in a real implementation
         Console.WriteLine($"Capture Status: Active"); // Placeholder
         Console.WriteLine($"Projection Status: Active"); // Placeholder
         Console.WriteLine($"Current FPS Target: {_captureEngine!.Settings.TargetFPS}");
         Console.WriteLine($"Resolution Setting: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original")}");
+        Console.WriteLine();
+        Console.WriteLine("💡 Tips:");
+        Console.WriteLine("  - Vulkan injection provides better performance");
+        Console.WriteLine("  - Run as administrator for injection privileges");
+        Console.WriteLine("  - Traditional window capture works as fallback");
     }
 
     private static void AutoStartCapture()
     {
-        var processes = FiveMDetector.FindFiveMProcesses();
-        if (processes.Count > 0)
+        var summary = FiveMDetector.GetProcessSummary();
+        if (summary.TotalProcessCount > 0)
         {
-            var targetProcess = processes.First();
-            if (_captureEngine!.StartCapture(targetProcess.ProcessName))
+            ProcessInfo? targetProcess = null;
+            
+            if (summary.VulkanProcesses.Any())
+            {
+                var vulkanProcess = summary.VulkanProcesses.First();
+                targetProcess = new ProcessInfo
+                {
+                    ProcessId = vulkanProcess.ProcessId,
+                    ProcessName = vulkanProcess.ProcessName,
+                    WindowTitle = vulkanProcess.WindowTitle,
+                    WindowHandle = vulkanProcess.WindowHandle
+                };
+            }
+            else
+            {
+                targetProcess = summary.TraditionalProcesses.First();
+            }
+
+            if (targetProcess != null && _captureEngine!.StartCapture(targetProcess.ProcessName))
             {
                 Console.WriteLine($"[INFO] Auto-started capture for: {targetProcess}");
                 _projectionWindow!.StartProjection();

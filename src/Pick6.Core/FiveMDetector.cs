@@ -4,6 +4,7 @@ namespace Pick6.Core;
 
 /// <summary>
 /// Utilities for detecting and managing FiveM processes
+/// Enhanced with Vulkan detection capabilities
 /// </summary>
 public static class FiveMDetector
 {
@@ -21,7 +22,7 @@ public static class FiveMDetector
     };
 
     /// <summary>
-    /// Find all running FiveM processes
+    /// Find all running FiveM processes (traditional method)
     /// </summary>
     public static List<ProcessInfo> FindFiveMProcesses()
     {
@@ -57,31 +58,72 @@ public static class FiveMDetector
     }
 
     /// <summary>
-    /// Check if any FiveM process is currently running
+    /// Find FiveM processes using Vulkan (enhanced method)
     /// </summary>
-    public static bool IsFiveMRunning()
+    public static List<VulkanProcessInfo> FindVulkanFiveMProcesses()
     {
-        return FindFiveMProcesses().Any();
+        return VulkanInjector.FindVulkanProcesses();
     }
 
     /// <summary>
-    /// Get the primary FiveM process (first one found with a window)
+    /// Check if any FiveM process is currently running
+    /// Checks both traditional and Vulkan processes
+    /// </summary>
+    public static bool IsFiveMRunning()
+    {
+        return FindFiveMProcesses().Any() || FindVulkanFiveMProcesses().Any();
+    }
+
+    /// <summary>
+    /// Get the primary FiveM process (prioritizes Vulkan processes)
     /// </summary>
     public static ProcessInfo? GetPrimaryFiveMProcess()
     {
+        // First check for Vulkan processes
+        var vulkanProcesses = FindVulkanFiveMProcesses();
+        if (vulkanProcesses.Any())
+        {
+            var vulkanProcess = vulkanProcesses.First();
+            return new ProcessInfo
+            {
+                ProcessId = vulkanProcess.ProcessId,
+                ProcessName = vulkanProcess.ProcessName,
+                WindowTitle = vulkanProcess.WindowTitle,
+                WindowHandle = vulkanProcess.WindowHandle
+            };
+        }
+
+        // Fall back to traditional process detection
         return FindFiveMProcesses().FirstOrDefault();
     }
 
     /// <summary>
-    /// Monitor for FiveM process changes
+    /// Get comprehensive process information including Vulkan support
     /// </summary>
-    public static void StartProcessMonitoring(Action<List<ProcessInfo>> onProcessesChanged)
+    public static FiveMProcessSummary GetProcessSummary()
+    {
+        var traditionalProcesses = FindFiveMProcesses();
+        var vulkanProcesses = FindVulkanFiveMProcesses();
+
+        return new FiveMProcessSummary
+        {
+            TraditionalProcesses = traditionalProcesses,
+            VulkanProcesses = vulkanProcesses,
+            TotalProcessCount = traditionalProcesses.Count + vulkanProcesses.Count,
+            HasVulkanSupport = vulkanProcesses.Any()
+        };
+    }
+
+    /// <summary>
+    /// Monitor for FiveM process changes (enhanced with Vulkan detection)
+    /// </summary>
+    public static void StartProcessMonitoring(Action<FiveMProcessSummary> onProcessesChanged)
     {
         var timer = new System.Timers.Timer(2000); // Check every 2 seconds
         timer.Elapsed += (s, e) =>
         {
-            var processes = FindFiveMProcesses();
-            onProcessesChanged(processes);
+            var summary = GetProcessSummary();
+            onProcessesChanged(summary);
         };
         timer.Start();
     }
@@ -100,5 +142,21 @@ public class ProcessInfo
     public override string ToString()
     {
         return $"{ProcessName} - {WindowTitle} (PID: {ProcessId})";
+    }
+}
+
+/// <summary>
+/// Comprehensive summary of FiveM processes
+/// </summary>
+public class FiveMProcessSummary
+{
+    public List<ProcessInfo> TraditionalProcesses { get; set; } = new();
+    public List<VulkanProcessInfo> VulkanProcesses { get; set; } = new();
+    public int TotalProcessCount { get; set; }
+    public bool HasVulkanSupport { get; set; }
+
+    public override string ToString()
+    {
+        return $"FiveM Processes: {TotalProcessCount} (Vulkan: {VulkanProcesses.Count}, Traditional: {TraditionalProcesses.Count})";
     }
 }

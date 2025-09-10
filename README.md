@@ -5,9 +5,10 @@ A real-time game capture and projection application specifically designed for Fi
 ## Features
 
 🎮 **FiveM Focused**: Specifically designed for FiveM game capture
+🚀 **Vulkan Injection**: Direct frame capture through DLL injection for optimal performance
 🖥️ **Borderless Projection**: Fullscreen borderless window projection similar to OBS
 ⚡ **Real-time Capture**: Low-latency frame capture with configurable FPS
-🎯 **Auto-Detection**: Automatic FiveM process detection and targeting
+🎯 **Smart Detection**: Auto-detection of FiveM processes with Vulkan support
 ⚙️ **Configurable**: Adjustable resolution, FPS, and capture settings
 📦 **Single Executable**: Self-contained launcher with no external dependencies
 
@@ -40,14 +41,14 @@ Pick6.Launcher.exe --help
 
 Run without arguments to enter interactive mode:
 
-1. **Scan for FiveM processes** - Detect running FiveM instances
-2. **Start capture** - Begin capturing frames from FiveM
+1. **Scan for FiveM processes** - Detect running FiveM instances (enhanced with Vulkan detection)
+2. **Start capture** - Begin capturing frames (uses Vulkan injection when available)
 3. **Stop capture** - Stop frame capture
 4. **Start projection** - Open borderless projection window
 5. **Stop projection** - Close projection window
 6. **Configure settings** - Adjust FPS, resolution, etc.
-7. **Quick start** - Auto-detect and start everything
-8. **Show status** - Display current system status
+7. **Quick start** - Auto-detect and start everything (prioritizes Vulkan processes)
+8. **Show status** - Display current system status including Vulkan support
 
 ## Configuration
 
@@ -72,10 +73,11 @@ Run without arguments to enter interactive mode:
 
 ## How It Works
 
-1. **Process Detection**: Scans for FiveM processes using multiple process name patterns
-2. **Window Capture**: Uses Windows GDI+ for real-time window capture
-3. **Frame Processing**: Processes captured frames with optional scaling and filtering
-4. **Projection**: Displays frames in a borderless fullscreen window for immersive viewing
+1. **Enhanced Process Detection**: Scans for FiveM processes using multiple methods including Vulkan detection
+2. **Vulkan Frame Injection**: Uses DLL injection to capture frames directly from Vulkan API calls for superior performance
+3. **Fallback Window Capture**: Falls back to Windows GDI+ for compatibility when injection is not available
+4. **Frame Processing**: Processes captured frames with optional scaling and filtering
+5. **Projection**: Displays frames in a borderless fullscreen window for immersive viewing
 
 ## FiveM Compatibility
 
@@ -88,12 +90,20 @@ Pick6 automatically detects various FiveM versions including:
 
 ## Troubleshooting
 
+## Troubleshooting
+
 ### No FiveM Process Found
 - Ensure FiveM is running and fully loaded
 - Check that FiveM has a visible window (not minimized)
-- Try running Pick6 as administrator
+- Try running Pick6 as administrator for injection privileges
+
+### Vulkan Injection Failed
+- Run Pick6 as administrator to enable DLL injection
+- Ensure FiveM is using Vulkan (most modern versions do)
+- Check that no antivirus is blocking DLL injection
 
 ### Poor Performance
+- Use Vulkan injection mode for best performance (requires admin rights)
 - Lower the target FPS in settings
 - Disable hardware acceleration if experiencing issues
 - Close unnecessary applications
