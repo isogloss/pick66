@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 
-namespace Pick66.Core;
+namespace Pick6.Core;
 
 /// <summary>
 /// Core capture engine for game window capture

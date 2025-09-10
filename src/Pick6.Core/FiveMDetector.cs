@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Pick66.Core;
+namespace Pick6.Core;
 
 /// <summary>
 /// Utilities for detecting and managing FiveM processes

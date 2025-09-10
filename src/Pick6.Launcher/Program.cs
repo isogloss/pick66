@@ -1,11 +1,11 @@
-using Pick66.Core;
-using Pick66.Projection;
+using Pick6.Core;
+using Pick6.Projection;
 using System.Drawing;
 
-namespace Pick66.Launcher;
+namespace Pick6.Launcher;
 
 /// <summary>
-/// Main launcher for Pick66 OBS Game Capture clone
+/// Main launcher for Pick6 OBS Game Capture clone
 /// </summary>
 public class Program
 {
@@ -17,7 +17,7 @@ public class Program
     public static void Main(string[] args)
     {
         Console.WriteLine("================================================");
-        Console.WriteLine("        Pick66 - OBS Game Capture Clone        ");
+        Console.WriteLine("        Pick6 - OBS Game Capture Clone        ");
         Console.WriteLine("         Real-time FiveM Projection            ");
         Console.WriteLine("================================================");
         Console.WriteLine();
@@ -167,7 +167,7 @@ public class Program
     private static void ShowMainMenu()
     {
         Console.Clear();
-        Console.WriteLine("=== Pick66 Main Menu ===");
+        Console.WriteLine("=== Pick6 Main Menu ===");
         Console.WriteLine();
         Console.WriteLine("1. Scan for FiveM processes");
         Console.WriteLine("2. Start capture");
@@ -313,7 +313,7 @@ public class Program
             _projectionWindow!.StartProjection();
             Console.WriteLine("✅ Projection started!");
             Console.WriteLine();
-            Console.WriteLine("🎮 Pick66 is now running! The game should be projected in a borderless window.");
+            Console.WriteLine("🎮 Pick6 is now running! The game should be projected in a borderless window.");
             Console.WriteLine("   Press any key to return to the main menu.");
         }
         else
@@ -354,9 +354,9 @@ public class Program
 
     private static void ShowHelp()
     {
-        Console.WriteLine("Pick66 - OBS Game Capture Clone for FiveM");
+        Console.WriteLine("Pick6 - OBS Game Capture Clone for FiveM");
         Console.WriteLine();
-        Console.WriteLine("Usage: Pick66.Launcher.exe [options]");
+        Console.WriteLine("Usage: Pick6.Launcher.exe [options]");
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine("  --auto-start          Automatically start capture and projection");
@@ -365,8 +365,8 @@ public class Program
         Console.WriteLine("  --help                Show this help message");
         Console.WriteLine();
         Console.WriteLine("Examples:");
-        Console.WriteLine("  Pick66.Launcher.exe --auto-start --fps 30");
-        Console.WriteLine("  Pick66.Launcher.exe --resolution 1920 1080 --fps 60");
+        Console.WriteLine("  Pick6.Launcher.exe --auto-start --fps 30");
+        Console.WriteLine("  Pick6.Launcher.exe --resolution 1920 1080 --fps 60");
     }
 
     private static void Cleanup()
@@ -374,6 +374,6 @@ public class Program
         Console.WriteLine("\n=== Shutting Down ===");
         _captureEngine?.StopCapture();
         _projectionWindow?.StopProjection();
-        Console.WriteLine("✅ Pick66 has been shut down gracefully.");
+        Console.WriteLine("✅ Pick6 has been shut down gracefully.");
     }
 }

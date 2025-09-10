@@ -1,10 +1,10 @@
-using Pick66.Core;
+using Pick6.Core;
 using System.Drawing;
 
-namespace Pick66.UI;
+namespace Pick6.UI;
 
 /// <summary>
-/// Main UI application for Pick66 Game Capture
+/// Main UI application for Pick6 Game Capture
 /// </summary>
 public class Program
 {
@@ -33,7 +33,7 @@ public class Program
 
     private static void RunConsoleUI()
     {
-        Console.WriteLine("=== Pick66 Game Capture ===");
+        Console.WriteLine("=== Pick6 Game Capture ===");
         Console.WriteLine("Real-time FiveM capture and projection");
         Console.WriteLine();
 

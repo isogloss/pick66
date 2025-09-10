@@ -1,8 +1,8 @@
-# Pick66 Implementation Summary
+# Pick6 Implementation Summary
 
 ## What Was Built
 
-Pick66 is a complete OBS Game Capture clone specifically designed for FiveM with the following features:
+Pick6 is a complete OBS Game Capture clone specifically designed for FiveM with the following features:
 
 ### ✅ Core Requirements Met
 
@@ -17,24 +17,24 @@ Pick66 is a complete OBS Game Capture clone specifically designed for FiveM with
 ### 🏗️ Architecture
 
 ```
-Pick66.Launcher.exe (Main executable - 87MB self-contained)
-├── Pick66.Core (Capture engine & FiveM detection)
-├── Pick66.UI (Interactive console interface)
-└── Pick66.Projection (Borderless fullscreen window)
+Pick6.Launcher.exe (Main executable - 87MB self-contained)
+├── Pick6.Core (Capture engine & FiveM detection)
+├── Pick6.UI (Interactive console interface)
+└── Pick6.Projection (Borderless fullscreen window)
 ```
 
 ### 🚀 Usage Modes
 
 **Interactive Mode:**
 ```bash
-Pick66.Launcher.exe
+Pick6.Launcher.exe
 # Shows full menu with 8 options including scan, capture, project, configure
 ```
 
 **Automated Mode:**
 ```bash
-Pick66.Launcher.exe --auto-start  # Auto-detect and start everything
-Pick66.Launcher.exe --fps 30 --resolution 1920 1080
+Pick6.Launcher.exe --auto-start  # Auto-detect and start everything
+Pick6.Launcher.exe --fps 30 --resolution 1920 1080
 ```
 
 ### 🎯 Key Features
@@ -58,15 +58,15 @@ Pick66.Launcher.exe --fps 30 --resolution 1920 1080
 
 ```
 src/
-├── Pick66.Core/          # GameCaptureEngine, FiveMDetector, Win32 APIs
-├── Pick66.UI/            # Console interface and user interaction
-├── Pick66.Projection/    # BorderlessProjectionWindow, rendering
-└── Pick66.Launcher/      # Main entry point and orchestration
+├── Pick6.Core/          # GameCaptureEngine, FiveMDetector, Win32 APIs
+├── Pick6.UI/            # Console interface and user interaction
+├── Pick6.Projection/    # BorderlessProjectionWindow, rendering
+└── Pick6.Launcher/      # Main entry point and orchestration
 ```
 
 ### 🔧 Build Output
 
-- **Primary**: `dist/Pick66.Launcher.exe` (87MB self-contained Windows executable)
+- **Primary**: `dist/Pick6.Launcher.exe` (87MB self-contained Windows executable)
 - **Debug Build**: Standard .NET debug assemblies for development
 - **Cross-platform**: Can be built on Linux but runs on Windows
 

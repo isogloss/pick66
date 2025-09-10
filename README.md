@@ -1,4 +1,4 @@
-# Pick66 - OBS Game Capture Clone
+# Pick6 - OBS Game Capture Clone
 
 A real-time game capture and projection application specifically designed for FiveM, providing OBS-like screen capture functionality with borderless fullscreen projection.
 
@@ -13,7 +13,7 @@ A real-time game capture and projection application specifically designed for Fi
 
 ## Quick Start
 
-1. **Download and Run**: Simply run `Pick66.Launcher.exe`
+1. **Download and Run**: Simply run `Pick6.Launcher.exe`
 2. **Start FiveM**: Make sure FiveM is running
 3. **Quick Start**: Choose option 7 in the menu for automatic setup
 4. **Enjoy**: Your FiveM game will be projected in a borderless window
@@ -24,16 +24,16 @@ A real-time game capture and projection application specifically designed for Fi
 
 ```bash
 # Auto-start capture and projection
-Pick66.Launcher.exe --auto-start
+Pick6.Launcher.exe --auto-start
 
 # Set custom FPS
-Pick66.Launcher.exe --fps 30
+Pick6.Launcher.exe --fps 30
 
 # Set custom resolution
-Pick66.Launcher.exe --resolution 1920 1080 --fps 60
+Pick6.Launcher.exe --resolution 1920 1080 --fps 60
 
 # Show help
-Pick66.Launcher.exe --help
+Pick6.Launcher.exe --help
 ```
 
 ### Interactive Mode
@@ -79,7 +79,7 @@ Run without arguments to enter interactive mode:
 
 ## FiveM Compatibility
 
-Pick66 automatically detects various FiveM versions including:
+Pick6 automatically detects various FiveM versions including:
 - FiveM (main release)
 - FiveM_b2060, FiveM_b2189, FiveM_b2372
 - FiveM_b2545, FiveM_b2612, FiveM_b2699
@@ -91,7 +91,7 @@ Pick66 automatically detects various FiveM versions including:
 ### No FiveM Process Found
 - Ensure FiveM is running and fully loaded
 - Check that FiveM has a visible window (not minimized)
-- Try running Pick66 as administrator
+- Try running Pick6 as administrator
 
 ### Poor Performance
 - Lower the target FPS in settings
@@ -114,17 +114,17 @@ cd pick66
 dotnet build
 
 # Run the launcher
-dotnet run --project src/Pick66.Launcher
+dotnet run --project src/Pick6.Launcher
 ```
 
 ## Project Structure
 
 ```
 src/
-├── Pick66.Core/          # Core capture engine
-├── Pick66.UI/            # User interface
-├── Pick66.Projection/    # Projection window logic
-└── Pick66.Launcher/      # Main executable
+├── Pick6.Core/          # Core capture engine
+├── Pick6.UI/            # User interface
+├── Pick6.Projection/    # Projection window logic
+└── Pick6.Launcher/      # Main executable
 ```
 
 ## License
@@ -137,4 +137,4 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 
 ---
 
-**Note**: This application is designed for legitimate screen capture purposes. Please respect the terms of service of any games or applications you use with Pick66.
+**Note**: This application is designed for legitimate screen capture purposes. Please respect the terms of service of any games or applications you use with Pick6.

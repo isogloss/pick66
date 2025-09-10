@@ -1,7 +1,7 @@
-using Pick66.Core;
+using Pick6.Core;
 using System.Drawing;
 
-namespace Pick66.Projection;
+namespace Pick6.Projection;
 
 /// <summary>
 /// Borderless projection window for real-time frame display
@@ -10,7 +10,7 @@ public class Program
 {
     public static void Main()
     {
-        Console.WriteLine("Pick66 Projection Window");
+        Console.WriteLine("Pick6 Projection Window");
         Console.WriteLine("This module handles the borderless fullscreen projection");
         
         if (OperatingSystem.IsWindows())
