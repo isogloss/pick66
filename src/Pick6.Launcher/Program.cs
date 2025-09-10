@@ -1,98 +1,154 @@
 using Pick6.Core;
 using Pick6.Projection;
 using System.Drawing;
+using System.Diagnostics;
 
 namespace Pick6.Launcher;
 
 /// <summary>
-/// Main launcher for Pick6 OBS Game Capture clone
+/// Main launcher for Pick6 OBS Game Capture clone - now attempts GUI first, falls back to console
 /// </summary>
 public class Program
 {
-    private static GameCaptureEngine? _captureEngine;
-    private static BorderlessProjectionWindow? _projectionWindow;
-    private static bool _isRunning = true;
-
     [STAThread]
     public static void Main(string[] args)
     {
+        // Check for console-only arguments first
+        if (args.Length > 0)
+        {
+            foreach (var arg in args)
+            {
+                if (arg.ToLower() == "--console" || arg.ToLower() == "--help")
+                {
+                    RunConsoleMode(args);
+                    return;
+                }
+            }
+        }
+
+        // Try to launch GUI mode first (if available)
+        if (TryLaunchGuiMode())
+        {
+            return; // GUI launched successfully
+        }
+
+        // Fall back to console mode
+        Console.WriteLine("GUI mode not available. Starting console mode...");
+        RunConsoleMode(args);
+    }
+
+    private static bool TryLaunchGuiMode()
+    {
+        try
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                return false; // GUI only available on Windows
+            }
+
+            // Try to find the GUI executable
+            var currentDir = AppDomain.CurrentDomain.BaseDirectory;
+            var guiExePath = Path.Combine(currentDir, "Pick6.GUI.exe");
+            
+            if (File.Exists(guiExePath))
+            {
+                // Launch the GUI application
+                var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = guiExePath,
+                    UseShellExecute = true
+                });
+                
+                return true; // Successfully launched
+            }
+
+            return false; // GUI executable not found
+        }
+        catch
+        {
+            return false; // Failed to launch GUI
+        }
+    }
+
+    private static void RunConsoleMode(string[] args)
+    {
+        var captureEngine = new GameCaptureEngine();
+        var projectionWindow = new BorderlessProjectionWindow();
+        var isRunning = true;
+
         Console.WriteLine("================================================");
         Console.WriteLine("        Pick6 - OBS Game Capture Clone        ");
-        Console.WriteLine("         Real-time FiveM Projection            ");
+        Console.WriteLine("         Console Mode                          ");
         Console.WriteLine("================================================");
         Console.WriteLine();
-
-        // Initialize components
-        _captureEngine = new GameCaptureEngine();
-        _projectionWindow = new BorderlessProjectionWindow();
+        Console.WriteLine("💡 For a better experience, use the GUI version (Pick6.GUI.exe)");
+        Console.WriteLine();
 
         // Setup event handlers
-        SetupEventHandlers();
+        SetupEventHandlers(captureEngine, projectionWindow);
 
         // Handle Ctrl+C gracefully
         Console.CancelKeyPress += (s, e) =>
         {
             e.Cancel = true;
-            _isRunning = false;
+            isRunning = false;
         };
 
         // Check for command line arguments
         if (args.Length > 0)
         {
-            HandleCommandLineArgs(args);
+            HandleCommandLineArgs(args, captureEngine, projectionWindow);
         }
 
         // Main application loop
-        RunMainLoop();
+        RunMainLoop(captureEngine, projectionWindow, ref isRunning);
 
         // Cleanup
-        Cleanup();
+        Cleanup(captureEngine, projectionWindow);
     }
 
-    private static void SetupEventHandlers()
+    private static void SetupEventHandlers(GameCaptureEngine captureEngine, BorderlessProjectionWindow projectionWindow)
     {
-        if (_captureEngine == null || _projectionWindow == null) return;
-
         // Forward captured frames to projection window
-        _captureEngine.FrameCaptured += (s, e) =>
+        captureEngine.FrameCaptured += (s, e) =>
         {
             if (OperatingSystem.IsWindows())
             {
-                _projectionWindow.UpdateFrame(e.Frame);
+                projectionWindow.UpdateFrame(e.Frame);
             }
         };
 
         // Handle capture errors
-        _captureEngine.ErrorOccurred += (s, errorMessage) =>
+        captureEngine.ErrorOccurred += (s, errorMessage) =>
         {
             Console.WriteLine($"[ERROR] Capture: {errorMessage}");
         };
 
         // Handle projection events
-        _projectionWindow.ProjectionStarted += (s, e) =>
+        projectionWindow.ProjectionStarted += (s, e) =>
         {
             Console.WriteLine("[INFO] Projection started");
         };
 
-        _projectionWindow.ProjectionStopped += (s, e) =>
+        projectionWindow.ProjectionStopped += (s, e) =>
         {
             Console.WriteLine("[INFO] Projection stopped");
         };
     }
 
-    private static void HandleCommandLineArgs(string[] args)
+    private static void HandleCommandLineArgs(string[] args, GameCaptureEngine captureEngine, BorderlessProjectionWindow projectionWindow)
     {
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i].ToLower())
             {
                 case "--auto-start":
-                    AutoStartCapture();
+                    AutoStartCapture(captureEngine, projectionWindow);
                     break;
                 case "--fps":
                     if (i + 1 < args.Length && int.TryParse(args[i + 1], out int fps))
                     {
-                        _captureEngine!.Settings.TargetFPS = fps;
+                        captureEngine.Settings.TargetFPS = fps;
                         Console.WriteLine($"[INFO] Target FPS set to {fps}");
                         i++;
                     }
@@ -102,8 +158,8 @@ public class Program
                         int.TryParse(args[i + 1], out int width) &&
                         int.TryParse(args[i + 2], out int height))
                     {
-                        _captureEngine!.Settings.ScaleWidth = width;
-                        _captureEngine!.Settings.ScaleHeight = height;
+                        captureEngine.Settings.ScaleWidth = width;
+                        captureEngine.Settings.ScaleHeight = height;
                         Console.WriteLine($"[INFO] Resolution set to {width}x{height}");
                         i += 2;
                     }
@@ -116,9 +172,9 @@ public class Program
         }
     }
 
-    private static void RunMainLoop()
+    private static void RunMainLoop(GameCaptureEngine captureEngine, BorderlessProjectionWindow projectionWindow, ref bool isRunning)
     {
-        while (_isRunning)
+        while (isRunning)
         {
             ShowMainMenu();
             var choice = Console.ReadLine()?.Trim();
@@ -129,37 +185,37 @@ public class Program
                     ScanForFiveM();
                     break;
                 case "2":
-                    StartCapture();
+                    StartCapture(captureEngine);
                     break;
                 case "3":
-                    StopCapture();
+                    StopCapture(captureEngine);
                     break;
                 case "4":
-                    StartProjection();
+                    StartProjection(projectionWindow);
                     break;
                 case "5":
-                    StopProjection();
+                    StopProjection(projectionWindow);
                     break;
                 case "6":
-                    ConfigureSettings();
+                    ConfigureSettings(captureEngine);
                     break;
                 case "7":
-                    QuickStart();
+                    QuickStart(captureEngine, projectionWindow);
                     break;
                 case "8":
-                    ShowStatus();
+                    ShowStatus(captureEngine);
                     break;
                 case "0":
                 case "exit":
                 case "quit":
-                    _isRunning = false;
+                    isRunning = false;
                     break;
                 default:
                     Console.WriteLine("Invalid choice. Please try again.");
                     break;
             }
 
-            if (_isRunning)
+            if (isRunning)
             {
                 Console.WriteLine("\nPress any key to continue...");
                 Console.ReadKey();
@@ -222,7 +278,7 @@ public class Program
         }
     }
 
-    private static void StartCapture()
+    private static void StartCapture(GameCaptureEngine captureEngine)
     {
         Console.WriteLine("\n=== Starting Capture (Enhanced) ===");
         
@@ -264,11 +320,11 @@ public class Program
         Console.WriteLine($"🎯 Targeting: {targetProcess}");
         Console.WriteLine($"📡 Method: {captureMethod}");
 
-        if (_captureEngine!.StartCapture(targetProcess.ProcessName))
+        if (captureEngine.StartCapture(targetProcess.ProcessName))
         {
             Console.WriteLine("✅ Capture started successfully!");
-            Console.WriteLine($"   FPS: {_captureEngine.Settings.TargetFPS}");
-            Console.WriteLine($"   Resolution: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original")}");
+            Console.WriteLine($"   FPS: {captureEngine.Settings.TargetFPS}");
+            Console.WriteLine($"   Resolution: {(captureEngine.Settings.ScaleWidth > 0 ? $"{captureEngine.Settings.ScaleWidth}x{captureEngine.Settings.ScaleHeight}" : "Original")}");
         }
         else
         {
@@ -277,60 +333,60 @@ public class Program
         }
     }
 
-    private static void StopCapture()
+    private static void StopCapture(GameCaptureEngine captureEngine)
     {
         Console.WriteLine("\n=== Stopping Capture ===");
-        _captureEngine!.StopCapture();
+        captureEngine.StopCapture();
         Console.WriteLine("✅ Capture stopped.");
     }
 
-    private static void StartProjection()
+    private static void StartProjection(BorderlessProjectionWindow projectionWindow)
     {
         Console.WriteLine("\n=== Starting Projection ===");
-        _projectionWindow!.StartProjection();
+        projectionWindow.StartProjection();
         Console.WriteLine("✅ Borderless projection window started.");
         Console.WriteLine("   The projection window should now be visible.");
     }
 
-    private static void StopProjection()
+    private static void StopProjection(BorderlessProjectionWindow projectionWindow)
     {
         Console.WriteLine("\n=== Stopping Projection ===");
-        _projectionWindow!.StopProjection();
+        projectionWindow.StopProjection();
         Console.WriteLine("✅ Projection stopped.");
     }
 
-    private static void ConfigureSettings()
+    private static void ConfigureSettings(GameCaptureEngine captureEngine)
     {
         Console.WriteLine("\n=== Configuration Settings ===");
         Console.WriteLine();
-        Console.WriteLine($"Current Target FPS: {_captureEngine!.Settings.TargetFPS}");
-        Console.WriteLine($"Current Resolution: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original (auto-detect)")}");
-        Console.WriteLine($"Hardware Acceleration: {_captureEngine.Settings.UseHardwareAcceleration}");
+        Console.WriteLine($"Current Target FPS: {captureEngine.Settings.TargetFPS}");
+        Console.WriteLine($"Current Resolution: {(captureEngine.Settings.ScaleWidth > 0 ? $"{captureEngine.Settings.ScaleWidth}x{captureEngine.Settings.ScaleHeight}" : "Original (auto-detect)")}");
+        Console.WriteLine($"Hardware Acceleration: {captureEngine.Settings.UseHardwareAcceleration}");
         Console.WriteLine();
 
         Console.WriteLine("Enter new values (press Enter to keep current):");
         
-        Console.Write($"Target FPS ({_captureEngine.Settings.TargetFPS}): ");
+        Console.Write($"Target FPS ({captureEngine.Settings.TargetFPS}): ");
         var fpsInput = Console.ReadLine();
         if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 120)
         {
-            _captureEngine.Settings.TargetFPS = fps;
+            captureEngine.Settings.TargetFPS = fps;
             Console.WriteLine($"✅ FPS updated to {fps}");
         }
 
         Console.WriteLine("\nResolution settings (enter 0 for both to use original size):");
-        Console.Write($"Width ({_captureEngine.Settings.ScaleWidth}): ");
+        Console.Write($"Width ({captureEngine.Settings.ScaleWidth}): ");
         var widthInput = Console.ReadLine();
         if (int.TryParse(widthInput, out int width) && width >= 0)
         {
-            _captureEngine.Settings.ScaleWidth = width;
+            captureEngine.Settings.ScaleWidth = width;
         }
 
-        Console.Write($"Height ({_captureEngine.Settings.ScaleHeight}): ");
+        Console.Write($"Height ({captureEngine.Settings.ScaleHeight}): ");
         var heightInput = Console.ReadLine();
         if (int.TryParse(heightInput, out int height) && height >= 0)
         {
-            _captureEngine.Settings.ScaleHeight = height;
+            captureEngine.Settings.ScaleHeight = height;
         }
 
         if (int.TryParse(widthInput, out width) && int.TryParse(heightInput, out height))
@@ -341,7 +397,7 @@ public class Program
         Console.WriteLine("✅ Settings updated successfully!");
     }
 
-    private static void QuickStart()
+    private static void QuickStart(GameCaptureEngine captureEngine, BorderlessProjectionWindow projectionWindow)
     {
         Console.WriteLine("\n=== Quick Start (Enhanced) ===");
         Console.WriteLine("🚀 Auto-detecting FiveM and starting capture + projection...");
@@ -377,10 +433,10 @@ public class Program
 
         Console.WriteLine($"🎯 Found: {targetProcess} ({method})");
 
-        if (_captureEngine!.StartCapture(targetProcess.ProcessName))
+        if (captureEngine.StartCapture(targetProcess.ProcessName))
         {
             Console.WriteLine("✅ Capture started!");
-            _projectionWindow!.StartProjection();
+            projectionWindow.StartProjection();
             Console.WriteLine("✅ Projection started!");
             Console.WriteLine();
             Console.WriteLine("🎮 Pick6 is now running! The game should be projected in a borderless window.");
@@ -394,7 +450,7 @@ public class Program
         }
     }
 
-    private static void ShowStatus()
+    private static void ShowStatus(GameCaptureEngine captureEngine)
     {
         Console.WriteLine("\n=== System Status ===");
         Console.WriteLine();
@@ -408,8 +464,8 @@ public class Program
         // This would check actual capture/projection status in a real implementation
         Console.WriteLine($"Capture Status: Active"); // Placeholder
         Console.WriteLine($"Projection Status: Active"); // Placeholder
-        Console.WriteLine($"Current FPS Target: {_captureEngine!.Settings.TargetFPS}");
-        Console.WriteLine($"Resolution Setting: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original")}");
+        Console.WriteLine($"Current FPS Target: {captureEngine.Settings.TargetFPS}");
+        Console.WriteLine($"Resolution Setting: {(captureEngine.Settings.ScaleWidth > 0 ? $"{captureEngine.Settings.ScaleWidth}x{captureEngine.Settings.ScaleHeight}" : "Original")}");
         Console.WriteLine();
         Console.WriteLine("💡 Tips:");
         Console.WriteLine("  - Vulkan injection provides better performance");
@@ -417,7 +473,7 @@ public class Program
         Console.WriteLine("  - Traditional window capture works as fallback");
     }
 
-    private static void AutoStartCapture()
+    private static void AutoStartCapture(GameCaptureEngine captureEngine, BorderlessProjectionWindow projectionWindow)
     {
         var summary = FiveMDetector.GetProcessSummary();
         if (summary.TotalProcessCount > 0)
@@ -440,13 +496,21 @@ public class Program
                 targetProcess = summary.TraditionalProcesses.First();
             }
 
-            if (targetProcess != null && _captureEngine!.StartCapture(targetProcess.ProcessName))
+            if (targetProcess != null && captureEngine.StartCapture(targetProcess.ProcessName))
             {
                 Console.WriteLine($"[INFO] Auto-started capture for: {targetProcess}");
-                _projectionWindow!.StartProjection();
+                projectionWindow.StartProjection();
                 Console.WriteLine("[INFO] Auto-started projection");
             }
         }
+    }
+
+    private static void Cleanup(GameCaptureEngine captureEngine, BorderlessProjectionWindow projectionWindow)
+    {
+        Console.WriteLine("\n=== Shutting Down ===");
+        captureEngine?.StopCapture();
+        projectionWindow?.StopProjection();
+        Console.WriteLine("✅ Pick6 has been shut down gracefully.");
     }
 
     private static void ShowHelp()
@@ -464,13 +528,5 @@ public class Program
         Console.WriteLine("Examples:");
         Console.WriteLine("  Pick6.Launcher.exe --auto-start --fps 30");
         Console.WriteLine("  Pick6.Launcher.exe --resolution 1920 1080 --fps 60");
-    }
-
-    private static void Cleanup()
-    {
-        Console.WriteLine("\n=== Shutting Down ===");
-        _captureEngine?.StopCapture();
-        _projectionWindow?.StopProjection();
-        Console.WriteLine("✅ Pick6 has been shut down gracefully.");
     }
 }

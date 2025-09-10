@@ -1,6 +1,6 @@
 # Pick6 - OBS Game Capture Clone
 
-A real-time game capture and projection application specifically designed for FiveM, providing OBS-like screen capture functionality with borderless fullscreen projection.
+A real-time game capture and projection application specifically designed for FiveM, providing OBS-like screen capture functionality with borderless fullscreen projection and **automatic injection workflow**.
 
 ## Features
 
@@ -10,36 +10,65 @@ A real-time game capture and projection application specifically designed for Fi
 ⚡ **Real-time Capture**: Low-latency frame capture with configurable FPS
 🎯 **Smart Detection**: Auto-detection of FiveM processes with Vulkan support
 ⚙️ **Configurable**: Adjustable resolution, FPS, and capture settings
-📦 **Single Executable**: Self-contained launcher with no external dependencies
+📦 **Dual Interface**: GUI mode (OBS-style) and console mode
+🔄 **Automatic Injection**: Click "Start Injection" and system handles everything
 
 ## Quick Start
 
-1. **Download and Run**: Simply run `Pick6.Launcher.exe`
+### GUI Mode (Recommended - OBS-style interface)
+1. **Download and Run**: Simply run `Pick6.GUI.exe` 
+2. **Click "Start Injection"**: This preps the system for automatic monitoring
+3. **Start FiveM**: The system automatically detects and injects when FiveM starts
+4. **Enjoy**: Your FiveM game will be projected in a borderless window
+
+### Console Mode (Legacy)
+1. **Download and Run**: Run `Pick6.Launcher.exe` (attempts GUI first, falls back to console)
 2. **Start FiveM**: Make sure FiveM is running
 3. **Quick Start**: Choose option 7 in the menu for automatic setup
 4. **Enjoy**: Your FiveM game will be projected in a borderless window
 
 ## Usage
 
-### Command Line Options
+### GUI Mode (Pick6.GUI.exe) - **NEW!**
+
+The new GUI interface works exactly like OBS Game Capture:
+
+1. **Start Injection**: Click the blue "Start Injection" button
+2. **Automatic Monitoring**: System continuously monitors for FiveM processes
+3. **Auto-Injection**: When FiveM starts, injection happens automatically
+4. **Real-time Status**: See process detection and injection status in real-time
+5. **Settings**: Configure FPS, auto-projection, and other capture settings
+
+**Status Indicators:**
+- Process Status: Shows when FiveM is detected
+- Capture Status: Shows injection method (Vulkan injection or window capture)
+- Ready State: "Ready to inject" → "Monitoring..." → "Successfully injected"
+
+### Console Mode Options
 
 ```bash
-# Auto-start capture and projection
-Pick6.Launcher.exe --auto-start
+# GUI Mode (default - launches Pick6.GUI.exe if available)
+Pick6.Launcher.exe
 
-# Set custom FPS
-Pick6.Launcher.exe --fps 30
+# Force console mode
+Pick6.Launcher.exe --console
 
-# Set custom resolution
-Pick6.Launcher.exe --resolution 1920 1080 --fps 60
+# Auto-start capture and projection (console mode)
+Pick6.Launcher.exe --console --auto-start
+
+# Set custom FPS (console mode)
+Pick6.Launcher.exe --console --fps 30
+
+# Set custom resolution (console mode)
+Pick6.Launcher.exe --console --resolution 1920 1080 --fps 60
 
 # Show help
 Pick6.Launcher.exe --help
 ```
 
-### Interactive Mode
+### Console Interactive Mode
 
-Run without arguments to enter interactive mode:
+Run `Pick6.Launcher.exe --console` to enter interactive mode:
 
 1. **Scan for FiveM processes** - Detect running FiveM instances (enhanced with Vulkan detection)
 2. **Start capture** - Begin capturing frames (uses Vulkan injection when available)
@@ -52,7 +81,11 @@ Run without arguments to enter interactive mode:
 
 ## Configuration
 
-### Capture Settings
+### GUI Settings
+- **Target FPS**: Frame rate for capture (15-120 FPS)
+- **Auto-start projection**: Automatically open projection window when capture starts
+
+### Console Settings
 
 - **Target FPS**: Frame rate for capture (default: 60)
 - **Resolution**: Output resolution (default: original game resolution)
@@ -67,12 +100,21 @@ Run without arguments to enter interactive mode:
 ## System Requirements
 
 - **OS**: Windows 10/11 (64-bit)
-- **Runtime**: .NET 8.0 or later
+- **Runtime**: .NET 8.0 or later (included in executable)
 - **Memory**: 4GB RAM minimum
 - **Graphics**: DirectX 11 compatible graphics card
 
 ## How It Works
 
+### OBS-Style Workflow (GUI Mode)
+1. **Prep Injection**: User clicks "Start Injection" button
+2. **Background Monitoring**: System continuously scans for FiveM processes
+3. **Automatic Detection**: When FiveM starts, it's immediately detected
+4. **Smart Injection**: Prioritizes Vulkan injection, falls back to window capture
+5. **Auto-Projection**: Optionally starts projection window automatically
+6. **Status Updates**: Real-time feedback on all operations
+
+### Technical Process
 1. **Enhanced Process Detection**: Scans for FiveM processes using multiple methods including Vulkan detection
 2. **Vulkan Frame Injection**: Uses DLL injection to capture frames directly from Vulkan API calls for superior performance
 3. **Fallback Window Capture**: Falls back to Windows GDI+ for compatibility when injection is not available
