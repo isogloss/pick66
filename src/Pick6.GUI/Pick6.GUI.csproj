@@ -1,16 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
+  <!-- Only set properties on Windows -->
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
+    <DefineConstants>WINDOWS</DefineConstants>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!-- For non-Windows, create a dummy console app that does nothing -->
+  <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- Only include project references on Windows -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <ProjectReference Include="..\Pick6.Core\Pick6.Core.csproj" />
     <ProjectReference Include="..\Pick6.Projection\Pick6.Projection.csproj" />
+  </ItemGroup>
+
+  <!-- Exclude Windows Forms files from non-Windows builds -->
+  <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <Compile Remove="MainForm.cs" />
+    <Compile Remove="MainForm.Designer.cs" />
   </ItemGroup>
 
 </Project>
