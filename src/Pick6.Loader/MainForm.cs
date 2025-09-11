@@ -223,7 +223,8 @@ public partial class MainForm : Form
         DefaultKeybinds.RegisterDefaultKeybinds(_keybindManager,
             toggleLoader: () => BeginInvoke(() => ToggleLoaderVisibility()),
             toggleProjection: () => BeginInvoke(() => ToggleProjection()),
-            closeProjection: () => BeginInvoke(() => StopProjectionOnly())
+            closeProjection: () => BeginInvoke(() => StopProjectionOnly()),
+            stopProjectionAndRestore: () => BeginInvoke(() => StopProjectionAndRestore())
         );
 
         _keybindManager.StartMonitoring();
@@ -271,6 +272,33 @@ public partial class MainForm : Form
     {
         _projectionWindow?.StopProjection();
         _autoProjectCheckbox.Checked = false;
+    }
+
+    private void StopProjectionAndRestore()
+    {
+        // Stop projection first
+        StopProjectionOnly();
+        
+        // Restore UI focus
+        if (!_loaderVisible)
+        {
+            RestoreLoaderWindow();
+        }
+        else
+        {
+            // Bring window to front if it's already visible
+            this.BringToFront();
+            this.Activate();
+        }
+    }
+
+    private void RestoreLoaderWindow()
+    {
+        this.WindowState = FormWindowState.Normal;
+        this.ShowInTaskbar = true;
+        this.BringToFront();
+        this.Activate();
+        _loaderVisible = true;
     }
 
     private void SetupEventHandlers()

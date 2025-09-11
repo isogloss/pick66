@@ -198,7 +198,8 @@ public static class DefaultKeybinds
     public static void RegisterDefaultKeybinds(GlobalKeybindManager manager, 
                                               Action? toggleLoader = null,
                                               Action? toggleProjection = null,
-                                              Action? closeProjection = null)
+                                              Action? closeProjection = null,
+                                              Action? stopProjectionAndRestore = null)
     {
         if (!OperatingSystem.IsWindows()) return;
 
@@ -218,6 +219,13 @@ public static class DefaultKeybinds
                                       "Ctrl+P - Toggle Projection", toggleProjection);
             }
 
+            // Ctrl+Shift+P - Stop projection and restore menu/window
+            if (stopProjectionAndRestore != null)
+            {
+                manager.RegisterKeybind(GlobalKeybindManager.VK_P, true, false, true, 
+                                      "Ctrl+Shift+P - Stop Projection & Restore Menu", stopProjectionAndRestore);
+            }
+
             // Ctrl+Shift+Esc - Close projection immediately
             if (closeProjection != null)
             {
@@ -228,6 +236,7 @@ public static class DefaultKeybinds
             Console.WriteLine("✅ Default global keybinds registered:");
             Console.WriteLine("   Ctrl+L - Toggle Loader Window");
             Console.WriteLine("   Ctrl+P - Toggle Projection Window");
+            Console.WriteLine("   Ctrl+Shift+P - Stop Projection & Restore Menu");
             Console.WriteLine("   Ctrl+Shift+Esc - Close Projection");
         }
         catch (Exception ex)

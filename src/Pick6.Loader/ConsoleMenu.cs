@@ -12,13 +12,37 @@ public class ConsoleMenu
 {
     private readonly GameCaptureEngine _captureEngine;
     private readonly BorderlessProjectionWindow _projectionWindow;
+    private readonly GlobalKeybindManager? _keybindManager;
     private int _selectedMonitor = 0;
 
     public ConsoleMenu()
     {
         _captureEngine = new GameCaptureEngine();
         _projectionWindow = new BorderlessProjectionWindow();
+        
+        // Initialize global keybind manager for Windows
+        if (OperatingSystem.IsWindows())
+        {
+            _keybindManager = new GlobalKeybindManager();
+            SetupGlobalKeybinds();
+        }
+        
         SetupEventHandlers();
+    }
+
+    private void SetupGlobalKeybinds()
+    {
+        if (_keybindManager == null) return;
+
+        DefaultKeybinds.RegisterDefaultKeybinds(_keybindManager,
+            toggleLoader: null, // No loader window in console mode
+            toggleProjection: () => ToggleProjection(),
+            closeProjection: () => StopProjectionOnly(),
+            stopProjectionAndRestore: () => StopProjectionOnly() // Same as close in console mode
+        );
+
+        _keybindManager.StartMonitoring();
+        Console.WriteLine("Global keybinds enabled for console mode.");
     }
 
     public void Run(string[] args)
@@ -544,9 +568,41 @@ public class ConsoleMenu
         }
     }
 
+    private void ToggleProjection()
+    {
+        try
+        {
+            if (_projectionWindow == null) return;
+            
+            // Simple toggle - stop if running, start if stopped
+            // Since console doesn't have a way to track projection state easily,
+            // we'll just try to start projection (which will do nothing if already running)
+            _projectionWindow.StartProjection(_selectedMonitor);
+            Console.WriteLine("[INFO] Projection toggle requested");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to toggle projection: {ex.Message}");
+        }
+    }
+
+    private void StopProjectionOnly()
+    {
+        try
+        {
+            _projectionWindow?.StopProjection();
+            Console.WriteLine("[INFO] Projection stopped via keybind");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to stop projection: {ex.Message}");
+        }
+    }
+
     private void Cleanup()
     {
         Console.WriteLine("\n=== Shutting Down ===");
+        _keybindManager?.Dispose();
         _captureEngine?.StopCapture();
         _projectionWindow?.StopProjection();
         Console.WriteLine("✅ Pick6 has been shut down gracefully.");

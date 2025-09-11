@@ -18,6 +18,14 @@ public class WindowsProjectionForm
     private Thread? _renderThread;
     private int _targetFPS = 60;
     private int _screenIndex = 0;
+    
+    // High-performance rendering fields
+    private IntPtr _memoryDC = IntPtr.Zero;
+    private IntPtr _currentHBitmap = IntPtr.Zero;
+    private IntPtr _oldBitmap = IntPtr.Zero;
+    private bool _enableFpsLogging = false;
+    private int _frameCount = 0;
+    private DateTime _lastFpsLogTime = DateTime.Now;
 
     public event EventHandler? ProjectionStarted;
     public event EventHandler? ProjectionStopped;
@@ -42,7 +50,20 @@ public class WindowsProjectionForm
     /// </summary>
     public void SetTargetFPS(int fps)
     {
-        _targetFPS = Math.Max(15, Math.Min(120, fps));
+        _targetFPS = Math.Max(15, Math.Min(240, fps));
+    }
+
+    /// <summary>
+    /// Enable or disable FPS logging for debugging
+    /// </summary>
+    public void SetFpsLogging(bool enabled)
+    {
+        _enableFpsLogging = enabled;
+        if (enabled)
+        {
+            _frameCount = 0;
+            _lastFpsLogTime = DateTime.Now;
+        }
     }
 
     /// <summary>
@@ -105,6 +126,12 @@ public class WindowsProjectionForm
         _isProjecting = false;
         _renderThread?.Join(1000);
         
+        // Clean up GDI resources
+        if (OperatingSystem.IsWindows())
+        {
+            CleanupGDIResources();
+        }
+        
         if (_windowHandle != IntPtr.Zero)
         {
             DestroyWindow(_windowHandle);
@@ -112,6 +139,27 @@ public class WindowsProjectionForm
         }
         
         ProjectionStopped?.Invoke(this, EventArgs.Empty);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private void CleanupGDIResources()
+    {
+        if (_currentHBitmap != IntPtr.Zero)
+        {
+            if (_memoryDC != IntPtr.Zero && _oldBitmap != IntPtr.Zero)
+            {
+                SelectObject(_memoryDC, _oldBitmap);
+            }
+            DeleteObject(_currentHBitmap);
+            _currentHBitmap = IntPtr.Zero;
+            _oldBitmap = IntPtr.Zero;
+        }
+
+        if (_memoryDC != IntPtr.Zero)
+        {
+            DeleteDC(_memoryDC);
+            _memoryDC = IntPtr.Zero;
+        }
     }
 
     /// <summary>
@@ -126,6 +174,56 @@ public class WindowsProjectionForm
         {
             _currentFrame?.Dispose();
             _currentFrame = new Bitmap(frame);
+            
+            // Update the memory DC for fast blitting
+            UpdateMemoryDC(frame);
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private void UpdateMemoryDC(Bitmap frame)
+    {
+        if (_windowHandle == IntPtr.Zero) return;
+
+        var windowDC = GetDC(_windowHandle);
+        if (windowDC != IntPtr.Zero)
+        {
+            try
+            {
+                // Create memory DC if it doesn't exist
+                if (_memoryDC == IntPtr.Zero)
+                {
+                    _memoryDC = CreateCompatibleDC(windowDC);
+                }
+
+                // Create new compatible bitmap for the frame
+                var newHBitmap = CreateCompatibleBitmap(windowDC, frame.Width, frame.Height);
+                if (newHBitmap != IntPtr.Zero)
+                {
+                    // Select the new bitmap into the memory DC
+                    var oldBitmap = SelectObject(_memoryDC, newHBitmap);
+                    
+                    // Copy frame data to the memory DC
+                    using (var memoryGraphics = Graphics.FromHdc(_memoryDC))
+                    {
+                        memoryGraphics.DrawImage(frame, 0, 0);
+                    }
+
+                    // Clean up previous bitmap
+                    if (_currentHBitmap != IntPtr.Zero)
+                    {
+                        SelectObject(_memoryDC, oldBitmap);
+                        DeleteObject(_currentHBitmap);
+                    }
+
+                    _currentHBitmap = newHBitmap;
+                    _oldBitmap = oldBitmap;
+                }
+            }
+            finally
+            {
+                ReleaseDC(_windowHandle, windowDC);
+            }
         }
     }
 
@@ -180,22 +278,65 @@ public class WindowsProjectionForm
     {
         _renderThread = new Thread(() =>
         {
-            var frameTimeMs = 1000.0 / _targetFPS;
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            var lastRenderTime = 0.0;
-
-            while (_isProjecting && _windowHandle != IntPtr.Zero)
+            // Set high thread priority for smooth rendering
+            Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
+            
+            // Enable high-resolution timing (1ms precision)
+            timeBeginPeriod(1);
+            
+            try
             {
-                var currentTime = stopwatch.Elapsed.TotalMilliseconds;
-                
-                if (currentTime - lastRenderTime >= frameTimeMs)
+                var frameTimeMs = 1000.0 / _targetFPS;
+                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                var lastRenderTime = 0.0;
+
+                while (_isProjecting && _windowHandle != IntPtr.Zero)
                 {
-                    RenderFrame();
-                    lastRenderTime = currentTime;
+                    var currentTime = stopwatch.Elapsed.TotalMilliseconds;
+                    
+                    if (currentTime - lastRenderTime >= frameTimeMs)
+                    {
+                        RenderFrame();
+                        lastRenderTime = currentTime;
+                        
+                        // FPS logging
+                        if (_enableFpsLogging)
+                        {
+                            _frameCount++;
+                            var elapsed = DateTime.Now - _lastFpsLogTime;
+                            if (elapsed.TotalSeconds >= 1.0)
+                            {
+                                var actualFps = _frameCount / elapsed.TotalSeconds;
+                                Console.WriteLine($"Projection FPS: {actualFps:F1} (target: {_targetFPS})");
+                                _frameCount = 0;
+                                _lastFpsLogTime = DateTime.Now;
+                            }
+                        }
+                    }
+                    
+                    // High-performance timing - use yield and spin wait for precise timing
+                    var remainingTime = frameTimeMs - (stopwatch.Elapsed.TotalMilliseconds - lastRenderTime);
+                    if (remainingTime > 2.0)
+                    {
+                        // Sleep for most of the remaining time, but leave 2ms for precise timing
+                        Thread.Sleep((int)(remainingTime - 2.0));
+                    }
+                    else if (remainingTime > 0.1)
+                    {
+                        // Yield for small delays
+                        Thread.Yield();
+                    }
+                    else
+                    {
+                        // Spin wait for very precise timing
+                        Thread.SpinWait(1);
+                    }
                 }
-                
-                // Small sleep to prevent 100% CPU usage
-                Thread.Sleep(1);
+            }
+            finally
+            {
+                // Restore timer resolution
+                timeEndPeriod(1);
             }
         })
         { IsBackground = true };
@@ -212,21 +353,37 @@ public class WindowsProjectionForm
         {
             if (_currentFrame == null) return;
 
-            var hdc = GetDC(_windowHandle);
-            if (hdc != IntPtr.Zero)
+            // Fast GDI-based blitting for better performance
+            var windowDC = GetDC(_windowHandle);
+            if (windowDC != IntPtr.Zero)
             {
-                using (var graphics = Graphics.FromHdc(hdc))
+                try
                 {
                     var windowRect = new RECT();
                     GetClientRect(_windowHandle, out windowRect);
                     
-                    // Draw the frame stretched to fill the window
-                    graphics.DrawImage(_currentFrame, 0, 0, 
-                        windowRect.Right - windowRect.Left,
-                        windowRect.Bottom - windowRect.Top);
+                    var windowWidth = windowRect.Right - windowRect.Left;
+                    var windowHeight = windowRect.Bottom - windowRect.Top;
+
+                    // Use StretchBlt from memory DC for much faster rendering
+                    if (_memoryDC != IntPtr.Zero && _currentHBitmap != IntPtr.Zero)
+                    {
+                        StretchBlt(windowDC, 0, 0, windowWidth, windowHeight,
+                                 _memoryDC, 0, 0, _currentFrame.Width, _currentFrame.Height, SRCCOPY);
+                    }
+                    else
+                    {
+                        // Fallback to GDI+ if memory DC is not available
+                        using (var graphics = Graphics.FromHdc(windowDC))
+                        {
+                            graphics.DrawImage(_currentFrame, 0, 0, windowWidth, windowHeight);
+                        }
+                    }
                 }
-                
-                ReleaseDC(_windowHandle, hdc);
+                finally
+                {
+                    ReleaseDC(_windowHandle, windowDC);
+                }
             }
         }
     }
@@ -310,6 +467,37 @@ public class WindowsProjectionForm
     [DllImport("user32.dll")]
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
+    // High-resolution timer functions
+    [DllImport("winmm.dll")]
+    private static extern uint timeBeginPeriod(uint uPeriod);
+
+    [DllImport("winmm.dll")]
+    private static extern uint timeEndPeriod(uint uPeriod);
+
+    // GDI functions for fast blitting
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int nWidth, int nHeight);
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool DeleteDC(IntPtr hdc);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool DeleteObject(IntPtr hObject);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool StretchBlt(IntPtr hdcDest, int nXOriginDest, int nYOriginDest, int nWidthDest, int nHeightDest,
+        IntPtr hdcSrc, int nXOriginSrc, int nYOriginSrc, int nWidthSrc, int nHeightSrc, uint dwRop);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight,
+        IntPtr hdcSrc, int nXSrc, int nYSrc, uint dwRop);
+
     private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     [StructLayout(LayoutKind.Sequential)]
@@ -354,5 +542,6 @@ public class WindowsProjectionForm
     private const uint SWP_NOSIZE = 0x0001;
     private const uint SWP_NOZORDER = 0x0004;
     private const uint SWP_FRAMECHANGED = 0x0020;
+    private const uint SRCCOPY = 0x00CC0020;
     #endregion
 }
