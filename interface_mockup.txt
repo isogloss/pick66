@@ -1,0 +1,68 @@
+// Mock screenshot description for the Pick6 Mod Menu interface
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              Pick6 Mod Menu                                 ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  [Loader]     [Settings]                                                    ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  Status: Idle                            FPS: 0.0 | Dropped: 0             ║
+║  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ║
+║                                                                              ║
+║  ┌─────────────┐   ┌─────────────┐                                          ║
+║  │ Start       │   │ Stop        │                                          ║
+║  │ Capture     │   │ Capture     │                                          ║
+║  └─────────────┘   └─────────────┘                                          ║
+║                                                                              ║
+║  ┌─────────────┐   ┌─────────────┐                                          ║
+║  │ Start       │   │ Stop        │                                          ║
+║  │ Projection  │   │ Projection  │                                          ║
+║  └─────────────┘   └─────────────┘                                          ║
+║                                                                              ║
+║  Console Log:                                                                ║
+║  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ║
+║  ┃ [19:34:20] [Info] Pick6 Mod Menu started                              ┃ ║
+║  ┃ [19:34:21] [Info] Checking for FiveM processes...                     ┃ ║
+║  ┃ [19:34:22] [Warn] No FiveM processes found                            ┃ ║
+║  ┃ [19:34:25] [Info] Found FiveM process: FiveM_GTAProcess.exe           ┃ ║
+║  ┃ [19:34:26] [Info] Attempting Vulkan capture on FiveM_GTAProcess.exe  ┃ ║
+║  ┃ [19:34:27] [Info] Capture started successfully                        ┃ ║
+║  ┃ [19:34:28] [Info] Starting projection on monitor 0                    ┃ ║
+║  ┃ [19:34:29] [Info] Projection started                                  ┃ ║
+║  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Settings Tab View:
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              Pick6 Mod Menu                                 ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  [Loader]     [Settings]                                                    ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  Target FPS:           [████████████████████░░] 60                          ║
+║                                                                              ║
+║  Width (0=auto):       [1920      ]                                         ║
+║  Height (0=auto):      [1080      ]                                         ║
+║                                                                              ║
+║  ☑ Hardware Acceleration                                                     ║
+║  ☑ Auto-start Projection                                                     ║
+║                                                                              ║
+║  UI Scale:             [████████████░░░░░░░░░] 1.0x                         ║
+║                                                                              ║
+║  Monitor Index:        [0         ]                                         ║
+║                                                                              ║
+║  ┌─────────────┐      ┌─────────────┐                                       ║
+║  │ Apply       │      │ Save        │                                       ║
+║  │ Settings    │      │ Settings    │                                       ║
+║  └─────────────┘      └─────────────┘                                       ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Key Features:
+- Dark theme with professional game mod menu styling
+- Tab-based navigation between Loader and Settings
+- Real-time status updates with color coding
+- Integrated console log with scrolling and auto-update
+- Comprehensive settings with immediate apply
+- Single-file executable deployment (~21MB)
+- Full CLI argument compatibility preserved
