@@ -1,6 +1,8 @@
 using System.Drawing;
 using System.Runtime.Versioning;
 using System.Runtime.InteropServices;
+using Pick6.Core.Timing;
+using Pick6.Core.Diagnostics;
 
 namespace Pick6.Core;
 
@@ -14,6 +16,8 @@ public class VulkanFrameCapture
     private Thread? _captureThread;
     private readonly object _lockObject = new();
     private SharedMemoryBuffer? _sharedMemory;
+    private readonly FramePacer _framePacer = new();
+    private readonly FrameStatistics _statistics = new();
 
     public event EventHandler<FrameCapturedEventArgs>? FrameCaptured;
     public event EventHandler<string>? ErrorOccurred;
@@ -22,6 +26,11 @@ public class VulkanFrameCapture
     /// Capture settings
     /// </summary>
     public CaptureSettings Settings { get; set; } = new();
+
+    /// <summary>
+    /// Frame timing and performance statistics
+    /// </summary>
+    public FrameStatistics Statistics => _statistics;
 
     /// <summary>
     /// Start capturing frames using Vulkan injection
@@ -81,52 +90,36 @@ public class VulkanFrameCapture
     [SupportedOSPlatform("windows")]
     private void CaptureLoop()
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var targetIntervalMs = 1000.0 / Settings.TargetFPS;
-        var nextFrameTime = 0.0;
+        // Initialize frame pacing
+        _framePacer.Reset(Settings.TargetFPS, PacingMode.HybridSpin);
+        _statistics.Reset();
+        
+        // Enable diagnostics logging if requested
+        var enableDiagnostics = Environment.GetEnvironmentVariable("PICK6_DIAG") == "1";
 
         while (_isCapturing)
         {
             try
             {
-                var currentTime = stopwatch.Elapsed.TotalMilliseconds;
-                
-                if (currentTime >= nextFrameTime)
+                // Check for new frame data from the injected DLL
+                var frameData = _sharedMemory?.ReadFrame();
+                if (frameData != null)
                 {
-                    // Check for new frame data from the injected DLL
-                    var frameData = _sharedMemory?.ReadFrame();
-                    if (frameData != null)
+                    var bitmap = ConvertFrameDataToBitmap(frameData);
+                    if (bitmap != null)
                     {
-                        var bitmap = ConvertFrameDataToBitmap(frameData);
-                        if (bitmap != null)
-                        {
-                            FrameCaptured?.Invoke(this, new FrameCapturedEventArgs(bitmap));
-                        }
-                    }
-
-                    // Schedule next frame with precise timing
-                    nextFrameTime += targetIntervalMs;
-                    
-                    // Prevent drift by resetting if we're too far behind
-                    if (nextFrameTime < currentTime - targetIntervalMs)
-                    {
-                        nextFrameTime = currentTime + targetIntervalMs;
+                        FrameCaptured?.Invoke(this, new FrameCapturedEventArgs(bitmap));
                     }
                 }
 
-                // High precision sleep - use spin-wait for last millisecond
-                var sleepTime = nextFrameTime - stopwatch.Elapsed.TotalMilliseconds;
-                if (sleepTime > 2.0)
+                // Wait for next frame and get timing statistics
+                var frameElapsed = _framePacer.WaitNextFrame();
+                _statistics.RecordFrame(frameElapsed.ElapsedMs, frameElapsed.TargetIntervalMs);
+
+                // Optional diagnostic logging
+                if (enableDiagnostics && _statistics.TotalFrames % 60 == 0) // Log every ~1 second at 60fps
                 {
-                    Thread.Sleep((int)(sleepTime - 1.0));
-                }
-                else if (sleepTime > 0.1)
-                {
-                    // Spin-wait for high precision
-                    while (stopwatch.Elapsed.TotalMilliseconds < nextFrameTime)
-                    {
-                        Thread.SpinWait(10);
-                    }
+                    Console.WriteLine($"[Vulkan Capture] {_statistics.GetSummary()}");
                 }
             }
             catch (Exception ex)
