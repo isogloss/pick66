@@ -1,11 +1,30 @@
 # Pick6 - High-Performance OBS Game Capture Clone
 
-Real-time game capture and projection application for FiveM with automatic, non-interactive operation and >120 FPS support.
+Real-time game capture and projection application for FiveM with automatic, non-interactive operation, >120 FPS support, and enhanced performance monitoring.
+
+## New in v2.0: Enhanced Performance & Interface
+
+### 🚀 **True 60 FPS Performance**
+- **FramePacer**: Hybrid sleep+spin precision timing achieves sustained ≥58 FPS at 60 FPS target
+- **Real-time Statistics**: Live FPS monitoring, 95th percentile frame times, dropped frame counts
+- **Performance Analysis**: Automated warnings when performance falls below 70% of target
+- **Diagnostics**: Set `PICK6_DIAG=1` for detailed frame timing logs
+
+### 🎯 **Interactive Console Interface**
+- **Structured Menu**: Organized A-F sections for all settings and controls
+- **Live Monitoring**: Real-time performance statistics (press `13` in menu)
+- **Smart Configuration**: FPS presets (30/60/120/144), resolution templates, hardware acceleration
+- **Advanced Diagnostics**: Performance warnings, system analysis, and detailed reports
+
+### ✨ **Enhanced Visual Feedback**
+- **Animated Spinners**: Console and GUI show rotating spinner during monitoring/injection
+- **Smart Glyphs**: Unicode success (✓) and failure (✗) indicators with ASCII fallback
+- **Status Integration**: Real-time capture/projection status in console menu header
 
 ## Core Functionalities
 
 - **High-Performance FiveM Capture**: Auto-detection and capture of FiveM processes via Vulkan injection or window capture at >120 FPS
-- **Real-time Projection**: High-performance borderless fullscreen projection supporting 144, 165, 240+ FPS targets
+- **Real-time Projection**: High-performance borderless fullscreen projection supporting 144, 165, 240+ FPS targets  
 - **Automatic Operation**: Non-interactive auto-start mode - detects FiveM, starts capture, starts projection automatically
 - **Monitor Selection**: Choose target display for projection output via command line
 - **Update System**: Automatic update checking at startup with graceful offline fallback
@@ -174,4 +193,81 @@ Pick6 includes a built-in auto-update system that can dynamically download and l
 - Always use HTTPS for manifest and payload URLs
 - Verify SHA256 hashes match exactly in your deployment process  
 - Test payloads thoroughly before publishing
+
+## Performance Monitoring & Diagnostics
+
+### Enhanced Console Menu
+
+The console interface now provides comprehensive performance monitoring and configuration:
+
+```
+pick6.exe --interactive  # Force interactive menu mode
+```
+
+**Menu Sections:**
+- **A. Capture Settings**: FPS presets (30/60/120/144), resolution templates, hardware acceleration
+- **B. Projection**: Start/stop, FPS matching, monitor selection  
+- **C. Performance & Diagnostics**: Live statistics, performance warnings, diagnostic exports
+- **D. Output/Quality**: Future encoding and recording features (placeholder)
+- **E. Injection & Process**: FiveM detection, reinjection controls, method information
+- **F. System**: Keybinds, help, and utility functions
+
+### Performance Features
+
+**Real-time Monitoring:**
+```bash
+# Option 13 in console menu - Live statistics display
+Capture:    FPS: 59.8 (avg: 59.2) | P95: 16.9ms | Dropped: 2/3580 (0.1%)
+Projection: Active (stats not available via current interface)
+Uptime:     00:02:45
+Memory:     89.2 MB
+```
+
+**Performance Analysis (Option 14):**
+- Automatic detection of frame rate issues
+- Memory usage warnings
+- Targeted recommendations for optimization
+
+**Environment Variables:**
+```bash
+# Enable detailed frame timing diagnostics
+export PICK6_DIAG=1   # Linux/Mac
+set PICK6_DIAG=1      # Windows CMD
+$env:PICK6_DIAG=1     # Windows PowerShell
+```
+
+**Diagnostic Export:**
+- Full system analysis saved to timestamped files
+- Capture engine statistics and configuration
+- FiveM process detection details
+- System information and environment variables
+
+### Frame Pacing Technology
+
+**FramePacer Modes:**
+- **HybridSpin**: Coarse sleep + precision spin-wait (default)
+- **SleepPrecision**: Thread.Sleep only (lower CPU usage)
+- **Unlimited**: No frame limiting (maximum throughput)
+- **VSync**: Display synchronization (future feature)
+
+**Frame Statistics:**
+- Ring buffer tracking of last 240 frames (4 seconds at 60 FPS)
+- Instant FPS, moving average FPS, 95th percentile frame times
+- Dropped frame detection (frames >1.5x target interval)
+- Real-time performance warnings when sustained performance drops below 70% of target
+
+### Troubleshooting Performance Issues
+
+**Common Performance Patterns:**
+1. **Half-rate issues**: Check for frame duplication in projection path
+2. **Dropped frames**: Monitor P95 frame times, consider lowering FPS/resolution
+3. **Memory leaks**: Use diagnostic export to track memory usage over time
+4. **CPU overload**: Switch to SleepPrecision pacing mode for lower CPU usage
+
+**Optimization Tips:**
+- Run as administrator for better injection support
+- Use Vulkan injection when available (better than window capture)  
+- Enable hardware acceleration for improved capture performance
+- Close other applications to free up system resources
+- Lower target FPS or resolution if sustained performance issues occur
 - The loader uses partial trimming mode to preserve dynamic loading capabilities

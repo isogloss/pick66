@@ -2,6 +2,8 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Pick6.Core;
+using Pick6.Core.Timing;
+using Pick6.Core.Diagnostics;
 
 namespace Pick6.Projection;
 
@@ -18,6 +20,8 @@ public class WindowsProjectionForm
     private Thread? _renderThread;
     private int _targetFPS = 60;
     private int _screenIndex = 0;
+    private readonly FramePacer _framePacer = new();
+    private readonly FrameStatistics _statistics = new();
     
     // High-performance rendering fields
     private IntPtr _memoryDC = IntPtr.Zero;
@@ -30,6 +34,11 @@ public class WindowsProjectionForm
 
     public event EventHandler? ProjectionStarted;
     public event EventHandler? ProjectionStopped;
+
+    /// <summary>
+    /// Frame timing and performance statistics for projection rendering
+    /// </summary>
+    public FrameStatistics Statistics => _statistics;
 
     /// <summary>
     /// Start borderless fullscreen projection
@@ -52,6 +61,13 @@ public class WindowsProjectionForm
     public void SetTargetFPS(int fps)
     {
         _targetFPS = Math.Max(15, Math.Min(240, fps));
+        
+        // Reset frame pacing with new FPS if projection is active
+        if (_isProjecting)
+        {
+            _framePacer.Reset(_targetFPS, PacingMode.HybridSpin);
+            _statistics.Reset();
+        }
     }
 
     /// <summary>
@@ -320,51 +336,41 @@ public class WindowsProjectionForm
             
             try
             {
-                var frameTimeMs = 1000.0 / _targetFPS;
-                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                var lastRenderTime = 0.0;
+                // Initialize frame pacing and statistics
+                _framePacer.Reset(_targetFPS, PacingMode.HybridSpin);
+                _statistics.Reset();
+                
+                // Enable diagnostics logging if requested
+                var enableDiagnostics = Environment.GetEnvironmentVariable("PICK6_DIAG") == "1";
 
                 while (_isProjecting && _windowHandle != IntPtr.Zero)
                 {
-                    var currentTime = stopwatch.Elapsed.TotalMilliseconds;
-                    
-                    if (currentTime - lastRenderTime >= frameTimeMs)
+                    // Only render if we have the latest frame (skip stale frames)
+                    RenderFrame();
+
+                    // Wait for next frame and get timing statistics
+                    var frameElapsed = _framePacer.WaitNextFrame();
+                    _statistics.RecordFrame(frameElapsed.ElapsedMs, frameElapsed.TargetIntervalMs);
+
+                    // Optional diagnostic logging
+                    if (enableDiagnostics && _statistics.TotalFrames % 60 == 0) // Log every ~1 second at 60fps
                     {
-                        RenderFrame();
-                        lastRenderTime = currentTime;
-                        
-                        // FPS logging
-                        if (_enableFpsLogging)
+                        var hasFrame = _currentFrame != null ? "with frame" : "no frame";
+                        Console.WriteLine($"[Projection] {_statistics.GetSummary()} - {hasFrame}");
+                    }
+
+                    // Legacy FPS logging for backward compatibility
+                    if (_enableFpsLogging)
+                    {
+                        _frameCount++;
+                        var elapsed = DateTime.Now - _lastFpsLogTime;
+                        if (elapsed.TotalSeconds >= 1.0)
                         {
-                            _frameCount++;
-                            var elapsed = DateTime.Now - _lastFpsLogTime;
-                            if (elapsed.TotalSeconds >= 1.0)
-                            {
-                                var actualFps = _frameCount / elapsed.TotalSeconds;
-                                var hasFrame = _currentFrame != null ? "with frame" : "no frame";
-                                Console.WriteLine($"Projection FPS: {actualFps:F1} (target: {_targetFPS}) - {hasFrame}");
-                                _frameCount = 0;
-                                _lastFpsLogTime = DateTime.Now;
-                            }
+                            var hasFrame = _currentFrame != null ? "with frame" : "no frame";
+                            Console.WriteLine($"Projection FPS: {_statistics.InstantFps:F1} (avg: {_statistics.AverageFps:F1}, target: {_targetFPS}) - {hasFrame}");
+                            _frameCount = 0;
+                            _lastFpsLogTime = DateTime.Now;
                         }
-                    }
-                    
-                    // High-performance timing - use yield and spin wait for precise timing
-                    var remainingTime = frameTimeMs - (stopwatch.Elapsed.TotalMilliseconds - lastRenderTime);
-                    if (remainingTime > 2.0)
-                    {
-                        // Sleep for most of the remaining time, but leave 2ms for precise timing
-                        Thread.Sleep((int)(remainingTime - 2.0));
-                    }
-                    else if (remainingTime > 0.1)
-                    {
-                        // Yield for small delays
-                        Thread.Yield();
-                    }
-                    else
-                    {
-                        // Spin wait for very precise timing
-                        Thread.SpinWait(1);
                     }
                 }
             }

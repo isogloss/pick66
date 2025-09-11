@@ -19,6 +19,11 @@ public class BorderlessProjectionWindow
     public event EventHandler? ProjectionStopped;
 
     /// <summary>
+    /// Whether projection is currently active
+    /// </summary>
+    public bool IsProjecting => _isProjecting;
+
+    /// <summary>
     /// Set the target FPS for the projection
     /// </summary>
     public void SetTargetFPS(int fps)

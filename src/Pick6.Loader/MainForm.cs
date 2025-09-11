@@ -1,4 +1,5 @@
 using Pick6.Core;
+using Pick6.Core.Util;
 using Pick6.Projection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -18,6 +19,10 @@ public partial class MainForm : Form
     private bool _isMonitoring = false;
     private bool _isCapturing = false;
     private bool _loaderVisible = true;
+
+    // Spinner for GUI animation during monitoring
+    private System.Windows.Forms.Timer? _spinnerTimer;
+    private int _spinnerFrame = 0;
 
     // UI Controls
     private Button _injectButton = null!;
@@ -397,6 +402,9 @@ public partial class MainForm : Form
         _statusLabel.Text = "Monitoring for FiveM...";
         _statusLabel.ForeColor = Color.Orange;
 
+        // Start spinner animation
+        StartSpinner();
+
         // Start monitoring for FiveM processes
         _processMonitorTimer = new System.Timers.Timer(1000); // Check every second
         _processMonitorTimer.Elapsed += ProcessMonitorTimer_Elapsed;
@@ -487,7 +495,8 @@ public partial class MainForm : Form
         if (_captureEngine.StartCapture(targetProcess.ProcessName))
         {
             _isCapturing = true;
-            _statusLabel.Text = $"Successfully injected - {method}";
+            StopSpinner();
+            _statusLabel.Text = $"{TextGlyphs.Success} Successfully injected - {method}";
             _statusLabel.ForeColor = Color.Green;
             _captureStatusLabel.Text = $"Capture Status: Active ({method})";
             _captureStatusLabel.ForeColor = Color.Green;
@@ -501,7 +510,8 @@ public partial class MainForm : Form
         }
         else
         {
-            _statusLabel.Text = "Injection failed - try running as administrator";
+            StopSpinner();
+            _statusLabel.Text = $"{TextGlyphs.Fail} Injection failed - try running as administrator";
             _statusLabel.ForeColor = Color.Red;
             _captureStatusLabel.Text = "Capture Status: Failed";
             _captureStatusLabel.ForeColor = Color.Red;
@@ -517,6 +527,9 @@ public partial class MainForm : Form
         _processMonitorTimer?.Stop();
         _processMonitorTimer?.Dispose();
         _processMonitorTimer = null;
+
+        // Stop spinner animation
+        StopSpinner();
 
         _captureEngine?.StopCapture();
         _projectionWindow?.StopProjection();
@@ -573,6 +586,47 @@ public partial class MainForm : Form
         {
             Console.WriteLine($"Warning: Could not enable stealth mode for loader: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Start the spinner animation for GUI monitoring
+    /// </summary>
+    private void StartSpinner()
+    {
+        if (_spinnerTimer != null) return;
+
+        _spinnerFrame = 0;
+        _spinnerTimer = new System.Windows.Forms.Timer { Interval = 90 }; // 90ms interval
+        _spinnerTimer.Tick += SpinnerTimer_Tick;
+        _spinnerTimer.Start();
+    }
+
+    /// <summary>
+    /// Stop the spinner animation
+    /// </summary>
+    private void StopSpinner()
+    {
+        if (_spinnerTimer == null) return;
+
+        _spinnerTimer.Stop();
+        _spinnerTimer.Dispose();
+        _spinnerTimer = null;
+    }
+
+    /// <summary>
+    /// Handle spinner timer tick to animate the monitoring message
+    /// </summary>
+    private void SpinnerTimer_Tick(object? sender, EventArgs e)
+    {
+        if (!_isMonitoring || _isCapturing)
+        {
+            StopSpinner();
+            return;
+        }
+
+        var frame = TextGlyphs.SpinnerFrames[_spinnerFrame % TextGlyphs.SpinnerFrames.Length];
+        _statusLabel.Text = $"{frame} Monitoring for FiveM...";
+        _spinnerFrame++;
     }
 
     #region Win32 API for Stealth Mode
