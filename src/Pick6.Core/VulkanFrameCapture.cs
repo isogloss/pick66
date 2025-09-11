@@ -81,24 +81,53 @@ public class VulkanFrameCapture
     [SupportedOSPlatform("windows")]
     private void CaptureLoop()
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var targetIntervalMs = 1000.0 / Settings.TargetFPS;
+        var nextFrameTime = 0.0;
+
         while (_isCapturing)
         {
             try
             {
-                // Check for new frame data from the injected DLL
-                var frameData = _sharedMemory?.ReadFrame();
-                if (frameData != null)
+                var currentTime = stopwatch.Elapsed.TotalMilliseconds;
+                
+                if (currentTime >= nextFrameTime)
                 {
-                    var bitmap = ConvertFrameDataToBitmap(frameData);
-                    if (bitmap != null)
+                    // Check for new frame data from the injected DLL
+                    var frameData = _sharedMemory?.ReadFrame();
+                    if (frameData != null)
                     {
-                        FrameCaptured?.Invoke(this, new FrameCapturedEventArgs(bitmap));
+                        var bitmap = ConvertFrameDataToBitmap(frameData);
+                        if (bitmap != null)
+                        {
+                            FrameCaptured?.Invoke(this, new FrameCapturedEventArgs(bitmap));
+                        }
+                    }
+
+                    // Schedule next frame with precise timing
+                    nextFrameTime += targetIntervalMs;
+                    
+                    // Prevent drift by resetting if we're too far behind
+                    if (nextFrameTime < currentTime - targetIntervalMs)
+                    {
+                        nextFrameTime = currentTime + targetIntervalMs;
                     }
                 }
 
-                // Target frame rate based on settings
-                int delay = 1000 / Settings.TargetFPS;
-                Thread.Sleep(delay);
+                // High precision sleep - use spin-wait for last millisecond
+                var sleepTime = nextFrameTime - stopwatch.Elapsed.TotalMilliseconds;
+                if (sleepTime > 2.0)
+                {
+                    Thread.Sleep((int)(sleepTime - 1.0));
+                }
+                else if (sleepTime > 0.1)
+                {
+                    // Spin-wait for high precision
+                    while (stopwatch.Elapsed.TotalMilliseconds < nextFrameTime)
+                    {
+                        Thread.SpinWait(10);
+                    }
+                }
             }
             catch (Exception ex)
             {
