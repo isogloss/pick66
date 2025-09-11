@@ -40,9 +40,9 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
 # Project configuration
-$ProjectPath = "src/Pick66.App/Pick66.App.csproj"
+$ProjectPath = "src/Pick6.Loader/Pick6.Loader.csproj"
 $ExeName = "pick66.exe"
-$AppDisplayName = "Pick66 - Projection Interface"
+$AppDisplayName = "Pick66 - Lottery Generator & Game Capture"
 
 # Colors for output
 $ColorInfo = "Cyan"
