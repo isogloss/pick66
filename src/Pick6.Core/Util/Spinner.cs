@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,7 +33,10 @@ public class Spinner : IDisposable
         // Store initial cursor visibility state
         try
         {
-            _cursorWasVisible = Console.CursorVisible;
+            if (OperatingSystem.IsWindows())
+            {
+                _cursorWasVisible = Console.CursorVisible;
+            }
         }
         catch
         {
@@ -54,8 +58,11 @@ public class Spinner : IDisposable
         {
             try
             {
-                // Hide cursor
-                Console.CursorVisible = false;
+                // Hide cursor (Windows only)
+                if (OperatingSystem.IsWindows())
+                {
+                    Console.CursorVisible = false;
+                }
             }
             catch { /* Ignore cursor control failures */ }
         }
@@ -110,8 +117,11 @@ public class Spinner : IDisposable
                 Console.Write(new string(' ', _message.Length + 10)); // Clear with padding
                 Console.Write('\r');
                 
-                // Restore cursor visibility
-                Console.CursorVisible = _cursorWasVisible;
+                // Restore cursor visibility (Windows only)
+                if (OperatingSystem.IsWindows())
+                {
+                    Console.CursorVisible = _cursorWasVisible;
+                }
             }
             catch { /* Ignore console control failures */ }
         }

@@ -1,40 +1,59 @@
 #!/bin/bash
 
+# Exit on any error
+set -euo pipefail
+
 echo "================================================"
 echo "           Building pick6 (Windows-only)       "
 echo "================================================"
+echo
 
 # Clean previous builds
-echo "Cleaning previous builds..."
-dotnet clean
+echo "🧹 Cleaning previous builds..."
+if ! dotnet clean; then
+    echo "❌ Clean failed!"
+    exit 1
+fi
 
 # Restore packages
-echo "Restoring packages..."
-dotnet restore
+echo "📦 Restoring packages..."
+if ! dotnet restore; then
+    echo "❌ Restore failed!"
+    exit 1
+fi
 
 # Build solution (Windows components)
-echo "Building Windows solution..."
-dotnet build --configuration Release
+echo "🔨 Building Windows solution..."
+if ! dotnet build --configuration Release; then
+    echo "❌ Build failed!"
+    exit 1
+fi
 
 # Build GUI for Windows
-echo "Creating Windows GUI executable..."
-dotnet publish src/Pick6.GUI/Pick6.GUI.csproj \
+echo "🖥️ Creating Windows GUI executable..."
+if ! dotnet publish src/Pick6.GUI/Pick6.GUI.csproj \
     --configuration Release \
     --runtime win-x64 \
     --self-contained true \
     --output ./dist \
     -p:PublishSingleFile=true \
-    -p:IncludeNativeLibrariesForSelfExtract=true
+    -p:IncludeNativeLibrariesForSelfExtract=true; then
+    echo "❌ GUI publish failed!"
+    exit 1
+fi
 
 # Build console launcher for Windows
-echo "Creating console launcher executable..."
-dotnet publish src/Pick6.Launcher/Pick6.Launcher.csproj \
+echo "⌨️ Creating console launcher executable..."
+if ! dotnet publish src/Pick6.Launcher/Pick6.Launcher.csproj \
     --configuration Release \
     --runtime win-x64 \
     --self-contained true \
     --output ./dist \
     -p:PublishSingleFile=true \
-    -p:IncludeNativeLibrariesForSelfExtract=true
+    -p:IncludeNativeLibrariesForSelfExtract=true; then
+    echo "❌ Console launcher publish failed!"
+    exit 1
+fi
 
 if [ $? -eq 0 ]; then
     echo "================================================"

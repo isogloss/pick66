@@ -6,17 +6,6 @@ using System.Drawing;
 namespace Pick6.Loader;
 
 /// <summary>
-/// Logging levels for Pick6
-/// </summary>
-public enum LogLevel
-{
-    Debug,
-    Info,
-    Warning,
-    Error
-}
-
-/// <summary>
 /// Console menu implementation for Pick6 Loader
 /// Extracted from Pick6.UI and Pick6.Launcher for reuse
 /// </summary>
@@ -292,17 +281,10 @@ public class ConsoleMenu
                 case "15": ToggleStatsLogging(); break;
                 case "16": DumpDiagnostics(); break;
                 
-                // D. Output / Quality (TODO placeholders)
-                case "17": Console.WriteLine("Quality presets - Coming soon!"); break;
-                case "18": Console.WriteLine("Bitrate config - Coming soon!"); break;
-                case "19": Console.WriteLine("Output format - Coming soon!"); break;
-                case "20": Console.WriteLine("Recording - Coming soon!"); break;
-                
-                // E. Injection & Process
-                case "21": ScanForFiveM(); break; // Rescan = same as scan
-                case "22": ForceReinjection(); break;
-                case "23": ShowLastInjectionMethod(); break;
-                case "24": Console.WriteLine("Process priority - Coming soon!"); break;
+                // D. Injection & Process
+                case "17": ScanForFiveM(); break; // Rescan = same as scan
+                case "18": ForceReinjection(); break;
+                case "19": ShowLastInjectionMethod(); break;
                 
                 // F. System
                 case "k": case "keybinds": ConfigureKeybinds(); break;
@@ -363,15 +345,9 @@ public class ConsoleMenu
         Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
         Console.WriteLine();
         
-        Console.WriteLine("┌─ D. Output / Quality ─────────────────────────────────────────────────────────┐");
-        Console.WriteLine("│  17. Quality presets (TODO)     18. Bitrate config (TODO)                   │");
-        Console.WriteLine("│  19. Output format (TODO)       20. Recording (TODO)                         │");
-        Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
-        Console.WriteLine();
-        
-        Console.WriteLine("┌─ E. Injection & Process ──────────────────────────────────────────────────────┐");
-        Console.WriteLine("│  21. Rescan FiveM                22. Force reinjection                        │");
-        Console.WriteLine("│  23. Show last injection method  24. Process priority (TODO)                 │");
+        Console.WriteLine("┌─ D. Injection & Process ──────────────────────────────────────────────────────┐");
+        Console.WriteLine("│  17. Rescan FiveM                18. Force reinjection                        │");
+        Console.WriteLine("│  19. Show last injection method                                                │");
         Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
         Console.WriteLine();
         

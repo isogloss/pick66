@@ -85,35 +85,6 @@ public class GdiCaptureBackend : ICaptureBackend
     public bool IsAvailable => OperatingSystem.IsWindows();
 }
 
-#if FUTURE_DXGI_SUPPORT
-/// <summary>
-/// DXGI-based capture backend (future implementation)
-/// Placeholder for high-performance DirectX capture
-/// </summary>
-public class DxgiCaptureBackend : ICaptureBackend
-{
-    public event EventHandler<FrameCapturedEventArgs>? FrameCaptured;
-    public event EventHandler<string>? ErrorOccurred;
-    
-    public CaptureSettings Settings { get; set; } = new();
-    
-    public bool StartCapture(string processName)
-    {
-        // TODO: Implement DXGI capture
-        ErrorOccurred?.Invoke(this, "DXGI capture not yet implemented");
-        return false;
-    }
-    
-    public void StopCapture()
-    {
-        // TODO: Implement DXGI stop
-    }
-    
-    public string BackendName => "DXGI";
-    
-    public bool IsAvailable => OperatingSystem.IsWindowsVersionAtLeast(8, 0);
-}
-#endif
 
 /// <summary>
 /// Factory for creating capture backends
