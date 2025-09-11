@@ -127,12 +127,11 @@ A comprehensive refactoring was performed to improve:
 ```
 Pick66/
 ├── Pick6.Core/           # Core game capture functionality
-├── Pick66.Core/          # Lottery number generation
+├── Pick66.App/           # Projection interface WPF application
 ├── Pick6.Projection/     # Windows projection library
 ├── Pick6.Loader/         # Main console application
-├── Pick6.GUI/           # Windows Forms GUI
-├── Pick6.ModGui/        # ImGui interface
-└── Pick66.Tests/        # Unit tests
+├── Pick6.GUI/            # Windows Forms GUI
+└── Pick6.ModGui/         # ImGui interface
 ```
 
 ### Key Patterns Used

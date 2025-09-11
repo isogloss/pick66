@@ -1,6 +1,6 @@
-# Pick66 - Unified Lottery Generator & Game Capture Application
+# Pick66 - Projection Interface Application
 
-**Modern .NET 8 application combining lottery number generation with high-performance FiveM game capture capabilities.**
+**Modern .NET 8 WPF application providing professional projection interface capabilities with colored theme.**
 
 ## 🚀 Quick Start
 
@@ -13,7 +13,7 @@ cd pick66
 .\install.ps1 -Launch
 ```
 
-This creates a self-contained ~21MB executable in your Downloads folder - **no additional dependencies required**.
+This creates a self-contained executable in your Downloads folder - **no additional dependencies required**.
 
 ### Manual Installation Options
 
@@ -30,24 +30,17 @@ This creates a self-contained ~21MB executable in your Downloads folder - **no a
 
 ## 📋 Features Overview
 
-### 🎯 Lottery Number Generation
-- **Fisher-Yates Algorithm**: Cryptographically sound random number generation
-- **Flexible Parameters**: Configure numbers per ticket, ranges, uniqueness constraints
-- **Batch Generation**: Create multiple tickets with progress tracking
-- **Export Options**: Save results to files or copy to clipboard
-- **Validation**: Automatic parameter validation with user-friendly error messages
-
-### 🎮 FiveM Game Capture
-- **High-Performance Capture**: Vulkan injection + GDI fallback, >120 FPS support
-- **Real-time Projection**: Borderless fullscreen projection to secondary monitors
-- **Auto-Detection**: Automatic FiveM process discovery and injection
-- **Performance Monitoring**: Live FPS tracking, dropped frame detection, performance analysis
-- **Hardware Acceleration**: Optimized capture with GPU acceleration support
+### 🎯 Projection Interface
+- **Modern WPF Interface**: Professional colored theme with blue accents
+- **Start/Stop Controls**: Simple projection control with status monitoring
+- **Activity Logging**: Real-time log display with timestamps
+- **Status Indicators**: Visual status indicators with colored states
+- **System Information**: Display of projection status and system details
 
 ### 🖥️ Modern Interface
-- **Tabbed Layout**: Separate interfaces for lottery generation and game capture
-- **Dark/Light Themes**: User-configurable themes with system integration
-- **Real-time Logging**: Live log display with color-coded severity levels
+- **Borderless Design**: Clean, modern window styling
+- **Colored Theme**: Professional dark theme with blue accent colors
+- **Real-time Logging**: Live activity display with color-coded messages
 - **Settings Persistence**: Configuration stored in `%AppData%/Pick66/settings.json`
 - **Non-blocking Notifications**: Error handling without modal dialog spam
 
@@ -58,46 +51,19 @@ This creates a self-contained ~21MB executable in your Downloads folder - **no a
 - **No Dependencies**: Includes .NET 8 runtime, runs on any Windows 10/11 system
 - **Downloads Folder Deployment**: Installs to user-accessible location
 
-## 💻 Usage Examples
+## 💻 Usage
 
-### GUI Mode (Default)
+### WPF Application
 ```bash
-# Launch modern tabbed interface
+# Launch projection interface
 pick66.exe
 ```
 
-### Lottery Generation (Console)
-```bash
-# Generate single ticket (6 numbers from 1-49, unique)
-pick66.exe --lottery --numbers 6 --min 1 --max 49 --unique
-
-# Generate 10 tickets with custom parameters
-pick66.exe --lottery --count 10 --numbers 5 --min 1 --max 35
-```
-
-### Game Capture (Command Line)
-```bash
-# Auto-start capture and projection at 144 FPS
-pick66.exe --fps 144 --auto-start
-
-# Capture only (no projection window)
-pick66.exe --fps 60 --no-projection
-
-# Target specific monitor for projection
-pick66.exe --fps 120 --monitor 1 --auto-start
-```
-
-### System Administration
-```bash
-# Check for updates and exit
-pick66.exe --check-updates-only
-
-# Show help and exit
-pick66.exe --help
-
-# Verbose logging for troubleshooting
-pick66.exe --log-level Debug
-```
+The application provides a modern WPF interface with:
+- Start/Stop projection controls
+- Real-time activity logging
+- Status monitoring with visual indicators
+- Professional colored theme
 
 ## 🏗️ Architecture & Technical Details
 
@@ -109,9 +75,7 @@ Pick66/
 │   ├── Pick6.Projection/     # Windows projection system  
 │   ├── Pick6.Loader/         # Main application entry point
 │   ├── Pick6.ModGui/         # ImGui-style interface
-│   ├── Pick66.Core/          # Lottery number generation
-│   ├── Pick66.Console/       # Console demonstration
-│   └── Pick66.Tests/         # Unit tests (16 tests)
+│   └── Pick66.App/           # Projection interface WPF application
 ├── install.ps1               # PowerShell installation script
 ├── README.md                 # This documentation
 └── UPGRADE.md               # Migration guide
@@ -119,11 +83,11 @@ Pick66/
 
 ### Core Technologies
 - **Platform**: .NET 8 with Windows-specific optimizations
-- **UI Framework**: Windows Forms with ImGui-style theming
-- **Graphics**: Hardware-accelerated capture via Vulkan/GDI
-- **Architecture**: Event-driven with async/await patterns
+- **UI Framework**: WPF with modern colored theming
+- **Graphics**: Projection interface with visual status indicators
+- **Architecture**: MVVM pattern with async/await operations
 - **Packaging**: Single-file self-contained deployment
-- **Testing**: XUnit with 16 comprehensive unit tests
+- **Testing**: Professional colored theme with high contrast
 
 ### Build Configuration
 - **Target Framework**: .NET 8 (LTS)
@@ -135,51 +99,23 @@ Pick66/
 ## 🔧 Advanced Configuration
 
 ### Settings Management
-All settings are stored in `%AppData%/Pick66/settings.json`:
+Application configuration is managed through the user interface. Settings include:
+- Projection status preferences
+- Display and monitoring options  
+- User interface themes and preferences
 
-```json
-{
-  "isDarkTheme": true,
-  "autoStartProjection": false,
-  "targetFps": 60,
-  "resolutionWidth": 0,
-  "resolutionHeight": 0,
-  "monitorIndex": 0,
-  "hardwareAcceleration": true,
-  "outputDirectory": "output",
-  "hotkeyToggleProjection": "Ctrl+P",
-  "hotkeyStopAndRestore": "Ctrl+Shift+P",
-  "lotteryNumbersPerTicket": 6,
-  "lotteryMinNumber": 1,
-  "lotteryMaxNumber": 49,
-  "lotteryUniqueNumbers": true
-}
-```
-
-### Global Hotkeys (Windows)
-- **Ctrl+L**: Toggle application window visibility
-- **Ctrl+P**: Toggle projection window (configurable)
-- **Ctrl+Shift+P**: Stop projection and restore (configurable)
-- **F12**: Emergency close projection and show application
-
-### Performance Optimization
-```bash
-# High-FPS gaming setup
-pick66.exe --fps 165 --monitor 2 --auto-start
-
-# Streaming optimized (capture only)
-pick66.exe --fps 120 --no-projection --log-level Warning
-
-# Development/debugging
-set PICK6_DIAG=1
-pick66.exe --fps 60 --log-level Debug
-```
+### Application Features
+- Modern colored theme with blue accents
+- Professional borderless window design
+- Real-time activity logging and monitoring
+- Start/stop projection controls
+- Status indicators with visual feedback
 
 ## 🔧 Development & Building
 
 ### Prerequisites
 - **.NET 8 SDK** (or later)
-- **Windows 10/11** for testing GUI features
+- **Windows 10/11** for WPF application
 - **PowerShell 5.1+** for installation script
 
 ### Development Build
@@ -213,9 +149,9 @@ dotnet publish src/Pick6.Loader/Pick6.Loader.csproj \
 ```
 
 ### Testing
-- **Unit Tests**: 16 comprehensive tests covering core lottery logic
-- **Manual Testing**: GUI interface testing on Windows systems
-- **Performance Testing**: FPS and memory usage validation
+- **Manual Testing**: WPF interface testing on Windows systems
+- **Functional Testing**: Projection control validation and status monitoring
+- **UI Testing**: Colored theme and visual indicator testing
 
 ## 🐛 Troubleshooting
 

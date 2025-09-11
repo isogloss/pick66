@@ -1,8 +1,14 @@
-# Pick66 - WPF Lottery Number Generator Implementation
+# ARCHIVED DOCUMENT - HISTORICAL PURPOSES ONLY
+
+**Note:** This document describes functionality that has been removed from Pick66 as of the transformation to a projection interface application. The lottery number generation code and all related functionality has been eliminated. This document is preserved for historical reference only.
+
+# Pick66 - WPF Lottery Number Generator Implementation (DEPRECATED)
 
 ## Overview
 
-This implementation provides a complete solution for the Pick66 lottery number generator according to the specified requirements. The solution includes a core class library for lottery logic and a WPF application with a modern black & white minimalist interface.
+This implementation provided a complete solution for the Pick66 lottery number generator according to the specified requirements. The solution included a core class library for lottery logic and a WPF application with a modern black & white minimalist interface.
+
+**DEPRECATED:** This functionality has been completely removed from Pick66. The application is now focused on projection capabilities.
 
 ## Project Structure
 
