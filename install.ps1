@@ -1,5 +1,4 @@
 #!/usr/bin/env pwsh
-#requires -Version 7.0
 <#
 .SYNOPSIS
     Pick66 Installation Script - Builds and installs Pick66 to Downloads folder
@@ -54,6 +53,33 @@ param(
     [string]$OutputPath = ""
 )
 
+# PowerShell version compatibility check
+function Test-PowerShellVersion {
+    $psVersion = $PSVersionTable.PSVersion
+    $majorVersion = $psVersion.Major
+    $minorVersion = $psVersion.Minor
+    
+    # Block versions older than 5.1
+    if ($majorVersion -lt 5 -or ($majorVersion -eq 5 -and $minorVersion -lt 1)) {
+        Write-Error "PowerShell 5.1 or later is required. Current version: $($psVersion)"
+        Write-Host "Please upgrade to PowerShell 7+ from: https://github.com/PowerShell/PowerShell" -ForegroundColor Red
+        return $false
+    }
+    
+    # Warn for PowerShell 5.1 and recommend 7+
+    if ($majorVersion -eq 5) {
+        Write-Warning "Running on Windows PowerShell $($psVersion). PowerShell 7+ is recommended for best performance and features."
+        Write-Host "Download PowerShell 7+ from: https://github.com/PowerShell/PowerShell" -ForegroundColor Cyan
+        Write-Host "Continuing with compatibility mode..." -ForegroundColor Yellow
+        Write-Host ""
+        
+        # Give users a moment to see the warning
+        Start-Sleep -Seconds 2
+    }
+    
+    return $true
+}
+
 # Environment variable support - treat PICK66_LAUNCH=1 as implicit -Launch
 if ($env:PICK66_LAUNCH -eq "1" -and !$Launch) {
     $Launch = $true
@@ -61,10 +87,9 @@ if ($env:PICK66_LAUNCH -eq "1" -and !$Launch) {
 
 # Preflight checks for common mis-invocation scenarios
 function Test-InvocationEnvironment {
-    # Check PowerShell version
-    if ($PSVersionTable.PSVersion.Major -lt 7) {
-        Write-Warning "PowerShell 7.0 or later is recommended. Current version: $($PSVersionTable.PSVersion)"
-        Write-Host "Some features may not work correctly with older PowerShell versions." -ForegroundColor $ColorWarning
+    # Use the dedicated PowerShell version check
+    if (!(Test-PowerShellVersion)) {
+        return $false
     }
     
     # Check if running in a proper console environment
@@ -90,6 +115,8 @@ function Test-InvocationEnvironment {
         Write-Host "  OR use the provided wrapper: install.cmd -Launch" -ForegroundColor $ColorInfo
         Write-Host ""
     }
+    
+    return $true
 }
 
 # Script configuration
@@ -386,7 +413,9 @@ try {
     Write-Host "Installation Script v1.0" -ForegroundColor $ColorInfo
     
     # Run preflight checks
-    Test-InvocationEnvironment
+    if (!(Test-InvocationEnvironment)) {
+        exit 1
+    }
     
     # Check prerequisites
     if (!(Test-DotNetSdk)) {
