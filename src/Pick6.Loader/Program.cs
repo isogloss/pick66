@@ -1,6 +1,7 @@
 using Pick6.Core;
 using Pick6.Projection;
 using Pick6.Loader.Update;
+using Pick6.ModGui;
 
 #if WINDOWS
 using System.ComponentModel;
@@ -126,8 +127,10 @@ public class Program
             Application.SetCompatibleTextRenderingDefault(false);
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
 
-            var mainForm = new MainForm();
-            Application.Run(mainForm);
+            // Use new ImGui mod menu instead of WinForms MainForm
+            Log.Info("Starting Pick6 Mod Menu interface");
+            var modMenuApp = new ModMenuApplication();
+            Application.Run(modMenuApp);
         }
         catch (Exception ex)
         {
