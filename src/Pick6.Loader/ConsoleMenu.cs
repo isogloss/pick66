@@ -12,6 +12,7 @@ public class ConsoleMenu
 {
     private readonly GameCaptureEngine _captureEngine;
     private readonly BorderlessProjectionWindow _projectionWindow;
+    private int _selectedMonitor = 0;
 
     public ConsoleMenu()
     {
@@ -109,6 +110,22 @@ public class ConsoleMenu
                         i += 2;
                     }
                     break;
+                case "--monitor":
+                    if (i + 1 < args.Length && int.TryParse(args[i + 1], out int monitor))
+                    {
+                        var monitors = MonitorHelper.GetAllMonitors();
+                        if (monitor >= 0 && monitor < monitors.Count)
+                        {
+                            _selectedMonitor = monitor;
+                            Console.WriteLine($"[INFO] Target monitor set to {monitor}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[WARNING] Invalid monitor {monitor}. Available: 0-{monitors.Count - 1}");
+                        }
+                        i++;
+                    }
+                    break;
             }
         }
     }
@@ -171,6 +188,8 @@ public class ConsoleMenu
     {
         Console.Clear();
         Console.WriteLine("=== Pick6 Main Menu ===");
+        Console.WriteLine();
+        Console.WriteLine($"Current Settings: FPS={_captureEngine.Settings.TargetFPS}, Monitor={_selectedMonitor}");
         Console.WriteLine();
         Console.WriteLine("1. Scan for FiveM processes");
         Console.WriteLine("2. Start capture");
@@ -288,8 +307,8 @@ public class ConsoleMenu
     private void StartProjection()
     {
         Console.WriteLine("\n=== Starting Projection ===");
-        _projectionWindow.StartProjection();
-        Console.WriteLine("✅ Borderless projection window started.");
+        _projectionWindow.StartProjection(_selectedMonitor);
+        Console.WriteLine($"✅ Borderless projection window started on monitor {_selectedMonitor}.");
         Console.WriteLine("   The projection window should now be visible.");
     }
 
@@ -307,6 +326,14 @@ public class ConsoleMenu
         Console.WriteLine($"Current Target FPS: {_captureEngine.Settings.TargetFPS}");
         Console.WriteLine($"Current Resolution: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original (auto-detect)")}");
         Console.WriteLine($"Hardware Acceleration: {_captureEngine.Settings.UseHardwareAcceleration}");
+        Console.WriteLine($"Target Monitor: {_selectedMonitor}");
+        
+        // Show available monitors
+        if (OperatingSystem.IsWindows())
+        {
+            ShowAvailableMonitors();
+        }
+        
         Console.WriteLine();
 
         Console.WriteLine("Enter new values (press Enter to keep current):");
@@ -316,6 +343,7 @@ public class ConsoleMenu
         if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 120)
         {
             _captureEngine.Settings.TargetFPS = fps;
+            _projectionWindow.SetTargetFPS(fps);
             Console.WriteLine($"✅ FPS updated to {fps}");
         }
 
@@ -339,7 +367,52 @@ public class ConsoleMenu
             Console.WriteLine($"✅ Resolution updated to {(width > 0 && height > 0 ? $"{width}x{height}" : "Original")}");
         }
 
+        // Monitor selection
+        if (OperatingSystem.IsWindows())
+        {
+            Console.Write($"Target Monitor ({_selectedMonitor}): ");
+            var monitorInput = Console.ReadLine();
+            if (int.TryParse(monitorInput, out int monitor) && monitor >= 0)
+            {
+                try
+                {
+                    var monitors = MonitorHelper.GetAllMonitors();
+                    if (monitor < monitors.Count)
+                    {
+                        _selectedMonitor = monitor;
+                        Console.WriteLine($"✅ Target monitor updated to {monitor}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"❌ Invalid monitor index. Available: 0-{monitors.Count - 1}");
+                    }
+                }
+                catch
+                {
+                    Console.WriteLine("❌ Could not access monitor information");
+                }
+            }
+        }
+
         Console.WriteLine("✅ Settings updated successfully!");
+    }
+
+    private void ShowAvailableMonitors()
+    {
+        try
+        {
+            var monitors = MonitorHelper.GetAllMonitors();
+            Console.WriteLine($"\nAvailable Monitors ({monitors.Count}):");
+            foreach (var monitor in monitors)
+            {
+                var bounds = $"at {monitor.Bounds.X},{monitor.Bounds.Y}";
+                Console.WriteLine($"  {monitor.Index}: Monitor {monitor.Index + 1} - {monitor.Bounds.Width}x{monitor.Bounds.Height} {bounds}{(monitor.IsPrimary ? " (Primary)" : "")}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Could not enumerate monitors: {ex.Message}");
+        }
     }
 
     private void QuickStart()
@@ -381,7 +454,7 @@ public class ConsoleMenu
         if (_captureEngine.StartCapture(targetProcess.ProcessName))
         {
             Console.WriteLine("✅ Capture started!");
-            _projectionWindow.StartProjection();
+            _projectionWindow.StartProjection(_selectedMonitor);
             Console.WriteLine("✅ Projection started!");
             Console.WriteLine();
             Console.WriteLine("🎮 Pick6 is now running! The game should be projected in a borderless window.");
@@ -405,17 +478,38 @@ public class ConsoleMenu
         Console.WriteLine($"  - Vulkan Processes: {summary.VulkanProcesses.Count}");
         Console.WriteLine($"  - Traditional Processes: {summary.TraditionalProcesses.Count}");
         Console.WriteLine($"Vulkan Support: {(summary.HasVulkanSupport ? "✅ Available" : "❌ Not detected")}");
+        Console.WriteLine();
+        
+        // Monitor information
+        try
+        {
+            var monitors = MonitorHelper.GetAllMonitors();
+            Console.WriteLine($"Available Monitors: {monitors.Count}");
+            foreach (var monitor in monitors)
+            {
+                var status = monitor.Index == _selectedMonitor ? " ← Selected" : "";
+                Console.WriteLine($"  {monitor}{status}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Monitor Detection: ❌ Error ({ex.Message})");
+        }
+        Console.WriteLine();
         
         // This would check actual capture/projection status in a real implementation
         Console.WriteLine($"Capture Status: Active"); // Placeholder
         Console.WriteLine($"Projection Status: Active"); // Placeholder
         Console.WriteLine($"Current FPS Target: {_captureEngine.Settings.TargetFPS}");
         Console.WriteLine($"Resolution Setting: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original")}");
+        Console.WriteLine($"Target Monitor: {_selectedMonitor}");
         Console.WriteLine();
         Console.WriteLine("💡 Tips:");
         Console.WriteLine("  - Vulkan injection provides better performance");
         Console.WriteLine("  - Run as administrator for injection privileges");
         Console.WriteLine("  - Traditional window capture works as fallback");
+        Console.WriteLine("  - Use Ctrl+L/Ctrl+P hotkeys in GUI mode for quick control");
+        Console.WriteLine("  - Stealth mode hides windows from Alt+Tab and taskbar");
     }
 
     private void AutoStartCapture()
@@ -444,7 +538,7 @@ public class ConsoleMenu
             if (targetProcess != null && _captureEngine.StartCapture(targetProcess.ProcessName))
             {
                 Console.WriteLine($"[INFO] Auto-started capture for: {targetProcess}");
-                _projectionWindow.StartProjection();
+                _projectionWindow.StartProjection(_selectedMonitor);
                 Console.WriteLine("[INFO] Auto-started projection");
             }
         }
@@ -464,7 +558,7 @@ public class ConsoleMenu
         Console.WriteLine("This will start projection and generate colored test frames...");
         
         // Start projection first
-        _projectionWindow.StartProjection();
+        _projectionWindow.StartProjection(_selectedMonitor);
         Console.WriteLine("✅ Projection window started");
         
         if (OperatingSystem.IsWindows())
@@ -552,6 +646,7 @@ public class ConsoleMenu
         Console.WriteLine("  --auto-start          Automatically start capture and projection (console mode)");
         Console.WriteLine("  --fps <number>        Set target FPS (console mode, default: 60)");
         Console.WriteLine("  --resolution <w> <h>  Set output resolution (console mode)");
+        Console.WriteLine("  --monitor <index>     Set target monitor for projection (console mode)");
         Console.WriteLine("  --help                Show this help message");
         Console.WriteLine();
         Console.WriteLine("Examples:");
@@ -559,7 +654,21 @@ public class ConsoleMenu
         Console.WriteLine("  pick6_loader --console                 # Force console mode");
         Console.WriteLine("  pick6_loader --console --auto-start    # Console mode with auto-start");
         Console.WriteLine("  pick6_loader --console --fps 30        # Console mode with 30 FPS");
-        Console.WriteLine("  pick6_loader --console --resolution 1920 1080 --fps 60");
+        Console.WriteLine("  pick6_loader --console --monitor 1     # Console mode with monitor 1");
+        Console.WriteLine("  pick6_loader --console --resolution 1920 1080 --fps 60 --monitor 0");
+        Console.WriteLine();
+        Console.WriteLine("New Features:");
+        Console.WriteLine("  🖥️  Monitor Selection: Choose target display for projection (GUI & console)");
+        Console.WriteLine("  🎯 FPS Control: Consistent frame rate control (15-120 FPS)");
+        Console.WriteLine("  ⌨️  Global Hotkeys: System-wide keyboard shortcuts (Windows only)");
+        Console.WriteLine("  👻 Stealth Mode: Hidden from Alt+Tab and taskbar");
+        Console.WriteLine("  ⚡ Performance: Optimized render loop for smooth 60+ FPS projection");
+        Console.WriteLine();
+        Console.WriteLine("Global Hotkeys (Windows GUI mode):");
+        Console.WriteLine("  Ctrl+L                Toggle loader window visibility");
+        Console.WriteLine("  Ctrl+P                Toggle projection window");
+        Console.WriteLine("  Ctrl+Shift+Esc        Close projection immediately");
+        Console.WriteLine("  ESC (in projection)   Close projection window");
         Console.WriteLine();
         Console.WriteLine("Build commands:");
         Console.WriteLine("  dotnet build -c Release");

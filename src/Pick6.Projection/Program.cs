@@ -13,9 +13,19 @@ public class BorderlessProjectionWindow
     private Bitmap? _currentFrame;
     private readonly object _frameLock = new();
     private WindowsProjectionForm? _windowsProjection;
+    private int _targetFPS = 60;
 
     public event EventHandler? ProjectionStarted;
     public event EventHandler? ProjectionStopped;
+
+    /// <summary>
+    /// Set the target FPS for the projection
+    /// </summary>
+    public void SetTargetFPS(int fps)
+    {
+        _targetFPS = Math.Max(15, Math.Min(120, fps));
+        _windowsProjection?.SetTargetFPS(_targetFPS);
+    }
 
     /// <summary>
     /// Start the borderless projection
@@ -88,6 +98,7 @@ public class BorderlessProjectionWindow
         try
         {
             _windowsProjection = new WindowsProjectionForm();
+            _windowsProjection.SetTargetFPS(_targetFPS);
             
             // Forward projection events
             _windowsProjection.ProjectionStarted += (s, e) => ProjectionStarted?.Invoke(this, e);
@@ -114,21 +125,32 @@ public class BorderlessProjectionWindow
         Task.Run(async () =>
         {
             int frameCount = 0;
+            var frameTimeMs = 1000.0 / _targetFPS;
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var lastFrameTime = 0.0;
+            
             while (_isProjecting)
             {
-                lock (_frameLock)
+                var currentTime = stopwatch.Elapsed.TotalMilliseconds;
+                
+                if (currentTime - lastFrameTime >= frameTimeMs)
                 {
-                    if (_currentFrame != null)
+                    lock (_frameLock)
                     {
-                        frameCount++;
-                        if (frameCount % 60 == 0) // Log every 60 frames
+                        if (_currentFrame != null)
                         {
-                            // On non-Windows platforms, we can't access Bitmap properties safely
-                            Console.WriteLine($"Simulated projection frame {frameCount}");
+                            frameCount++;
+                            if (frameCount % _targetFPS == 0) // Log every second worth of frames
+                            {
+                                // On non-Windows platforms, we can't access Bitmap properties safely
+                                Console.WriteLine($"Simulated projection frame {frameCount} (FPS: {_targetFPS})");
+                            }
                         }
                     }
+                    lastFrameTime = currentTime;
                 }
-                await Task.Delay(16); // ~60 FPS
+                
+                await Task.Delay(1); // Small delay to prevent 100% CPU usage
             }
         });
     }
