@@ -2,21 +2,62 @@
 
 **Modern .NET 8 WPF application providing professional projection interface capabilities with colored theme.**
 
-## 🚀 Quick Start
+## 🚀 Quick Install
 
-### One-Command Installation
+### Prerequisites
+- **.NET 8 SDK** (download from https://dot.net)
+- **Windows 10/11** (target platform)
+- **PowerShell 7+** (recommended - get from https://github.com/PowerShell/PowerShell)
 
+### Fast Installation
+
+**Option 1: Windows Wrapper (Recommended)**
+```cmd
+# Clone repository
+git clone https://github.com/isogloss/pick66.git
+cd pick66
+
+# Double-click install.cmd OR run from command prompt:
+install.cmd -Launch
+```
+
+**Option 2: PowerShell Direct**
 ```powershell
 # Clone repository and install
 git clone https://github.com/isogloss/pick66.git
 cd pick66
-.\install.ps1 -Launch
+
+# From PowerShell 7+ console:
+pwsh -ExecutionPolicy Bypass -File ./install.ps1 -Launch
+# OR if already in PowerShell 7+:
+./install.ps1 -Launch
 ```
+
+**Option 3: Environment Variable**
+```powershell
+# Set environment variable for automatic launch
+$env:PICK66_LAUNCH = "1"
+./install.ps1  # Will launch automatically
+```
+
+**Note:** Double-clicking the .ps1 file directly will likely open Notepad instead of executing due to Windows file associations. Use the provided `install.cmd` wrapper for double-click execution.
 
 This creates a self-contained executable in your Downloads folder - **no additional dependencies required**.
 
 ### Manual Installation Options
 
+```cmd
+# Basic installation to Downloads folder
+install.cmd
+
+# Clean build with launch
+install.cmd -Clean -Launch
+
+# Custom installation path
+install.cmd -OutputPath "C:\MyApps"
+```
+
+**PowerShell Direct Options:**
 ```powershell
 # Basic installation to Downloads folder
 .\install.ps1
