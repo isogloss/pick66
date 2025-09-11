@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -64,6 +65,7 @@ public class Updater
         }
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "Simple JSON deserialization of known manifest structure")]
     private static async Task<PayloadInfo?> FetchManifestAsync(string manifestUrl)
     {
         try

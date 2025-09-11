@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Pick6.Loader.Update;
@@ -13,6 +14,8 @@ public class PayloadLauncher
     /// <param name="payloadInfo">Payload information including entry point details</param>
     /// <param name="args">Arguments to pass to the payload entry method</param>
     /// <returns>True if payload was successfully invoked, false on error</returns>
+    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "Payload assemblies are not trimmed")]
+    [UnconditionalSuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMemberTypes.All' in call to 'target method'. The return value of the source method does not have matching annotations.", Justification = "Payload assemblies are not trimmed")]
     public static bool TryLaunchPayload(PayloadInfo payloadInfo, string[] args)
     {
         try
@@ -105,6 +108,7 @@ public class PayloadLauncher
     /// Gets payload information for the currently cached payload, if available
     /// </summary>
     /// <returns>PayloadInfo if available and valid, null otherwise</returns>
+    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "Simple JSON deserialization of known structure")]
     public static PayloadInfo? GetCachedPayloadInfo()
     {
         try
