@@ -1,102 +1,268 @@
-# Pick6 - High-Performance OBS Game Capture Clone
+# Pick66 - Unified Lottery Generator & Game Capture Application
 
-Real-time game capture and projection application for FiveM with automatic, non-interactive operation, >120 FPS support, and enhanced performance monitoring.
+**Modern .NET 8 application combining lottery number generation with high-performance FiveM game capture capabilities.**
 
-## New in v2.1: ImGui Mod Menu Interface
+## 🚀 Quick Start
 
-### 🎮 **Modern Mod Menu**
-- **ImGui-Style Interface**: Dark theme, tab-based navigation inspired by game mod menus
-- **Real-time Monitoring**: Live FPS display, dropped frame counters, and status indicators
-- **Enhanced Settings**: Dedicated Settings tab with sliders, checkboxes, and instant apply
-- **Console Integration**: Built-in scrollable log viewer with color-coded entries
-- **Single-File Deployment**: Compatible with .NET 8 self-contained publishing (~21MB executable)
+### One-Command Installation
 
-### 🔧 **Two-Tab Design**
-- **Loader Tab**: Start/stop capture and projection, status monitoring, console log
-- **Settings Tab**: FPS control, resolution settings, hardware acceleration, UI scaling, auto-start options
-- **Persistent Settings**: Automatic save/load with validation in `%AppData%\Pick6\imgui_settings.json`
-
-### 💻 **Enhanced CLI Support**
-- All existing command-line arguments preserved and functional  
-- `--check-updates-only` and `--help` bypass GUI completely
-- Default behavior opens mod menu for interactive use
-
-See [MOD_GUI.md](MOD_GUI.md) for complete mod menu documentation.
-
-### 🚀 **True 60 FPS Performance**
-- **FramePacer**: Hybrid sleep+spin precision timing achieves sustained ≥58 FPS at 60 FPS target
-- **Real-time Statistics**: Live FPS monitoring, 95th percentile frame times, dropped frame counts
-- **Performance Analysis**: Automated warnings when performance falls below 70% of target
-- **Diagnostics**: Set `PICK6_DIAG=1` for detailed frame timing logs
-
-### 🎯 **Interactive Console Interface**
-- **Structured Menu**: Organized A-F sections for all settings and controls
-- **Live Monitoring**: Real-time performance statistics (press `13` in menu)
-- **Smart Configuration**: FPS presets (30/60/120/144), resolution templates, hardware acceleration
-- **Advanced Diagnostics**: Performance warnings, system analysis, and detailed reports
-
-### ✨ **Enhanced Visual Feedback**
-- **Animated Spinners**: Console and GUI show rotating spinner during monitoring/injection
-- **Smart Glyphs**: Unicode success (✓) and failure (✗) indicators with ASCII fallback
-- **Status Integration**: Real-time capture/projection status in console menu header
-
-## Core Functionalities
-
-- **High-Performance FiveM Capture**: Auto-detection and capture of FiveM processes via Vulkan injection or window capture at >120 FPS
-- **Real-time Projection**: High-performance borderless fullscreen projection supporting 144, 165, 240+ FPS targets  
-- **Automatic Operation**: Non-interactive auto-start mode - detects FiveM, starts capture, starts projection automatically
-- **Monitor Selection**: Choose target display for projection output via command line
-- **Update System**: Automatic update checking at startup with graceful offline fallback
-- **Advanced CLI**: Complete command-line interface with logging levels, FPS targets, and projection control
-- **Global Hotkeys**: System-wide keyboard shortcuts for projection control (Windows)
-
-## Quick Start (New Auto Mode)
-
-**Basic usage** - automatically start capture and projection:
-```bash
-pick6.exe --fps 144
+```powershell
+# Clone repository and install
+git clone https://github.com/isogloss/pick66.git
+cd pick66
+.\install.ps1 -Launch
 ```
 
-**Capture only** (no projection window):
-```bash
-pick6.exe --fps 60 --no-projection
+This creates a self-contained ~21MB executable in your Downloads folder - **no additional dependencies required**.
+
+### Manual Installation Options
+
+```powershell
+# Basic installation to Downloads folder
+.\install.ps1
+
+# Clean build with launch
+.\install.ps1 -Clean -Launch
+
+# Custom installation path
+.\install.ps1 -OutputPath "C:\MyApps"
 ```
 
-**High FPS with debug logging**:
+## 📋 Features Overview
+
+### 🎯 Lottery Number Generation
+- **Fisher-Yates Algorithm**: Cryptographically sound random number generation
+- **Flexible Parameters**: Configure numbers per ticket, ranges, uniqueness constraints
+- **Batch Generation**: Create multiple tickets with progress tracking
+- **Export Options**: Save results to files or copy to clipboard
+- **Validation**: Automatic parameter validation with user-friendly error messages
+
+### 🎮 FiveM Game Capture
+- **High-Performance Capture**: Vulkan injection + GDI fallback, >120 FPS support
+- **Real-time Projection**: Borderless fullscreen projection to secondary monitors
+- **Auto-Detection**: Automatic FiveM process discovery and injection
+- **Performance Monitoring**: Live FPS tracking, dropped frame detection, performance analysis
+- **Hardware Acceleration**: Optimized capture with GPU acceleration support
+
+### 🖥️ Modern Interface
+- **Tabbed Layout**: Separate interfaces for lottery generation and game capture
+- **Dark/Light Themes**: User-configurable themes with system integration
+- **Real-time Logging**: Live log display with color-coded severity levels
+- **Settings Persistence**: Configuration stored in `%AppData%/Pick66/settings.json`
+- **Non-blocking Notifications**: Error handling without modal dialog spam
+
+### ⚙️ Installation & Distribution
+- **Single-File Executable**: Self-contained Windows x64 executable (~21MB)
+- **PowerShell Install Script**: Automated build, publish, and installation
+- **SHA256 Verification**: Cryptographic integrity checking
+- **No Dependencies**: Includes .NET 8 runtime, runs on any Windows 10/11 system
+- **Downloads Folder Deployment**: Installs to user-accessible location
+
+## 💻 Usage Examples
+
+### GUI Mode (Default)
 ```bash
-pick6.exe --fps 240 --log-level Debug
+# Launch modern tabbed interface
+pick66.exe
 ```
 
-**Check for updates and exit**:
+### Lottery Generation (Console)
 ```bash
-pick6.exe --check-updates-only
+# Generate single ticket (6 numbers from 1-49, unique)
+pick66.exe --lottery --numbers 6 --min 1 --max 49 --unique
+
+# Generate 10 tickets with custom parameters
+pick66.exe --lottery --count 10 --numbers 5 --min 1 --max 35
 ```
 
-## Command Line Options
+### Game Capture (Command Line)
+```bash
+# Auto-start capture and projection at 144 FPS
+pick66.exe --fps 144 --auto-start
 
-### Basic Options
-- `--fps <number>` - Set target FPS (1-600, default: 60) - **120 FPS ceiling removed**
-- `--resolution <w> <h>` - Set output resolution (e.g., 1920 1080)  
-- `--monitor <index>` - Target monitor index (0-based)
-- `--no-projection` - Capture only, disable projection window
+# Capture only (no projection window)
+pick66.exe --fps 60 --no-projection
 
-### Logging & Debug
-- `--log-level <level>` - Set log level: Debug, Info, Warning, Error
-  - Debug mode shows average FPS statistics every 5 seconds
+# Target specific monitor for projection
+pick66.exe --fps 120 --monitor 1 --auto-start
+```
 
-### Update System  
-- `--check-updates` - Check for updates at startup
-- `--check-updates-only` - Check for updates and exit
+### System Administration
+```bash
+# Check for updates and exit
+pick66.exe --check-updates-only
 
-### Mode Control
-- `--gui` - Force GUI mode (Windows only)
-- `--interactive` - Use legacy interactive menu mode
-- `--help, -h` - Show help message
+# Show help and exit
+pick66.exe --help
 
-## Default Behavior
+# Verbose logging for troubleshooting
+pick66.exe --log-level Debug
+```
 
-- **With no arguments**: Opens GUI mode on Windows
-- **With command-line arguments**: Auto-starts capture/projection in console mode (non-interactive)
+## 🏗️ Architecture & Technical Details
+
+### Project Structure
+```
+Pick66/
+├── src/
+│   ├── Pick6.Core/           # Game capture engine
+│   ├── Pick6.Projection/     # Windows projection system  
+│   ├── Pick6.Loader/         # Main application entry point
+│   ├── Pick6.ModGui/         # ImGui-style interface
+│   ├── Pick66.Core/          # Lottery number generation
+│   ├── Pick66.Console/       # Console demonstration
+│   └── Pick66.Tests/         # Unit tests (16 tests)
+├── install.ps1               # PowerShell installation script
+├── README.md                 # This documentation
+└── UPGRADE.md               # Migration guide
+```
+
+### Core Technologies
+- **Platform**: .NET 8 with Windows-specific optimizations
+- **UI Framework**: Windows Forms with ImGui-style theming
+- **Graphics**: Hardware-accelerated capture via Vulkan/GDI
+- **Architecture**: Event-driven with async/await patterns
+- **Packaging**: Single-file self-contained deployment
+- **Testing**: XUnit with 16 comprehensive unit tests
+
+### Build Configuration
+- **Target Framework**: .NET 8 (LTS)
+- **Runtime**: Windows x64 self-contained  
+- **Compilation**: ReadyToRun with partial trimming
+- **Size Optimization**: ~21MB single-file executable
+- **Security**: SHA256 integrity verification
+
+## 🔧 Advanced Configuration
+
+### Settings Management
+All settings are stored in `%AppData%/Pick66/settings.json`:
+
+```json
+{
+  "isDarkTheme": true,
+  "autoStartProjection": false,
+  "targetFps": 60,
+  "resolutionWidth": 0,
+  "resolutionHeight": 0,
+  "monitorIndex": 0,
+  "hardwareAcceleration": true,
+  "outputDirectory": "output",
+  "hotkeyToggleProjection": "Ctrl+P",
+  "hotkeyStopAndRestore": "Ctrl+Shift+P",
+  "lotteryNumbersPerTicket": 6,
+  "lotteryMinNumber": 1,
+  "lotteryMaxNumber": 49,
+  "lotteryUniqueNumbers": true
+}
+```
+
+### Global Hotkeys (Windows)
+- **Ctrl+L**: Toggle application window visibility
+- **Ctrl+P**: Toggle projection window (configurable)
+- **Ctrl+Shift+P**: Stop projection and restore (configurable)
+- **F12**: Emergency close projection and show application
+
+### Performance Optimization
+```bash
+# High-FPS gaming setup
+pick66.exe --fps 165 --monitor 2 --auto-start
+
+# Streaming optimized (capture only)
+pick66.exe --fps 120 --no-projection --log-level Warning
+
+# Development/debugging
+set PICK6_DIAG=1
+pick66.exe --fps 60 --log-level Debug
+```
+
+## 🔧 Development & Building
+
+### Prerequisites
+- **.NET 8 SDK** (or later)
+- **Windows 10/11** for testing GUI features
+- **PowerShell 5.1+** for installation script
+
+### Development Build
+```bash
+# Clone repository
+git clone https://github.com/isogloss/pick66.git
+cd pick66
+
+# Restore packages and build
+dotnet restore
+dotnet build
+
+# Run tests
+dotnet test
+```
+
+### Release Build
+```powershell
+# Automated release build and installation
+.\install.ps1 -Clean
+
+# Manual release build
+dotnet build --configuration Release
+dotnet publish src/Pick6.Loader/Pick6.Loader.csproj \
+  --configuration Release \
+  --runtime win-x64 \
+  --self-contained true \
+  --output ./publish \
+  /p:PublishSingleFile=true \
+  /p:IncludeAllContentForSelfExtract=true
+```
+
+### Testing
+- **Unit Tests**: 16 comprehensive tests covering core lottery logic
+- **Manual Testing**: GUI interface testing on Windows systems
+- **Performance Testing**: FPS and memory usage validation
+
+## 🐛 Troubleshooting
+
+### Installation Issues
+
+**PowerShell Execution Policy**:
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**.NET SDK Missing**:
+- Download from https://dot.net (version 8.0 or later required)
+- Verify: `dotnet --version`
+
+**Build Failures**:
+```powershell
+# Clean and retry
+.\install.ps1 -Clean
+
+# Manual verification
+dotnet build --configuration Release
+```
+
+### Runtime Issues
+
+**Antivirus False Positives**:
+- Single-file executables may trigger antivirus warnings
+- Add exception for Downloads folder or the specific executable
+- Windows Defender SmartScreen may require "Run anyway"
+
+**Performance Issues**:
+- Run as Administrator for better injection support
+- Close other applications to free system resources
+- Lower target FPS if sustained performance issues occur
+- Check logs in GUI for specific error messages
+
+**Settings Not Persisting**:
+- Verify write permissions to `%AppData%/Pick66`
+- Run once as Administrator if needed
+- Delete settings file to reset to defaults
+
+### Getting Help
+
+1. **Check Application Logs**: Available in GUI log panel
+2. **Review Documentation**: [UPGRADE.md](UPGRADE.md) for migration issues
+3. **GitHub Issues**: Include error details and system information
+4. **Manual Build**: Try `dotnet build` to isolate build issues
 
 ## What's New - Version 2.0
 
