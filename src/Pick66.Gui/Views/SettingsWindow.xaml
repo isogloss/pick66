@@ -1,0 +1,154 @@
+<Window x:Class="Pick66.Gui.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings - Pick66" Height="500" Width="600"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TabControl Grid.Row="0">
+            
+            <!-- General Settings Tab -->
+            <TabItem Header="General">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="15">
+                        
+                        <GroupBox Header="Appearance" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox Name="DarkThemeCheckBox" Content="Dark Theme" Margin="0,0,0,10"/>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <GroupBox Header="Game Capture" Margin="0,0,0,15">
+                            <Grid Margin="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <Label Grid.Row="0" Grid.Column="0" Content="Auto-start projection:" VerticalAlignment="Center"/>
+                                <CheckBox Name="AutoStartCheckBox" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="5"/>
+                                
+                                <Label Grid.Row="1" Grid.Column="0" Content="Target FPS:" VerticalAlignment="Center"/>
+                                <TextBox Name="TargetFpsBox" Grid.Row="1" Grid.Column="1" Style="{StaticResource NumericTextBoxStyle}" Margin="5"/>
+                                
+                                <Label Grid.Row="2" Grid.Column="0" Content="Resolution Width:" VerticalAlignment="Center"/>
+                                <TextBox Name="ResolutionWidthBox" Grid.Row="2" Grid.Column="1" Style="{StaticResource NumericTextBoxStyle}" Margin="5"/>
+                                
+                                <Label Grid.Row="3" Grid.Column="0" Content="Resolution Height:" VerticalAlignment="Center"/>
+                                <TextBox Name="ResolutionHeightBox" Grid.Row="3" Grid.Column="1" Style="{StaticResource NumericTextBoxStyle}" Margin="5"/>
+                                
+                                <Label Grid.Row="4" Grid.Column="0" Content="Monitor Index:" VerticalAlignment="Center"/>
+                                <TextBox Name="MonitorIndexBox" Grid.Row="4" Grid.Column="1" Style="{StaticResource NumericTextBoxStyle}" Margin="5"/>
+                                
+                                <Label Grid.Row="5" Grid.Column="0" Content="Hardware Acceleration:" VerticalAlignment="Center"/>
+                                <CheckBox Name="HardwareAccelCheckBox" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center" Margin="5"/>
+                            </Grid>
+                        </GroupBox>
+                        
+                        <GroupBox Header="Logging" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox Name="VerboseLoggingCheckBox" Content="Verbose logging" Margin="0,0,0,10"/>
+                                
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <Label Grid.Column="0" Content="Output Directory:" VerticalAlignment="Center"/>
+                                    <DockPanel Grid.Column="1" Margin="5,0,0,0">
+                                        <Button Name="BrowseOutputButton" DockPanel.Dock="Right" Content="..." Width="30" Click="BrowseOutputDirectory_Click" Margin="5,0,0,0"/>
+                                        <TextBox Name="OutputDirectoryBox" DockPanel.Dock="Left"/>
+                                    </DockPanel>
+                                </Grid>
+                            </StackPanel>
+                        </GroupBox>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+            <!-- Hotkeys Tab -->
+            <TabItem Header="Hotkeys">
+                <StackPanel Margin="15">
+                    <GroupBox Header="Global Hotkeys">
+                        <Grid Margin="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Label Grid.Row="0" Grid.Column="0" Content="Toggle Projection:" VerticalAlignment="Center"/>
+                            <TextBox Name="ToggleHotkeyBox" Grid.Row="0" Grid.Column="1" Margin="5"/>
+                            
+                            <Label Grid.Row="1" Grid.Column="0" Content="Stop and Restore:" VerticalAlignment="Center"/>
+                            <TextBox Name="StopHotkeyBox" Grid.Row="1" Grid.Column="1" Margin="5"/>
+                        </Grid>
+                    </GroupBox>
+                    
+                    <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Foreground="Gray">
+                        Note: Hotkey format examples: Ctrl+P, Ctrl+Shift+P, Alt+F12, F11
+                    </TextBlock>
+                </StackPanel>
+            </TabItem>
+            
+            <!-- Lottery Settings Tab -->
+            <TabItem Header="Lottery">
+                <StackPanel Margin="15">
+                    <GroupBox Header="Default Lottery Parameters">
+                        <Grid Margin="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Label Grid.Row="0" Grid.Column="0" Content="Numbers per ticket:" VerticalAlignment="Center"/>
+                            <TextBox Name="LotteryNumbersBox" Grid.Row="0" Grid.Column="1" Style="{StaticResource NumericTextBoxStyle}" Margin="5"/>
+                            
+                            <Label Grid.Row="1" Grid.Column="0" Content="Minimum number:" VerticalAlignment="Center"/>
+                            <TextBox Name="LotteryMinBox" Grid.Row="1" Grid.Column="1" Style="{StaticResource NumericTextBoxStyle}" Margin="5"/>
+                            
+                            <Label Grid.Row="2" Grid.Column="0" Content="Maximum number:" VerticalAlignment="Center"/>
+                            <TextBox Name="LotteryMaxBox" Grid.Row="2" Grid.Column="1" Style="{StaticResource NumericTextBoxStyle}" Margin="5"/>
+                            
+                            <Label Grid.Row="3" Grid.Column="0" Content="Unique numbers only:" VerticalAlignment="Center"/>
+                            <CheckBox Name="LotteryUniqueCheckBox" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="5"/>
+                        </Grid>
+                    </GroupBox>
+                </StackPanel>
+            </TabItem>
+            
+        </TabControl>
+
+        <!-- Button Panel -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Name="OkButton" Content="OK" Width="75" Height="25" Margin="0,0,10,0" 
+                    Click="Ok_Click" IsDefault="True" Background="{StaticResource SuccessBrush}"/>
+            <Button Name="CancelButton" Content="Cancel" Width="75" Height="25" 
+                    Click="Cancel_Click" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
