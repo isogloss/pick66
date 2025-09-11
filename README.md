@@ -271,3 +271,55 @@ $env:PICK6_DIAG=1     # Windows PowerShell
 - Close other applications to free up system resources
 - Lower target FPS or resolution if sustained performance issues occur
 - The loader uses partial trimming mode to preserve dynamic loading capabilities
+
+## GUI Menu & Settings
+
+The Pick6 application now includes a persistent GUI menu that provides easy access to Start/Stop projection controls and user settings management.
+
+### Usage Instructions
+
+When you launch Pick6 (via `pick6_loader.exe`), you'll see the main GUI window with:
+
+- **Start Injection** button: Begins the projection/injection workflow
+- **Stop** button: Cleanly stops the projection and returns to idle state  
+- **Settings** button: Opens the settings dialog for configuration
+- **Hide** button: Minimizes the window (use global hotkeys to restore)
+- **Status display**: Shows current state (Idle/Starting/Running/Stopping/Error)
+- **Log output**: Real-time display of the last 200 log entries
+
+### Settings Management
+
+The settings dialog allows you to configure:
+
+- **Auto-start projection**: Automatically start projection when the application launches
+- **Verbose logging**: Enable detailed logging output
+- **Refresh interval**: Projection refresh rate in milliseconds (50-10000ms)
+- **Toggle hotkey**: Global hotkey to toggle projection (default: Ctrl+P)  
+- **Stop & restore hotkey**: Global hotkey to stop projection and restore menu (default: Ctrl+Shift+P)
+- **Output directory**: Directory for captures and logs
+
+### Settings Storage
+
+User settings are automatically persisted to: `%AppData%\Pick6\settings.json`
+
+Settings are validated when loaded/saved:
+- Refresh interval is clamped to 50-10000ms range
+- Invalid values trigger warnings in the logs but preserve previous valid settings
+- Missing or corrupted settings file automatically uses defaults
+
+### Global Hotkeys
+
+The following global hotkeys work system-wide (even when the GUI is minimized):
+
+- **Ctrl+L**: Toggle loader window visibility
+- **Ctrl+P**: Toggle projection window (or custom hotkey from settings)
+- **Ctrl+Shift+P**: Stop projection & restore menu (or custom hotkey from settings)
+- **Ctrl+Shift+Esc**: Close projection immediately
+- **F12**: Close projection + toggle loader
+
+### Auto-Start Functionality
+
+When "Auto-start projection" is enabled in settings:
+- The application will automatically begin projection monitoring after startup
+- No manual intervention needed - just launch the app and it starts working
+- Ideal for automated deployment scenarios

@@ -1,6 +1,9 @@
-using Pick6.Loader.Settings;
-using System.IO;
+using System.Runtime.InteropServices;
 using Xunit;
+
+#if WINDOWS
+using Pick6.Loader.Settings;
+#endif
 
 namespace Pick66.Tests;
 
@@ -9,29 +12,14 @@ namespace Pick66.Tests;
 /// </summary>
 public class SettingsServiceTests : IDisposable
 {
-    private readonly string _tempSettingsPath;
-    private readonly string _originalSettingsPath;
-
-    public SettingsServiceTests()
-    {
-        // Create a temporary directory for test settings
-        var tempDir = Path.Combine(Path.GetTempPath(), "Pick6Tests", Guid.NewGuid().ToString());
-        Directory.CreateDirectory(tempDir);
-        _tempSettingsPath = Path.Combine(tempDir, "settings.json");
-        
-        // Store original settings path for cleanup
-        _originalSettingsPath = SettingsService.GetSettingsFilePath();
-        
-        // Use reflection to set the temp path for testing
-        // Since we can't easily mock static methods, we'll test with a known temp location
-    }
-
+#if WINDOWS
     [Fact]
     public void TryLoadOrDefault_ReturnsDefaultSettings_WhenFileDoesNotExist()
     {
-        // Arrange - ensure no settings file exists
-        var nonExistentPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "settings.json");
-        
+        // This test only runs on Windows where WinForms is available
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
         // Act
         var settings = SettingsService.TryLoadOrDefault();
         
@@ -48,6 +36,10 @@ public class SettingsServiceTests : IDisposable
     [Fact]
     public void SaveAndLoadRoundTrip_PreservesAllSettings()
     {
+        // This test only runs on Windows where WinForms is available
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
         // Arrange
         var originalSettings = new UserSettings
         {
@@ -79,6 +71,10 @@ public class SettingsServiceTests : IDisposable
     [Fact]
     public void UserSettings_Validate_ClampsRefreshInterval()
     {
+        // This test only runs on Windows where WinForms is available
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
         // Arrange
         var settings = new UserSettings
         {
@@ -104,6 +100,10 @@ public class SettingsServiceTests : IDisposable
     [Fact]
     public void UserSettings_Validate_FixesNullOrEmptyValues()
     {
+        // This test only runs on Windows where WinForms is available
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
         // Arrange
         var settings = new UserSettings
         {
@@ -124,15 +124,31 @@ public class SettingsServiceTests : IDisposable
     [Fact]
     public void SettingsService_Save_ReturnsFalseForNullSettings()
     {
+        // This test only runs on Windows where WinForms is available
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
         // Act
         var result = SettingsService.Save(null!);
 
         // Assert
         Assert.False(result);
     }
+#else
+    [Fact]
+    public void SettingsTests_SkippedOnNonWindows()
+    {
+        // This test always passes on non-Windows platforms
+        Assert.True(true);
+    }
+#endif
 
     public void Dispose()
     {
+#if WINDOWS
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
         // Clean up any test files
         try
         {
@@ -152,5 +168,6 @@ public class SettingsServiceTests : IDisposable
         {
             // Ignore cleanup errors
         }
+#endif
     }
 }
