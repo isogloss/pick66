@@ -12,30 +12,19 @@ public class Program
     [STAThread]
     public static void Main()
     {
-        // For cross-platform compatibility, we'll create a simple console-based UI
-        // that can be adapted to Windows Forms when running on Windows
-        if (OperatingSystem.IsWindows())
-        {
-            RunWindowsUI();
-        }
-        else
-        {
-            RunConsoleUI();
-        }
+        RunWindowsUI();
     }
 
     private static void RunWindowsUI()
     {
-        // This would run the Windows Forms UI on Windows
-        Console.WriteLine("Pick66 Game Capture - Windows UI");
-        Console.WriteLine("Note: Windows Forms UI would be available when running on Windows");
+        // This would run the Windows Forms UI
+        Console.WriteLine("pick6 Game Capture - Windows UI");
         RunConsoleUI();
     }
 
     private static void RunConsoleUI()
     {
-        Console.WriteLine("=== Pick6 Game Capture ===");
-        Console.WriteLine("Real-time FiveM capture and projection");
+        Console.WriteLine("=== pick6 ===");
         Console.WriteLine();
 
         var captureEngine = new GameCaptureEngine();
@@ -44,10 +33,7 @@ public class Program
         // Setup event handlers
         captureEngine.FrameCaptured += (s, e) =>
         {
-            if (OperatingSystem.IsWindows())
-            {
-                projectionWindow.UpdateFrame(e.Frame);
-            }
+            projectionWindow.UpdateFrame(e.Frame);
         };
 
         captureEngine.ErrorOccurred += (s, e) =>

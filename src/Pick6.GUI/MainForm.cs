@@ -38,7 +38,7 @@ public partial class MainForm : Form
 
     private void InitializeComponent()
     {
-        Text = "Pick6 - Game Capture";
+        Text = "pick6";
         Size = new Size(480, 400);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
@@ -165,7 +165,7 @@ public partial class MainForm : Form
         // Forward captured frames to projection window
         _captureEngine.FrameCaptured += (s, e) =>
         {
-            if (OperatingSystem.IsWindows() && _autoProjectCheckbox.Checked)
+            if (_autoProjectCheckbox.Checked)
             {
                 _projectionWindow.UpdateFrame(e.Frame);
             }
@@ -315,7 +315,7 @@ public partial class MainForm : Form
             _captureStatusLabel.ForeColor = Color.Green;
 
             // Auto-start projection if enabled
-            if (_autoProjectCheckbox.Checked && OperatingSystem.IsWindows())
+            if (_autoProjectCheckbox.Checked)
             {
                 _projectionWindow?.StartProjection();
             }

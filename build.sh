@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "================================================"
-echo "     Building Pick6 OBS Game Capture Clone     "
+echo "           Building pick6 (Windows-only)       "
 echo "================================================"
 
 # Clean previous builds
@@ -12,11 +12,11 @@ dotnet clean
 echo "Restoring packages..."
 dotnet restore
 
-# Build solution (console components)
-echo "Building console solution..."
+# Build solution (Windows components)
+echo "Building Windows solution..."
 dotnet build --configuration Release
 
-# Build GUI for Windows (Windows only)
+# Build GUI for Windows
 echo "Creating Windows GUI executable..."
 dotnet publish src/Pick6.GUI/Pick6.GUI.csproj \
     --configuration Release \
@@ -41,13 +41,13 @@ if [ $? -eq 0 ]; then
     echo "✅ Build completed successfully!"
     echo ""
     echo "Executables created in ./dist/:"
-    echo "- Pick6.GUI.exe       (Windows Forms GUI - recommended)"
-    echo "- Pick6.Launcher.exe  (Console mode + GUI launcher)"
+    echo "- Pick6.GUI.exe       (Windows GUI - recommended)"
+    echo "- Pick6.Launcher.exe  (Console launcher)"
     echo ""
-    echo "To use:"
-    echo "1. Copy executables to target Windows machine"
-    echo "2. Run Pick6.GUI.exe for best experience (OBS-style interface)"
-    echo "3. Or run Pick6.Launcher.exe for console mode"
+    echo "Usage:"
+    echo "1. Copy executables to Windows machine"
+    echo "2. Run Pick6.GUI.exe for GUI interface"
+    echo "3. Or run Pick6.Launcher.exe for console interface"
     echo "4. Use Pick6.Launcher.exe --help for command line options"
     echo "================================================"
 else

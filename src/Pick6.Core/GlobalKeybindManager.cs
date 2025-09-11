@@ -47,8 +47,6 @@ public class GlobalKeybindManager : IDisposable
     /// </summary>
     public bool UnregisterKeybind(int keybindId)
     {
-        if (!OperatingSystem.IsWindows()) return false;
-
         lock (_lock)
         {
             if (_registeredKeybinds.Remove(keybindId))
@@ -77,8 +75,6 @@ public class GlobalKeybindManager : IDisposable
     /// </summary>
     public bool RegisterKeybind(int virtualKey, bool ctrl, bool alt, bool shift, string description, Action action)
     {
-        if (!OperatingSystem.IsWindows()) return false;
-
         var keybindId = GenerateKeybindId(virtualKey, ctrl, alt, shift);
         
         lock (_lock)
@@ -114,7 +110,7 @@ public class GlobalKeybindManager : IDisposable
     /// </summary>
     public void StartMonitoring()
     {
-        if (_isMonitoring || !OperatingSystem.IsWindows()) return;
+        if (_isMonitoring) return;
 
         _isMonitoring = true;
         _monitoringThread = new Thread(MonitoringLoop)
@@ -135,17 +131,14 @@ public class GlobalKeybindManager : IDisposable
         _isMonitoring = false;
         _cancellationTokenSource.Cancel();
         
-        if (OperatingSystem.IsWindows())
+        // Unregister all hotkeys
+        lock (_lock)
         {
-            // Unregister all hotkeys
-            lock (_lock)
+            foreach (var keybindId in _registeredKeybinds.Keys)
             {
-                foreach (var keybindId in _registeredKeybinds.Keys)
-                {
-                    UnregisterHotKey(IntPtr.Zero, keybindId);
-                }
-                _registeredKeybinds.Clear();
+                UnregisterHotKey(IntPtr.Zero, keybindId);
             }
+            _registeredKeybinds.Clear();
         }
 
         _monitoringThread?.Join(1000);
@@ -260,6 +253,7 @@ public class GlobalKeybindManager : IDisposable
     public const int VK_F1 = 0x70;
     public const int VK_F2 = 0x71;
     public const int VK_F3 = 0x72;
+    public const int VK_F12 = 0x7B;
     public const int VK_A = 0x41;
     public const int VK_B = 0x42;
     public const int VK_C = 0x43;
@@ -298,7 +292,7 @@ public class GlobalKeybindManager : IDisposable
             "P" => VK_P, "Q" => VK_Q, "R" => VK_R, "S" => VK_S, "T" => VK_T,
             "U" => VK_U, "V" => VK_V, "W" => VK_W, "X" => VK_X, "Y" => VK_Y,
             "Z" => VK_Z, "ESCAPE" => VK_ESCAPE, "ESC" => VK_ESCAPE,
-            "F1" => VK_F1, "F2" => VK_F2, "F3" => VK_F3,
+            "F1" => VK_F1, "F2" => VK_F2, "F3" => VK_F3, "F12" => VK_F12,
             _ => -1
         };
     }
@@ -315,7 +309,7 @@ public class GlobalKeybindManager : IDisposable
             VK_K => "K", VK_L => "L", VK_M => "M", VK_N => "N", VK_O => "O",
             VK_P => "P", VK_Q => "Q", VK_R => "R", VK_S => "S", VK_T => "T",
             VK_U => "U", VK_V => "V", VK_W => "W", VK_X => "X", VK_Y => "Y",
-            VK_Z => "Z", VK_ESCAPE => "ESC", VK_F1 => "F1", VK_F2 => "F2", VK_F3 => "F3",
+            VK_Z => "Z", VK_ESCAPE => "ESC", VK_F1 => "F1", VK_F2 => "F2", VK_F3 => "F3", VK_F12 => "F12",
             _ => $"Key{virtualKey}"
         };
     }
@@ -344,10 +338,9 @@ public static class DefaultKeybinds
                                               Action? toggleLoader = null,
                                               Action? toggleProjection = null,
                                               Action? closeProjection = null,
-                                              Action? stopProjectionAndRestore = null)
+                                              Action? stopProjectionAndRestore = null,
+                                              Action? closeProjectionAndToggleLoader = null)
     {
-        if (!OperatingSystem.IsWindows()) return;
-
         try
         {
             // Ctrl+L - Toggle loader window visibility
@@ -378,11 +371,19 @@ public static class DefaultKeybinds
                                       "Ctrl+Shift+Esc - Close Projection", closeProjection);
             }
 
+            // F12 - Close projection and toggle loader (configurable hotkey)
+            if (closeProjectionAndToggleLoader != null)
+            {
+                manager.RegisterKeybind(GlobalKeybindManager.VK_F12, false, false, false, 
+                                      "F12 - Close Projection + Toggle Loader", closeProjectionAndToggleLoader);
+            }
+
             Console.WriteLine("✅ Default global keybinds registered:");
             Console.WriteLine("   Ctrl+L - Toggle Loader Window");
             Console.WriteLine("   Ctrl+P - Toggle Projection Window");
             Console.WriteLine("   Ctrl+Shift+P - Stop Projection & Restore Menu");
             Console.WriteLine("   Ctrl+Shift+Esc - Close Projection");
+            Console.WriteLine("   F12 - Close Projection + Toggle Loader");
         }
         catch (Exception ex)
         {

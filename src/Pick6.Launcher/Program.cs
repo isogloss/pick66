@@ -41,11 +41,6 @@ public class Program
     {
         try
         {
-            if (!OperatingSystem.IsWindows())
-            {
-                return false; // GUI only available on Windows
-            }
-
             // Try to find the GUI executable
             var currentDir = AppDomain.CurrentDomain.BaseDirectory;
             var guiExePath = Path.Combine(currentDir, "Pick6.GUI.exe");
@@ -77,11 +72,8 @@ public class Program
         var isRunning = true;
 
         Console.WriteLine("================================================");
-        Console.WriteLine("        Pick6 - OBS Game Capture Clone        ");
-        Console.WriteLine("         Console Mode                          ");
+        Console.WriteLine("                   pick6                        ");
         Console.WriteLine("================================================");
-        Console.WriteLine();
-        Console.WriteLine("💡 For a better experience, use the GUI version (Pick6.GUI.exe)");
         Console.WriteLine();
 
         // Setup event handlers
@@ -112,10 +104,7 @@ public class Program
         // Forward captured frames to projection window
         captureEngine.FrameCaptured += (s, e) =>
         {
-            if (OperatingSystem.IsWindows())
-            {
-                projectionWindow.UpdateFrame(e.Frame);
-            }
+            projectionWindow.UpdateFrame(e.Frame);
         };
 
         // Handle capture errors
@@ -226,19 +215,19 @@ public class Program
     private static void ShowMainMenu()
     {
         Console.Clear();
-        Console.WriteLine("=== Pick6 Main Menu ===");
+        Console.WriteLine("=== pick6 ===");
         Console.WriteLine();
-        Console.WriteLine("1. Scan for FiveM processes");
+        Console.WriteLine("1. Scan for processes");
         Console.WriteLine("2. Start capture");
         Console.WriteLine("3. Stop capture");
         Console.WriteLine("4. Start projection");
         Console.WriteLine("5. Stop projection");
-        Console.WriteLine("6. Configure settings");
-        Console.WriteLine("7. Quick start (auto-detect and start)");
-        Console.WriteLine("8. Show status");
+        Console.WriteLine("6. Settings");
+        Console.WriteLine("7. Quick start");
+        Console.WriteLine("8. Status");
         Console.WriteLine("0. Exit");
         Console.WriteLine();
-        Console.Write("Enter your choice: ");
+        Console.Write("Choice: ");
     }
 
     private static void ScanForFiveM()
