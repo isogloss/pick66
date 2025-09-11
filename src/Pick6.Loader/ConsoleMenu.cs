@@ -6,17 +6,6 @@ using System.Drawing;
 namespace Pick6.Loader;
 
 /// <summary>
-/// Logging levels for Pick6
-/// </summary>
-public enum LogLevel
-{
-    Debug,
-    Info,
-    Warning,
-    Error
-}
-
-/// <summary>
 /// Console menu implementation for Pick6 Loader
 /// Extracted from Pick6.UI and Pick6.Launcher for reuse
 /// </summary>
