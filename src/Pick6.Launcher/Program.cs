@@ -357,7 +357,7 @@ public class Program
         
         Console.Write($"Target FPS ({captureEngine.Settings.TargetFPS}): ");
         var fpsInput = Console.ReadLine();
-        if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 120)
+        if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 600)
         {
             captureEngine.Settings.TargetFPS = fps;
             Console.WriteLine($"✅ FPS updated to {fps}");

@@ -5,6 +5,17 @@ using System.Drawing;
 namespace Pick6.Loader;
 
 /// <summary>
+/// Logging levels for Pick6
+/// </summary>
+public enum LogLevel
+{
+    Debug,
+    Info,
+    Warning,
+    Error
+}
+
+/// <summary>
 /// Console menu implementation for Pick6 Loader
 /// Extracted from Pick6.UI and Pick6.Launcher for reuse
 /// </summary>
@@ -43,6 +54,25 @@ public class ConsoleMenu
         Console.WriteLine("Global keybinds enabled for console mode.");
     }
 
+    /// <summary>
+    /// Log message with level filtering
+    /// </summary>
+    private void Log(string message, LogLevel level)
+    {
+        if (level < _logLevel) return;
+
+        string prefix = level switch
+        {
+            LogLevel.Debug => "[DEBUG]",
+            LogLevel.Info => "[INFO]",
+            LogLevel.Warning => "[WARNING]",
+            LogLevel.Error => "[ERROR]",
+            _ => "[INFO]"
+        };
+
+        Console.WriteLine($"{prefix} {message}");
+    }
+
     public void Run(string[] args)
     {
         var isRunning = true;
@@ -65,8 +95,48 @@ public class ConsoleMenu
             HandleCommandLineArgs(args);
         }
 
-        // Main application loop
-        RunMainLoop(ref isRunning);
+        // Handle check-updates-only mode - exit after checking
+        if (_checkUpdatesOnly)
+        {
+            Log("Check updates only mode - exiting after update check", LogLevel.Info);
+            return;
+        }
+
+        // Handle manual update check
+        if (_checkUpdates)
+        {
+            Log("Performing manual update check...", LogLevel.Info);
+            // Note: Actual update checking would be handled in the main Program.cs
+            // This is just for command line parsing
+        }
+
+        // Auto-start behavior - skip interactive menu by default unless --interactive flag present
+        bool useInteractiveMenu = args.Any(arg => arg.ToLower() == "--interactive");
+        
+        if (!useInteractiveMenu && args.Length > 0)
+        {
+            // Auto-mode: start capture and projection automatically
+            Log("Running in auto-start mode (non-interactive)", LogLevel.Info);
+            AutoStartCapture();
+            
+            // Keep running until Ctrl+C
+            while (isRunning)
+            {
+                Thread.Sleep(1000);
+                
+                // Optional: Log FPS stats in debug mode
+                if (_logLevel <= LogLevel.Debug)
+                {
+                    LogFpsStats();
+                }
+            }
+        }
+        else
+        {
+            // Traditional interactive menu mode
+            Log("Running in interactive menu mode", LogLevel.Info);
+            RunMainLoop(ref isRunning);
+        }
 
         // Cleanup
         Cleanup();
@@ -98,6 +168,12 @@ public class ConsoleMenu
         };
     }
 
+    private bool _autoMode = false;
+    private bool _noProjection = false;
+    private LogLevel _logLevel = LogLevel.Info;
+    private bool _checkUpdatesOnly = false;
+    private bool _checkUpdates = false;
+
     private void HandleCommandLineArgs(string[] args)
     {
         for (int i = 0; i < args.Length; i++)
@@ -105,19 +181,28 @@ public class ConsoleMenu
             switch (args[i].ToLower())
             {
                 case "--auto-start":
+                    _autoMode = true;
                     AutoStartCapture();
                     break;
                 case "--fps":
                     if (i + 1 < args.Length && int.TryParse(args[i + 1], out int fps))
                     {
-                        _captureEngine.Settings.TargetFPS = fps;
-                        Console.WriteLine($"[INFO] Target FPS set to {fps}");
+                        // Remove 120 FPS ceiling, set reasonable upper limit to prevent runaway CPU
+                        if (fps > 0 && fps <= 600)
+                        {
+                            _captureEngine.Settings.TargetFPS = fps;
+                            Log($"Target FPS set to {fps}", LogLevel.Info);
+                        }
+                        else
+                        {
+                            Log($"Invalid FPS value {fps}. Must be between 1 and 600.", LogLevel.Warning);
+                        }
                         i++;
                     }
                     break;
                 case "--fps-logging":
                     _projectionWindow.SetFpsLogging(true);
-                    Console.WriteLine("[INFO] FPS logging enabled");
+                    Log("FPS logging enabled", LogLevel.Info);
                     break;
                 case "--resolution":
                     if (i + 2 < args.Length && 
@@ -126,7 +211,7 @@ public class ConsoleMenu
                     {
                         _captureEngine.Settings.ScaleWidth = width;
                         _captureEngine.Settings.ScaleHeight = height;
-                        Console.WriteLine($"[INFO] Resolution set to {width}x{height}");
+                        Log($"Resolution set to {width}x{height}", LogLevel.Info);
                         i += 2;
                     }
                     break;
@@ -137,14 +222,39 @@ public class ConsoleMenu
                         if (monitor >= 0 && monitor < monitors.Count)
                         {
                             _selectedMonitor = monitor;
-                            Console.WriteLine($"[INFO] Target monitor set to {monitor}");
+                            Log($"Target monitor set to {monitor}", LogLevel.Info);
                         }
                         else
                         {
-                            Console.WriteLine($"[WARNING] Invalid monitor {monitor}. Available: 0-{monitors.Count - 1}");
+                            Log($"Invalid monitor {monitor}. Available: 0-{monitors.Count - 1}", LogLevel.Warning);
                         }
                         i++;
                     }
+                    break;
+                case "--no-projection":
+                    _noProjection = true;
+                    Log("Projection disabled", LogLevel.Info);
+                    break;
+                case "--log-level":
+                    if (i + 1 < args.Length && Enum.TryParse<LogLevel>(args[i + 1], true, out var logLevel))
+                    {
+                        _logLevel = logLevel;
+                        Log($"Log level set to {logLevel}", LogLevel.Info);
+                        i++;
+                    }
+                    else if (i + 1 < args.Length)
+                    {
+                        Log($"Invalid log level '{args[i + 1]}'. Valid values: Debug, Info, Warning, Error", LogLevel.Warning);
+                        i++;
+                    }
+                    break;
+                case "--check-updates-only":
+                    _checkUpdatesOnly = true;
+                    Log("Check updates only mode enabled", LogLevel.Info);
+                    break;
+                case "--check-updates":
+                    _checkUpdates = true;
+                    Log("Manual update check requested", LogLevel.Info);
                     break;
             }
         }
@@ -462,7 +572,7 @@ public class ConsoleMenu
         
         Console.Write($"Target FPS ({_captureEngine.Settings.TargetFPS}): ");
         var fpsInput = Console.ReadLine();
-        if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 240)
+        if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 600)
         {
             _captureEngine.Settings.TargetFPS = fps;
             _projectionWindow.SetTargetFPS(fps);
@@ -656,10 +766,44 @@ public class ConsoleMenu
 
             if (targetProcess != null && _captureEngine.StartCapture(targetProcess.ProcessName))
             {
-                Console.WriteLine($"[INFO] Auto-started capture for: {targetProcess}");
-                _projectionWindow.StartProjection(_selectedMonitor);
-                Console.WriteLine("[INFO] Auto-started projection");
+                Log($"Auto-started capture for: {targetProcess}", LogLevel.Info);
+                
+                if (!_noProjection)
+                {
+                    _projectionWindow.StartProjection(_selectedMonitor);
+                    Log("Auto-started projection", LogLevel.Info);
+                }
+                else
+                {
+                    Log("Projection disabled by --no-projection flag", LogLevel.Info);
+                }
             }
+        }
+        else
+        {
+            Log("No FiveM processes found for auto-start", LogLevel.Warning);
+        }
+    }
+
+    private DateTime _lastFpsLog = DateTime.Now;
+    private int _frameCount = 0;
+
+    /// <summary>
+    /// Log FPS statistics for debug mode
+    /// </summary>
+    private void LogFpsStats()
+    {
+        _frameCount++;
+        var now = DateTime.Now;
+        var elapsed = now - _lastFpsLog;
+        
+        if (elapsed.TotalSeconds >= 5.0) // Log every 5 seconds
+        {
+            var avgFps = _frameCount / elapsed.TotalSeconds;
+            Log($"Average FPS: {avgFps:F1} (target: {_captureEngine.Settings.TargetFPS})", LogLevel.Debug);
+            
+            _frameCount = 0;
+            _lastFpsLog = now;
         }
     }
 

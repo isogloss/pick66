@@ -131,19 +131,48 @@ public class GameCaptureEngine
     [SupportedOSPlatform("windows")]
     private void GdiCaptureLoop()
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var targetIntervalMs = 1000.0 / Settings.TargetFPS;
+        var nextFrameTime = 0.0;
+
         while (_isCapturing)
         {
             try
             {
-                var frame = CaptureFrame(_targetWindow);
-                if (frame != null)
+                var currentTime = stopwatch.Elapsed.TotalMilliseconds;
+                
+                if (currentTime >= nextFrameTime)
                 {
-                    FrameCaptured?.Invoke(this, new FrameCapturedEventArgs(frame));
+                    var frame = CaptureFrame(_targetWindow);
+                    if (frame != null)
+                    {
+                        FrameCaptured?.Invoke(this, new FrameCapturedEventArgs(frame));
+                    }
+
+                    // Schedule next frame with precise timing
+                    nextFrameTime += targetIntervalMs;
+                    
+                    // Prevent drift by resetting if we're too far behind
+                    if (nextFrameTime < currentTime - targetIntervalMs)
+                    {
+                        nextFrameTime = currentTime + targetIntervalMs;
+                    }
                 }
 
-                // Target frame rate based on settings
-                int delay = 1000 / Settings.TargetFPS;
-                Thread.Sleep(delay);
+                // High precision sleep - use spin-wait for last millisecond
+                var sleepTime = nextFrameTime - stopwatch.Elapsed.TotalMilliseconds;
+                if (sleepTime > 2.0)
+                {
+                    Thread.Sleep((int)(sleepTime - 1.0));
+                }
+                else if (sleepTime > 0.1)
+                {
+                    // Spin-wait for high precision
+                    while (stopwatch.Elapsed.TotalMilliseconds < nextFrameTime)
+                    {
+                        Thread.SpinWait(10);
+                    }
+                }
             }
             catch (Exception ex)
             {
