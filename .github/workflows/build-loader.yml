@@ -1,0 +1,121 @@
+name: Build Pick6 Loader
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build solution
+      run: dotnet build -c Release --no-restore
+      
+    - name: Publish Pick6.Loader as single-file
+      run: |
+        dotnet publish src/Pick6.Loader/Pick6.Loader.csproj `
+        -c Release `
+        -r win-x64 `
+        --self-contained true `
+        -p:PublishSingleFile=true `
+        -p:IncludeNativeLibrariesForSelfExtract=true `
+        -p:PublishReadyToRun=true `
+        -p:PublishTrimmed=true `
+        -p:TrimMode=partial `
+        -p:EnableCompressionInSingleFile=true `
+        -p:InvariantGlobalization=true `
+        -p:DebugType=none `
+        -p:DebugSymbols=false
+        
+    - name: Get version from tag or input
+      id: version
+      run: |
+        if ("${{ github.event_name }}" -eq "push" -and "${{ github.ref_type }}" -eq "tag") {
+          $version = "${{ github.ref_name }}" -replace "^v", ""
+        } elseif ("${{ github.event_name }}" -eq "workflow_dispatch") {
+          $version = "${{ github.event.inputs.version }}"
+        } else {
+          $version = "dev-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+        }
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        echo "Version: $version"
+        
+    - name: Create distribution directory
+      run: |
+        New-Item -ItemType Directory -Path "dist" -Force
+        
+    - name: Copy executable to dist
+      run: |
+        $source = "src/Pick6.Loader/bin/Release/net8.0-windows/win-x64/publish/pick6_loader.exe"
+        $dest = "dist/pick6_loader-${{ steps.version.outputs.version }}.exe"
+        Copy-Item $source $dest
+        echo "Created: $dest"
+        
+    - name: Build payload using PowerShell script
+      run: |
+        .\Tools\Build-Payload.ps1 -Version "${{ steps.version.outputs.version }}" -OutputPath "dist"
+      shell: pwsh
+      
+    - name: Upload loader artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: pick6-loader-${{ steps.version.outputs.version }}
+        path: |
+          dist/pick6_loader-${{ steps.version.outputs.version }}.exe
+          dist/pick6-payload-${{ steps.version.outputs.version }}.zip
+          dist/manifest-${{ steps.version.outputs.version }}.json
+          
+    - name: Create release (on tag push)
+      if: github.event_name == 'push' && github.ref_type == 'tag'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/pick6_loader-${{ steps.version.outputs.version }}.exe
+          dist/pick6-payload-${{ steps.version.outputs.version }}.zip
+          dist/manifest-${{ steps.version.outputs.version }}.json
+        body: |
+          ## Pick6 Loader v${{ steps.version.outputs.version }}
+          
+          ### Single-File Distribution
+          - `pick6_loader-${{ steps.version.outputs.version }}.exe` - Self-contained Windows executable (no dependencies required)
+          
+          ### Auto-Update Payload
+          - `pick6-payload-${{ steps.version.outputs.version }}.zip` - Payload assemblies for auto-update system
+          - `manifest-${{ steps.version.outputs.version }}.json` - Update manifest (requires URL configuration)
+          
+          ### Usage
+          1. Download `pick6_loader-${{ steps.version.outputs.version }}.exe`
+          2. Run directly on Windows (no installation required)
+          3. Use `--help` for command line options
+          
+          ### Auto-Update Setup
+          To enable auto-updates:
+          1. Upload the payload ZIP to your web server
+          2. Update the `payloadUrl` in the manifest JSON
+          3. Upload the manifest to your configured manifest URL
+          4. Enable dynamic payloads in the loader configuration
+          
+          See `docs/auto-update.md` for detailed instructions.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -50,4 +50,12 @@ Thumbs.db
 *.lock
 
 # Configuration files (but not default ones)
-keybinds.cfgpublish/
+keybinds.cfg
+
+# Auto-update payload artifacts
+pick6-payload-*.zip
+manifest-*.json
+payload-staging/
+
+# Test artifacts
+test-dist/

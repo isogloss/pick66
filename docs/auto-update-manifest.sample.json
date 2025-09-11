@@ -1,0 +1,8 @@
+{
+  "payloadVersion": "1.0.0",
+  "payloadUrl": "https://example.com/releases/pick6-payload-1.0.0.zip",
+  "sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+  "entryAssembly": "Pick6.Core.dll",
+  "entryType": "Pick6.Core.PayloadEntry",
+  "entryMethod": "Main"
+}
