@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pick66.Core\Pick66.Core.csproj" />
+    <ProjectReference Include="..\Pick6.Loader\Pick6.Loader.csproj" />
   </ItemGroup>
 
 </Project>

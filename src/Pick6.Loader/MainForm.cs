@@ -1,109 +1,232 @@
 using Pick6.Core;
 using Pick6.Core.Util;
 using Pick6.Projection;
+using Pick6.Loader.Settings;
+using Pick6.Loader.Controllers;
+using Pick6.Loader.Logging;
+using Pick6.Loader.UI;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
 namespace Pick6.Loader;
 
 /// <summary>
-/// Minimal black & white GUI form for Pick6 - displays header and spinner during injection
+/// Enhanced GUI form for Pick6 - displays controls for Start/Stop projection/inject and user settings persistence
 /// </summary>
 public partial class MainForm : Form
 {
-    private GameCaptureEngine? _captureEngine;
-    private BorderlessProjectionWindow? _projectionWindow;
+    private ProjectionController? _projectionController;
     private GlobalKeybindManager? _keybindManager;
-    private System.Timers.Timer? _processMonitorTimer;
-    private bool _isInjectionActive = false;
-    private bool _isMonitoring = false;
-    private bool _isCapturing = false;
+    private UserSettings _userSettings;
+    private GuiLogSink? _guiLogSink;
     private bool _loaderVisible = true;
 
-    // Spinner animation
-    private System.Windows.Forms.Timer? _spinnerTimer;
-    private int _spinnerFrame = 0;
-
-    // UI Controls
+    // UI Controls - existing
     private Label _headerLabel = null!;
     private Label _statusLabel = null!;
     private Button _hideButton = null!;
 
-    // Braille spinner frames as specified in requirements
-    private static readonly string[] BrailleSpinnerFrames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" };
+    // UI Controls - new
+    private Button _startButton = null!;
+    private Button _stopButton = null!;
+    private Button _settingsButton = null!;
+    private ListBox _logListBox = null!;
+    private Panel _controlPanel = null!;
+    private Panel _logPanel = null!;
 
     public MainForm()
     {
+        // Load settings first
+        _userSettings = SettingsService.TryLoadOrDefault();
+        
         InitializeComponent();
-        InitializeEngines();
+        InitializeProjectionController();
         SetupEventHandlers();
-        StartInjectionProcess();
+        SetupLogging();
+        UpdateButtonStates();
+
+        // Auto-start if enabled in settings (after form is shown to be thread-safe)
+        if (_userSettings.AutoStartProjection)
+        {
+            this.Shown += MainForm_Shown;
+        }
+    }
+
+    private void MainForm_Shown(object? sender, EventArgs e)
+    {
+        // Auto-start projection after form is shown
+        BeginInvoke(() => StartProjection());
     }
 
     private void InitializeComponent()
     {
-        // Form setup - minimal black & white design as specified
-        Text = "pick6";
-        Size = new Size(300, 120);
+        // Form setup - enhanced for new menu functionality
+        Text = "Pick6 - Game Capture Menu";
+        Size = new Size(480, 400);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
-        MinimizeBox = false;
+        MinimizeBox = true;
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = Color.Black;
-        ForeColor = Color.White;
+        BackColor = Color.FromArgb(240, 240, 240);
+        ForeColor = Color.Black;
         Icon = SystemIcons.Application;
 
-        // Large "pick6" header label
+        var headerFont = new Font("Segoe UI", 14, FontStyle.Bold);
+        var buttonFont = new Font("Segoe UI", 9);
+        var labelFont = new Font("Segoe UI", 9);
+
+        // Header label
         _headerLabel = new Label
         {
-            Text = "pick6",
-            Font = new Font("Segoe UI", 16, FontStyle.Bold),
-            ForeColor = Color.White,
-            BackColor = Color.Black,
-            Location = new Point(10, 10),
-            Size = new Size(280, 30),
-            TextAlign = ContentAlignment.MiddleCenter
+            Text = "Pick6 - Game Capture",
+            Font = headerFont,
+            ForeColor = Color.FromArgb(0, 122, 204),
+            BackColor = Color.Transparent,
+            Location = new Point(20, 15),
+            Size = new Size(300, 25),
+            TextAlign = ContentAlignment.MiddleLeft
         };
 
-        // Status label for spinner and messages
+        // Status label
         _statusLabel = new Label
         {
-            Text = "⠋ Waiting for injection",
-            Font = new Font("Consolas", 10, FontStyle.Regular), // Monospace for spinner alignment
-            ForeColor = Color.White,
-            BackColor = Color.Black,
-            Location = new Point(10, 45),
-            Size = new Size(280, 20),
-            TextAlign = ContentAlignment.MiddleCenter
+            Text = "Idle",
+            Font = labelFont,
+            ForeColor = Color.Black,
+            BackColor = Color.Transparent,
+            Location = new Point(20, 50),
+            Size = new Size(200, 20),
+            TextAlign = ContentAlignment.MiddleLeft
         };
 
-        // Small hide button in corner (flat white border as specified)
+        // Control panel for buttons
+        _controlPanel = new Panel
+        {
+            Location = new Point(20, 80),
+            Size = new Size(430, 50),
+            BackColor = Color.Transparent
+        };
+
+        // Start button
+        _startButton = new Button
+        {
+            Text = "Start Injection",
+            Font = buttonFont,
+            Location = new Point(0, 10),
+            Size = new Size(100, 30),
+            BackColor = Color.FromArgb(0, 122, 204),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            UseVisualStyleBackColor = false
+        };
+        _startButton.FlatAppearance.BorderSize = 0;
+        _startButton.Click += StartButton_Click;
+
+        // Stop button
+        _stopButton = new Button
+        {
+            Text = "Stop",
+            Font = buttonFont,
+            Location = new Point(110, 10),
+            Size = new Size(80, 30),
+            BackColor = Color.FromArgb(220, 53, 69),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            UseVisualStyleBackColor = false,
+            Enabled = false
+        };
+        _stopButton.FlatAppearance.BorderSize = 0;
+        _stopButton.Click += StopButton_Click;
+
+        // Settings button
+        _settingsButton = new Button
+        {
+            Text = "Settings",
+            Font = buttonFont,
+            Location = new Point(200, 10),
+            Size = new Size(80, 30),
+            BackColor = Color.FromArgb(108, 117, 125),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            UseVisualStyleBackColor = false
+        };
+        _settingsButton.FlatAppearance.BorderSize = 0;
+        _settingsButton.Click += SettingsButton_Click;
+
+        // Hide button (kept for compatibility)
         _hideButton = new Button
         {
             Text = "Hide",
             Font = new Font("Segoe UI", 8),
+            Location = new Point(350, 10),
+            Size = new Size(50, 30),
+            BackColor = Color.Gray,
             ForeColor = Color.White,
-            BackColor = Color.Black,
             FlatStyle = FlatStyle.Flat,
-            Location = new Point(225, 75),
-            Size = new Size(50, 20)
+            UseVisualStyleBackColor = false
         };
-        _hideButton.FlatAppearance.BorderColor = Color.White;
-        _hideButton.FlatAppearance.BorderSize = 1;
+        _hideButton.FlatAppearance.BorderSize = 0;
         _hideButton.Click += HideButton_Click;
 
+        _controlPanel.Controls.AddRange(new Control[] { _startButton, _stopButton, _settingsButton, _hideButton });
+
+        // Log panel
+        _logPanel = new Panel
+        {
+            Location = new Point(20, 150),
+            Size = new Size(430, 200),
+            BackColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle
+        };
+
+        var logLabel = new Label
+        {
+            Text = "Log Output:",
+            Font = labelFont,
+            Location = new Point(5, 5),
+            Size = new Size(100, 15),
+            BackColor = Color.Transparent
+        };
+
+        _logListBox = new ListBox
+        {
+            Location = new Point(5, 25),
+            Size = new Size(415, 165),
+            Font = new Font("Consolas", 8),
+            BackColor = Color.Black,
+            ForeColor = Color.LimeGreen,
+            BorderStyle = BorderStyle.None,
+            ScrollAlwaysVisible = false
+        };
+
+        _logPanel.Controls.AddRange(new Control[] { logLabel, _logListBox });
+
         // Add controls to form
-        Controls.AddRange(new Control[] { _headerLabel, _statusLabel, _hideButton });
+        Controls.AddRange(new Control[] { _headerLabel, _statusLabel, _controlPanel, _logPanel });
     }
 
-    private void InitializeEngines()
+    private void InitializeProjectionController()
     {
-        _captureEngine = new GameCaptureEngine();
-        _projectionWindow = new BorderlessProjectionWindow();
+        _projectionController = new ProjectionController();
         
         // Initialize global keybind manager for hotkeys
         _keybindManager = new GlobalKeybindManager();
         SetupGlobalKeybinds();
+    }
+
+    private void SetupLogging()
+    {
+        // Create GUI log sink and register it with the Log system
+        _guiLogSink = new GuiLogSink();
+        _guiLogSink.LogReceived += GuiLogSink_LogReceived;
+        Log.AddSink(_guiLogSink);
+        
+        AddLogMessage("Info", "Application started");
+    }
+
+    private void GuiLogSink_LogReceived(object? sender, Pick6.Loader.Logging.LogEventArgs e)
+    {
+        BeginInvoke(() => AddLogMessage(e.Level, e.Message));
     }
 
     private void SetupGlobalKeybinds()
@@ -121,127 +244,121 @@ public partial class MainForm : Form
         _keybindManager.StartMonitoring();
     }
 
-    private void StartInjectionProcess()
+    private void SetupEventHandlers()
     {
-        _isInjectionActive = true;
-        _isMonitoring = true;
-        
-        // Start spinner animation
-        StartSpinner();
-        
-        // Start monitoring for FiveM processes
-        _processMonitorTimer = new System.Timers.Timer(1000); // Check every second
-        _processMonitorTimer.Elapsed += ProcessMonitorTimer_Elapsed;
-        _processMonitorTimer.Start();
-        
-        // Check immediately if FiveM is already running
-        CheckForFiveMAndInject();
+        if (_projectionController == null) return;
+
+        // Handle projection controller events
+        _projectionController.StatusChanged += ProjectionController_StatusChanged;
+        _projectionController.Log += ProjectionController_Log;
     }
 
-    private void ProcessMonitorTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    private void ProjectionController_StatusChanged(object? sender, StatusChangedEventArgs e)
     {
-        if (!_isMonitoring) return;
-        CheckForFiveMAndInject();
-    }
-
-    private void CheckForFiveMAndInject()
-    {
-        if (_isCapturing) return; // Already capturing
-
-        var summary = FiveMDetector.GetProcessSummary();
-        
         BeginInvoke(() =>
         {
-            if (summary.TotalProcessCount > 0 && !_isCapturing)
-            {
-                AttemptInjection(summary);
-            }
+            UpdateStatus(e.Status, e.Message);
+            UpdateButtonStates();
         });
     }
 
-    private void AttemptInjection(FiveMProcessSummary summary)
+    private void ProjectionController_Log(object? sender, Pick6.Loader.Controllers.LogEventArgs e)
     {
-        if (_captureEngine == null) return;
+        BeginInvoke(() => AddLogMessage(e.Level, e.Message));
+    }
 
-        ProcessInfo? targetProcess = null;
-        string method = "";
+    private void StartButton_Click(object? sender, EventArgs e)
+    {
+        StartProjection();
+    }
 
-        // Prioritize Vulkan processes
-        if (summary.VulkanProcesses.Any())
+    private void StopButton_Click(object? sender, EventArgs e)
+    {
+        StopProjection();
+    }
+
+    private void SettingsButton_Click(object? sender, EventArgs e)
+    {
+        ShowSettingsDialog();
+    }
+
+    private void StartProjection()
+    {
+        if (_projectionController == null) return;
+
+        var success = _projectionController.Start(_userSettings);
+        if (!success)
         {
-            var vulkanProcess = summary.VulkanProcesses.First();
-            targetProcess = new ProcessInfo
-            {
-                ProcessId = vulkanProcess.ProcessId,
-                ProcessName = vulkanProcess.ProcessName,
-                WindowTitle = vulkanProcess.WindowTitle,
-                WindowHandle = vulkanProcess.WindowHandle
-            };
-            method = "Vulkan injection";
-        }
-        else if (summary.TraditionalProcesses.Any())
-        {
-            targetProcess = summary.TraditionalProcesses.First();
-            method = "Window capture";
-        }
-
-        if (targetProcess == null) return;
-
-        if (_captureEngine.StartCapture(targetProcess.ProcessName))
-        {
-            _isCapturing = true;
-            StopSpinner();
-            _statusLabel.Text = "✓ Successfully injected";
-            _statusLabel.ForeColor = Color.LimeGreen;
-
-            // Auto-start projection
-            _projectionWindow?.StartProjection(0); // Use primary monitor
-        }
-        else
-        {
-            StopSpinner();
-            _statusLabel.Text = "✗ Injection failed";
-            _statusLabel.ForeColor = Color.Red;
+            AddLogMessage("Error", "Failed to start projection");
         }
     }
 
-    private void SetupEventHandlers()
+    private void StopProjection()
     {
-        if (_captureEngine == null || _projectionWindow == null) return;
+        if (_projectionController == null) return;
+        _projectionController.Stop();
+    }
 
-        // Forward captured frames to projection window
-        _captureEngine.FrameCaptured += (s, e) =>
+    private void ShowSettingsDialog()
+    {
+        using var dialog = new UserSettingsDialog(_userSettings);
+        if (dialog.ShowDialog(this) == DialogResult.OK)
         {
-            _projectionWindow.UpdateFrame(e.Frame);
+            _userSettings = dialog.Settings;
+            SettingsService.Save(_userSettings);
+            AddLogMessage("Info", "Settings saved");
+        }
+    }
+
+    private void UpdateStatus(ProjectionStatus status, string? message = null)
+    {
+        string statusText = status switch
+        {
+            ProjectionStatus.Idle => "Idle",
+            ProjectionStatus.Starting => "Starting...",
+            ProjectionStatus.Running => "Running",
+            ProjectionStatus.Stopping => "Stopping...",
+            ProjectionStatus.Error => "Error",
+            _ => "Unknown"
         };
 
-        // Handle capture errors
-        _captureEngine.ErrorOccurred += (s, errorMessage) =>
+        if (!string.IsNullOrEmpty(message))
         {
-            BeginInvoke(() =>
-            {
-                StopSpinner();
-                _statusLabel.Text = "✗ Injection failed";
-                _statusLabel.ForeColor = Color.Red;
-            });
-        };
+            statusText = $"{statusText} - {message}";
+        }
 
-        // Handle projection events
-        _projectionWindow.ProjectionStarted += (s, e) =>
+        _statusLabel.Text = statusText;
+        _statusLabel.ForeColor = status switch
         {
-            BeginInvoke(() =>
-            {
-                Log.Info("Projection started");
-            });
+            ProjectionStatus.Running => Color.Green,
+            ProjectionStatus.Error => Color.Red,
+            ProjectionStatus.Starting or ProjectionStatus.Stopping => Color.Orange,
+            _ => Color.Black
         };
+    }
 
-        _projectionWindow.ProjectionStopped += (s, e) =>
+    private void UpdateButtonStates()
+    {
+        bool isRunning = _projectionController?.IsRunning ?? false;
+        _startButton.Enabled = !isRunning;
+        _stopButton.Enabled = isRunning;
+    }
+
+    private void AddLogMessage(string level, string message)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss");
+        var logEntry = $"[{timestamp}] [{level}] {message}";
+        
+        _logListBox.Items.Add(logEntry);
+        
+        // Keep only last 200 entries
+        while (_logListBox.Items.Count > 200)
         {
-            BeginInvoke(() =>
-            {
-                Log.Info("Projection stopped");
-            });
-        };
+            _logListBox.Items.RemoveAt(0);
+        }
+        
+        // Auto-scroll to bottom
+        _logListBox.TopIndex = Math.Max(0, _logListBox.Items.Count - 1);
     }
 
     private void HideButton_Click(object? sender, EventArgs e)
@@ -268,22 +385,16 @@ public partial class MainForm : Form
 
     private void ToggleProjection()
     {
-        if (_projectionWindow != null && _isCapturing)
+        if (_projectionController == null) return;
+        
+        if (_projectionController.IsRunning)
         {
-            if (_projectionWindow.IsProjecting)
-            {
-                _projectionWindow.StopProjection();
-            }
-            else
-            {
-                _projectionWindow.StartProjection(0);
-            }
+            StopProjection();
         }
-    }
-
-    private void StopProjection()
-    {
-        _projectionWindow?.StopProjection();
+        else
+        {
+            StartProjection();
+        }
     }
 
     private void StopProjectionAndRestore()
@@ -307,61 +418,18 @@ public partial class MainForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        _isInjectionActive = false;
-        _isMonitoring = false;
-        _isCapturing = false;
-
-        _processMonitorTimer?.Stop();
-        _processMonitorTimer?.Dispose();
-        _processMonitorTimer = null;
-
-        StopSpinner();
-        _captureEngine?.StopCapture();
-        _projectionWindow?.StopProjection();
+        // Clean up resources
+        _projectionController?.Stop();
+        _projectionController?.Dispose();
         _keybindManager?.Dispose();
         
-        base.OnFormClosing(e);
-    }
-
-    /// <summary>
-    /// Start the Braille spinner animation as specified in requirements
-    /// </summary>
-    private void StartSpinner()
-    {
-        if (_spinnerTimer != null) return;
-
-        _spinnerFrame = 0;
-        _spinnerTimer = new System.Windows.Forms.Timer { Interval = 100 }; // 100ms as specified
-        _spinnerTimer.Tick += SpinnerTimer_Tick;
-        _spinnerTimer.Start();
-    }
-
-    /// <summary>
-    /// Stop the spinner animation
-    /// </summary>
-    private void StopSpinner()
-    {
-        if (_spinnerTimer == null) return;
-
-        _spinnerTimer.Stop();
-        _spinnerTimer.Dispose();
-        _spinnerTimer = null;
-    }
-
-    /// <summary>
-    /// Handle spinner timer tick - cycles through Braille spinner frames every 100ms
-    /// </summary>
-    private void SpinnerTimer_Tick(object? sender, EventArgs e)
-    {
-        if (!_isMonitoring || _isCapturing)
+        // Remove GUI log sink
+        if (_guiLogSink != null)
         {
-            StopSpinner();
-            return;
+            Log.RemoveSink(_guiLogSink);
         }
-
-        var frame = BrailleSpinnerFrames[_spinnerFrame % BrailleSpinnerFrames.Length];
-        _statusLabel.Text = $"{frame} Waiting for injection";
-        _spinnerFrame++;
+        
+        base.OnFormClosing(e);
     }
 
     #region Win32 API for Window Management
