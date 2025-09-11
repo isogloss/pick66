@@ -362,7 +362,7 @@ public partial class MainForm : Form
         }
     }
 
-    protected override void OnFormClosing(CancelEventArgs e)
+    protected override void OnFormClosing(FormClosingEventArgs e)
     {
         StopInjection();
         base.OnFormClosing(e);
