@@ -23,8 +23,32 @@ public class BorderlessProjectionWindow
     /// </summary>
     public void SetTargetFPS(int fps)
     {
-        _targetFPS = Math.Max(15, Math.Min(120, fps));
+        _targetFPS = Math.Max(15, Math.Min(240, fps));
         _windowsProjection?.SetTargetFPS(_targetFPS);
+    }
+
+    /// <summary>
+    /// Enable or disable FPS logging for debugging
+    /// </summary>
+    public void SetFpsLogging(bool enabled)
+    {
+        _windowsProjection?.SetFpsLogging(enabled);
+    }
+
+    /// <summary>
+    /// Enable or disable match capture FPS mode
+    /// </summary>
+    public void SetMatchCaptureFPS(bool enabled)
+    {
+        _windowsProjection?.SetMatchCaptureFPS(enabled);
+    }
+
+    /// <summary>
+    /// Update the projection FPS based on capture engine settings
+    /// </summary>
+    public void UpdateCaptureFPS(int captureFPS)
+    {
+        _windowsProjection?.UpdateCaptureFPS(captureFPS);
     }
 
     /// <summary>

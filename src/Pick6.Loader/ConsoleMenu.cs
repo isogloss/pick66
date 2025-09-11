@@ -12,13 +12,37 @@ public class ConsoleMenu
 {
     private readonly GameCaptureEngine _captureEngine;
     private readonly BorderlessProjectionWindow _projectionWindow;
+    private readonly GlobalKeybindManager? _keybindManager;
     private int _selectedMonitor = 0;
 
     public ConsoleMenu()
     {
         _captureEngine = new GameCaptureEngine();
         _projectionWindow = new BorderlessProjectionWindow();
+        
+        // Initialize global keybind manager for Windows
+        if (OperatingSystem.IsWindows())
+        {
+            _keybindManager = new GlobalKeybindManager();
+            SetupGlobalKeybinds();
+        }
+        
         SetupEventHandlers();
+    }
+
+    private void SetupGlobalKeybinds()
+    {
+        if (_keybindManager == null) return;
+
+        DefaultKeybinds.RegisterDefaultKeybinds(_keybindManager,
+            toggleLoader: null, // No loader window in console mode
+            toggleProjection: () => ToggleProjection(),
+            closeProjection: () => StopProjectionOnly(),
+            stopProjectionAndRestore: () => StopProjectionOnly() // Same as close in console mode
+        );
+
+        _keybindManager.StartMonitoring();
+        Console.WriteLine("Global keybinds enabled for console mode.");
     }
 
     public void Run(string[] args)
@@ -98,6 +122,10 @@ public class ConsoleMenu
                         Console.WriteLine($"[INFO] Target FPS set to {fps}");
                         i++;
                     }
+                    break;
+                case "--fps-logging":
+                    _projectionWindow.SetFpsLogging(true);
+                    Console.WriteLine("[INFO] FPS logging enabled");
                     break;
                 case "--resolution":
                     if (i + 2 < args.Length && 
@@ -340,7 +368,7 @@ public class ConsoleMenu
         
         Console.Write($"Target FPS ({_captureEngine.Settings.TargetFPS}): ");
         var fpsInput = Console.ReadLine();
-        if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 120)
+        if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 240)
         {
             _captureEngine.Settings.TargetFPS = fps;
             _projectionWindow.SetTargetFPS(fps);
@@ -544,9 +572,41 @@ public class ConsoleMenu
         }
     }
 
+    private void ToggleProjection()
+    {
+        try
+        {
+            if (_projectionWindow == null) return;
+            
+            // Simple toggle - stop if running, start if stopped
+            // Since console doesn't have a way to track projection state easily,
+            // we'll just try to start projection (which will do nothing if already running)
+            _projectionWindow.StartProjection(_selectedMonitor);
+            Console.WriteLine("[INFO] Projection toggle requested");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to toggle projection: {ex.Message}");
+        }
+    }
+
+    private void StopProjectionOnly()
+    {
+        try
+        {
+            _projectionWindow?.StopProjection();
+            Console.WriteLine("[INFO] Projection stopped via keybind");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to stop projection: {ex.Message}");
+        }
+    }
+
     private void Cleanup()
     {
         Console.WriteLine("\n=== Shutting Down ===");
+        _keybindManager?.Dispose();
         _captureEngine?.StopCapture();
         _projectionWindow?.StopProjection();
         Console.WriteLine("✅ Pick6 has been shut down gracefully.");
@@ -644,7 +704,8 @@ public class ConsoleMenu
         Console.WriteLine("  --gui                 Force GUI mode (default on Windows)");
         Console.WriteLine("  --console             Force console mode");
         Console.WriteLine("  --auto-start          Automatically start capture and projection (console mode)");
-        Console.WriteLine("  --fps <number>        Set target FPS (console mode, default: 60)");
+        Console.WriteLine("  --fps <number>        Set target FPS (console mode, default: 60, max: 240)");
+        Console.WriteLine("  --fps-logging         Enable FPS logging for debugging");
         Console.WriteLine("  --resolution <w> <h>  Set output resolution (console mode)");
         Console.WriteLine("  --monitor <index>     Set target monitor for projection (console mode)");
         Console.WriteLine("  --help                Show this help message");
@@ -659,14 +720,15 @@ public class ConsoleMenu
         Console.WriteLine();
         Console.WriteLine("New Features:");
         Console.WriteLine("  🖥️  Monitor Selection: Choose target display for projection (GUI & console)");
-        Console.WriteLine("  🎯 FPS Control: Consistent frame rate control (15-120 FPS)");
+        Console.WriteLine("  🎯 FPS Control: Consistent frame rate control (15-240 FPS)");
         Console.WriteLine("  ⌨️  Global Hotkeys: System-wide keyboard shortcuts (Windows only)");
         Console.WriteLine("  👻 Stealth Mode: Hidden from Alt+Tab and taskbar");
         Console.WriteLine("  ⚡ Performance: Optimized render loop for smooth 60+ FPS projection");
         Console.WriteLine();
-        Console.WriteLine("Global Hotkeys (Windows GUI mode):");
+        Console.WriteLine("Global Hotkeys (Windows):");
         Console.WriteLine("  Ctrl+L                Toggle loader window visibility");
         Console.WriteLine("  Ctrl+P                Toggle projection window");
+        Console.WriteLine("  Ctrl+Shift+P          Stop projection & restore menu");
         Console.WriteLine("  Ctrl+Shift+Esc        Close projection immediately");
         Console.WriteLine("  ESC (in projection)   Close projection window");
         Console.WriteLine();
