@@ -47,4 +47,9 @@
     <Compile Remove="MainForm.Designer.cs" />
   </ItemGroup>
 
+  <!-- Exclude console menu from all builds -->
+  <ItemGroup>
+    <Compile Remove="ConsoleMenu.cs" />
+  </ItemGroup>
+
 </Project>

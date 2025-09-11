@@ -1,3 +1,5 @@
+using Pick6.Core;
+
 namespace Pick6.Loader.Update;
 
 /// <summary>
@@ -19,7 +21,7 @@ public class InitialPayloadExtractor
         // 2. Extracting it to the payload cache directory
         // 3. Setting up the version store appropriately
         
-        Console.WriteLine("Info: No embedded payload available (placeholder implementation)");
+        Log.Info("No embedded payload available (placeholder implementation)");
         return false;
     }
 

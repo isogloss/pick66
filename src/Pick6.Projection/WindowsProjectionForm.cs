@@ -356,7 +356,7 @@ public class WindowsProjectionForm
                     if (enableDiagnostics && _statistics.TotalFrames % 60 == 0) // Log every ~1 second at 60fps
                     {
                         var hasFrame = _currentFrame != null ? "with frame" : "no frame";
-                        Console.WriteLine($"[Projection] {_statistics.GetSummary()} - {hasFrame}");
+                        Log.Debug($"[Projection] {_statistics.GetSummary()} - {hasFrame}");
                     }
 
                     // Legacy FPS logging for backward compatibility
@@ -367,7 +367,7 @@ public class WindowsProjectionForm
                         if (elapsed.TotalSeconds >= 1.0)
                         {
                             var hasFrame = _currentFrame != null ? "with frame" : "no frame";
-                            Console.WriteLine($"Projection FPS: {_statistics.InstantFps:F1} (avg: {_statistics.AverageFps:F1}, target: {_targetFPS}) - {hasFrame}");
+                            Log.Debug($"Projection FPS: {_statistics.InstantFps:F1} (avg: {_statistics.AverageFps:F1}, target: {_targetFPS}) - {hasFrame}");
                             _frameCount = 0;
                             _lastFpsLogTime = DateTime.Now;
                         }
