@@ -16,6 +16,9 @@ public sealed class GuiState
     private readonly ConcurrentQueue<LogEntry> _logEntries = new();
     private const int MaxLogEntries = 1000;
 
+    // Events
+    public event EventHandler? LogUpdated;
+
     // UI State
     public float UiScale { get; set; } = 1.0f;
     public int SelectedTabIndex { get; set; } = 0;
@@ -55,6 +58,9 @@ public sealed class GuiState
         {
             _logEntries.TryDequeue(out _);
         }
+        
+        // Notify subscribers
+        LogUpdated?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>

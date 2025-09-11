@@ -2,7 +2,26 @@
 
 Real-time game capture and projection application for FiveM with automatic, non-interactive operation, >120 FPS support, and enhanced performance monitoring.
 
-## New in v2.0: Enhanced Performance & Interface
+## New in v2.1: ImGui Mod Menu Interface
+
+### 🎮 **Modern Mod Menu**
+- **ImGui-Style Interface**: Dark theme, tab-based navigation inspired by game mod menus
+- **Real-time Monitoring**: Live FPS display, dropped frame counters, and status indicators
+- **Enhanced Settings**: Dedicated Settings tab with sliders, checkboxes, and instant apply
+- **Console Integration**: Built-in scrollable log viewer with color-coded entries
+- **Single-File Deployment**: Compatible with .NET 8 self-contained publishing (~21MB executable)
+
+### 🔧 **Two-Tab Design**
+- **Loader Tab**: Start/stop capture and projection, status monitoring, console log
+- **Settings Tab**: FPS control, resolution settings, hardware acceleration, UI scaling, auto-start options
+- **Persistent Settings**: Automatic save/load with validation in `%AppData%\Pick6\imgui_settings.json`
+
+### 💻 **Enhanced CLI Support**
+- All existing command-line arguments preserved and functional  
+- `--check-updates-only` and `--help` bypass GUI completely
+- Default behavior opens mod menu for interactive use
+
+See [MOD_GUI.md](MOD_GUI.md) for complete mod menu documentation.
 
 ### 🚀 **True 60 FPS Performance**
 - **FramePacer**: Hybrid sleep+spin precision timing achieves sustained ≥58 FPS at 60 FPS target

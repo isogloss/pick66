@@ -45,7 +45,7 @@ public class Program
 
 #if WINDOWS
 /// <summary>
-/// Windows Forms host for ImGui mod menu
+/// Windows Forms host for ImGui-style mod menu with tabs
 /// </summary>
 public class ModMenuApplication : Form
 {
@@ -53,12 +53,39 @@ public class ModMenuApplication : Form
     private GameCaptureEngine? _captureEngine;
     private BorderlessProjectionWindow? _projectionWindow;
     private System.Windows.Forms.Timer? _updateTimer;
+    
+    // UI Controls
+    private TabControl? _tabControl;
+    private Panel? _loaderPanel;
+    private Panel? _settingsPanel;
+    private ListBox? _logListBox;
+    private Label? _statusLabel;
+    private Label? _fpsLabel;
+    
+    // Loader tab controls
+    private Button? _startCaptureButton;
+    private Button? _stopCaptureButton;
+    private Button? _startProjectionButton;
+    private Button? _stopProjectionButton;
+    
+    // Settings tab controls
+    private NumericUpDown? _fpsNumeric;
+    private NumericUpDown? _widthNumeric;
+    private NumericUpDown? _heightNumeric;
+    private CheckBox? _hwAccelCheckbox;
+    private CheckBox? _autoStartCheckbox;
+    private TrackBar? _uiScaleTracker;
+    private NumericUpDown? _monitorNumeric;
+    private Button? _applyButton;
+    private Button? _saveButton;
 
     public ModMenuApplication()
     {
         InitializeForm();
+        InitializeControls();
         InitializeCoreServices();
         SetupUpdateTimer();
+        LoadSettings();
         
         // Setup log sink
         Log.AddSink(new ImGuiLogSink());
@@ -72,6 +99,320 @@ public class ModMenuApplication : Form
         FormBorderStyle = FormBorderStyle.Sizable;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(600, 400);
+        BackColor = Color.FromArgb(40, 40, 40);
+        ForeColor = Color.White;
+    }
+
+    private void InitializeControls()
+    {
+        // Main TabControl
+        _tabControl = new TabControl
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(50, 50, 50),
+            ForeColor = Color.White
+        };
+        Controls.Add(_tabControl);
+
+        // Loader Tab
+        var loaderTab = new TabPage("Loader")
+        {
+            BackColor = Color.FromArgb(40, 40, 40),
+            ForeColor = Color.White
+        };
+        _loaderPanel = new Panel { Dock = DockStyle.Fill };
+        loaderTab.Controls.Add(_loaderPanel);
+        _tabControl.TabPages.Add(loaderTab);
+
+        InitializeLoaderTab();
+
+        // Settings Tab
+        var settingsTab = new TabPage("Settings")
+        {
+            BackColor = Color.FromArgb(40, 40, 40),
+            ForeColor = Color.White
+        };
+        _settingsPanel = new Panel { Dock = DockStyle.Fill };
+        settingsTab.Controls.Add(_settingsPanel);
+        _tabControl.TabPages.Add(settingsTab);
+
+        InitializeSettingsTab();
+    }
+
+    private void InitializeLoaderTab()
+    {
+        if (_loaderPanel == null) return;
+
+        int y = 20;
+        const int rowHeight = 35;
+        const int buttonWidth = 120;
+        const int buttonHeight = 30;
+
+        // Status section
+        _statusLabel = new Label
+        {
+            Text = "Status: Idle",
+            Location = new Point(20, y),
+            Size = new Size(300, 20),
+            ForeColor = Color.White
+        };
+        _loaderPanel.Controls.Add(_statusLabel);
+        y += 25;
+
+        _fpsLabel = new Label
+        {
+            Text = "FPS: 0.0 | Dropped: 0",
+            Location = new Point(20, y),
+            Size = new Size(300, 20),
+            ForeColor = Color.LightGray
+        };
+        _loaderPanel.Controls.Add(_fpsLabel);
+        y += rowHeight;
+
+        // Control buttons
+        _startCaptureButton = new Button
+        {
+            Text = "Start Capture",
+            Location = new Point(20, y),
+            Size = new Size(buttonWidth, buttonHeight),
+            BackColor = Color.Green,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        _startCaptureButton.Click += (s, e) => StartCapture();
+        _loaderPanel.Controls.Add(_startCaptureButton);
+
+        _stopCaptureButton = new Button
+        {
+            Text = "Stop Capture",
+            Location = new Point(150, y),
+            Size = new Size(buttonWidth, buttonHeight),
+            BackColor = Color.Red,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        _stopCaptureButton.Click += (s, e) => StopCapture();
+        _loaderPanel.Controls.Add(_stopCaptureButton);
+        y += rowHeight + 10;
+
+        _startProjectionButton = new Button
+        {
+            Text = "Start Projection",
+            Location = new Point(20, y),
+            Size = new Size(buttonWidth, buttonHeight),
+            BackColor = Color.Blue,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        _startProjectionButton.Click += (s, e) => StartProjection();
+        _loaderPanel.Controls.Add(_startProjectionButton);
+
+        _stopProjectionButton = new Button
+        {
+            Text = "Stop Projection",
+            Location = new Point(150, y),
+            Size = new Size(buttonWidth, buttonHeight),
+            BackColor = Color.DarkBlue,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        _stopProjectionButton.Click += (s, e) => StopProjection();
+        _loaderPanel.Controls.Add(_stopProjectionButton);
+        y += rowHeight + 20;
+
+        // Log console
+        var logLabel = new Label
+        {
+            Text = "Console Log:",
+            Location = new Point(20, y),
+            Size = new Size(100, 20),
+            ForeColor = Color.White
+        };
+        _loaderPanel.Controls.Add(logLabel);
+        y += 25;
+
+        _logListBox = new ListBox
+        {
+            Location = new Point(20, y),
+            Size = new Size(740, 200),
+            BackColor = Color.Black,
+            ForeColor = Color.LightGray,
+            Font = new Font("Consolas", 9)
+        };
+        _loaderPanel.Controls.Add(_logListBox);
+
+        // Subscribe to log updates
+        GuiState.Instance.LogUpdated += OnLogUpdated;
+    }
+
+    private void InitializeSettingsTab()
+    {
+        if (_settingsPanel == null) return;
+
+        int y = 20;
+        const int rowHeight = 35;
+        const int labelWidth = 150;
+        const int controlWidth = 100;
+
+        // FPS setting
+        var fpsLabel = new Label
+        {
+            Text = "Target FPS:",
+            Location = new Point(20, y),
+            Size = new Size(labelWidth, 20),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(fpsLabel);
+
+        _fpsNumeric = new NumericUpDown
+        {
+            Location = new Point(180, y),
+            Size = new Size(controlWidth, 20),
+            Minimum = 1,
+            Maximum = 120,
+            Value = 60,
+            BackColor = Color.FromArgb(60, 60, 60),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(_fpsNumeric);
+        y += rowHeight;
+
+        // Width setting
+        var widthLabel = new Label
+        {
+            Text = "Width (0=auto):",
+            Location = new Point(20, y),
+            Size = new Size(labelWidth, 20),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(widthLabel);
+
+        _widthNumeric = new NumericUpDown
+        {
+            Location = new Point(180, y),
+            Size = new Size(controlWidth, 20),
+            Maximum = 4000,
+            Value = 0,
+            BackColor = Color.FromArgb(60, 60, 60),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(_widthNumeric);
+        y += rowHeight;
+
+        // Height setting
+        var heightLabel = new Label
+        {
+            Text = "Height (0=auto):",
+            Location = new Point(20, y),
+            Size = new Size(labelWidth, 20),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(heightLabel);
+
+        _heightNumeric = new NumericUpDown
+        {
+            Location = new Point(180, y),
+            Size = new Size(controlWidth, 20),
+            Maximum = 4000,
+            Value = 0,
+            BackColor = Color.FromArgb(60, 60, 60),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(_heightNumeric);
+        y += rowHeight;
+
+        // Hardware acceleration
+        _hwAccelCheckbox = new CheckBox
+        {
+            Text = "Hardware Acceleration",
+            Location = new Point(20, y),
+            Size = new Size(200, 20),
+            Checked = true,
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(_hwAccelCheckbox);
+        y += rowHeight;
+
+        // Auto-start
+        _autoStartCheckbox = new CheckBox
+        {
+            Text = "Auto-start Projection",
+            Location = new Point(20, y),
+            Size = new Size(200, 20),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(_autoStartCheckbox);
+        y += rowHeight;
+
+        // UI Scale
+        var scaleLabel = new Label
+        {
+            Text = "UI Scale:",
+            Location = new Point(20, y),
+            Size = new Size(labelWidth, 20),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(scaleLabel);
+
+        _uiScaleTracker = new TrackBar
+        {
+            Location = new Point(180, y),
+            Size = new Size(200, 45),
+            Minimum = 5,
+            Maximum = 30,
+            Value = 10,
+            TickFrequency = 5,
+            BackColor = Color.FromArgb(60, 60, 60)
+        };
+        _settingsPanel.Controls.Add(_uiScaleTracker);
+        y += 50;
+
+        // Monitor
+        var monitorLabel = new Label
+        {
+            Text = "Monitor Index:",
+            Location = new Point(20, y),
+            Size = new Size(labelWidth, 20),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(monitorLabel);
+
+        _monitorNumeric = new NumericUpDown
+        {
+            Location = new Point(180, y),
+            Size = new Size(controlWidth, 20),
+            Maximum = 10,
+            Value = 0,
+            BackColor = Color.FromArgb(60, 60, 60),
+            ForeColor = Color.White
+        };
+        _settingsPanel.Controls.Add(_monitorNumeric);
+        y += rowHeight + 20;
+
+        // Buttons
+        _applyButton = new Button
+        {
+            Text = "Apply Settings",
+            Size = new Size(120, 30),
+            Location = new Point(20, y),
+            BackColor = Color.Orange,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        _applyButton.Click += (s, e) => ApplySettings();
+        _settingsPanel.Controls.Add(_applyButton);
+
+        _saveButton = new Button
+        {
+            Text = "Save Settings",
+            Size = new Size(120, 30),
+            Location = new Point(150, y),
+            BackColor = Color.Green,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
+        };
+        _saveButton.Click += (s, e) => SaveSettings();
+        _settingsPanel.Controls.Add(_saveButton);
     }
 
     private void InitializeCoreServices()
@@ -125,6 +466,12 @@ public class ModMenuApplication : Form
 
     private void UpdatePerformanceMetrics()
     {
+        if (InvokeRequired)
+        {
+            Invoke(new Action(UpdatePerformanceMetrics));
+            return;
+        }
+        
         var guiState = GuiState.Instance;
         
         // Update performance metrics
@@ -134,116 +481,75 @@ public class ModMenuApplication : Form
             guiState.DroppedFrames = (int)_captureEngine.Statistics.DroppedFrames;
         }
         
-        // Force refresh
-        Invalidate();
+        // Update UI labels
+        if (_statusLabel != null)
+        {
+            _statusLabel.Text = $"Status: {guiState.CurrentStatus}";
+            _statusLabel.ForeColor = GetStatusColor(guiState.CurrentStatus);
+        }
+        
+        if (_fpsLabel != null)
+        {
+            _fpsLabel.Text = $"FPS: {guiState.CurrentFPS:F1} | Dropped: {guiState.DroppedFrames}";
+        }
     }
 
-    protected override void OnPaint(PaintEventArgs e)
+    private void LoadSettings()
     {
-        base.OnPaint(e);
-        RenderInterface(e.Graphics);
+        var settings = GuiState.Instance.CurrentSettings;
+        
+        if (_fpsNumeric != null) _fpsNumeric.Value = settings.TargetFPS;
+        if (_widthNumeric != null) _widthNumeric.Value = settings.ResolutionWidth;
+        if (_heightNumeric != null) _heightNumeric.Value = settings.ResolutionHeight;
+        if (_hwAccelCheckbox != null) _hwAccelCheckbox.Checked = settings.HardwareAcceleration;
+        if (_autoStartCheckbox != null) _autoStartCheckbox.Checked = settings.AutoStartProjection;
+        if (_uiScaleTracker != null) _uiScaleTracker.Value = (int)(settings.UiScale * 10);
+        if (_monitorNumeric != null) _monitorNumeric.Value = settings.MonitorIndex;
     }
 
-    private void RenderInterface(Graphics g)
+    private void SaveSettings()
     {
-        var guiState = GuiState.Instance;
+        var settings = GuiState.Instance.CurrentSettings;
         
-        // Use simple Windows Forms controls drawn with Graphics for now
-        // This is a simplified approach that will work with single-file deployment
+        if (_fpsNumeric != null) settings.TargetFPS = (int)_fpsNumeric.Value;
+        if (_widthNumeric != null) settings.ResolutionWidth = (int)_widthNumeric.Value;
+        if (_heightNumeric != null) settings.ResolutionHeight = (int)_heightNumeric.Value;
+        if (_hwAccelCheckbox != null) settings.HardwareAcceleration = _hwAccelCheckbox.Checked;
+        if (_autoStartCheckbox != null) settings.AutoStartProjection = _autoStartCheckbox.Checked;
+        if (_uiScaleTracker != null) settings.UiScale = _uiScaleTracker.Value / 10.0f;
+        if (_monitorNumeric != null) settings.MonitorIndex = (int)_monitorNumeric.Value;
         
-        using var brush = new SolidBrush(Color.Black);
-        g.FillRectangle(brush, ClientRectangle);
+        settings.Validate();
+        GuiState.Instance.SaveSettings();
         
-        using var textBrush = new SolidBrush(Color.White);
-        using var font = new Font("Segoe UI", 10);
+        Log.Info("Settings saved");
+        ApplySettings(); // Also apply them
+    }
+
+    private void OnLogUpdated(object? sender, EventArgs e)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(new EventHandler(OnLogUpdated), sender, e);
+            return;
+        }
         
-        int y = 10;
-        const int lineHeight = 25;
+        if (_logListBox == null) return;
         
-        // Title
-        using var titleFont = new Font("Segoe UI", 14, FontStyle.Bold);
-        g.DrawString("Pick6 Mod Menu", titleFont, textBrush, 10, y);
-        y += 40;
+        // Add recent log entries to the list
+        var logs = GuiState.Instance.GetLogEntries().TakeLast(100);
+        _logListBox.Items.Clear();
         
-        // Status
-        var statusColor = GetStatusColor(guiState.CurrentStatus);
-        using var statusBrush = new SolidBrush(statusColor);
-        g.DrawString($"Status: {guiState.CurrentStatus}", font, statusBrush, 10, y);
-        y += lineHeight;
-        
-        // Performance
-        g.DrawString($"FPS: {guiState.CurrentFPS:F1} | Dropped: {guiState.DroppedFrames}", font, textBrush, 10, y);
-        y += lineHeight;
-        
-        // Settings preview
-        y += 10;
-        g.DrawString("Settings:", font, textBrush, 10, y);
-        y += lineHeight;
-        g.DrawString($"Target FPS: {guiState.CurrentSettings.TargetFPS}", font, textBrush, 20, y);
-        y += lineHeight;
-        g.DrawString($"Resolution: {(guiState.CurrentSettings.ResolutionWidth > 0 ? $"{guiState.CurrentSettings.ResolutionWidth}x{guiState.CurrentSettings.ResolutionHeight}" : "Auto")}", font, textBrush, 20, y);
-        y += lineHeight;
-        g.DrawString($"Hardware Acceleration: {(guiState.CurrentSettings.HardwareAcceleration ? "On" : "Off")}", font, textBrush, 20, y);
-        y += lineHeight;
-        g.DrawString($"Auto-start: {(guiState.CurrentSettings.AutoStartProjection ? "On" : "Off")}", font, textBrush, 20, y);
-        y += lineHeight + 20;
-        
-        // Instructions
-        g.DrawString("Right-click for menu options", font, textBrush, 10, y);
-        y += lineHeight;
-        
-        // Recent logs
-        y += 10;
-        g.DrawString("Recent Logs:", font, textBrush, 10, y);
-        y += lineHeight;
-        
-        var logs = guiState.GetLogEntries().TakeLast(10);
         foreach (var log in logs)
         {
-            var logColor = GetLogColorForGraphics(log.Level);
-            using var logBrush = new SolidBrush(logColor);
             var logText = $"[{log.Timestamp:HH:mm:ss}] [{log.Level}] {log.Message}";
-            if (logText.Length > 80) logText = logText.Substring(0, 77) + "...";
-            g.DrawString(logText, font, logBrush, 20, y);
-            y += lineHeight;
-            
-            if (y > ClientSize.Height - 50) break;
+            _logListBox.Items.Add(logText);
         }
-    }
-
-    protected override void OnMouseUp(MouseEventArgs e)
-    {
-        if (e.Button == MouseButtons.Right)
-        {
-            ShowContextMenu(e.Location);
-        }
-        base.OnMouseUp(e);
-    }
-
-    private void ShowContextMenu(Point location)
-    {
-        var menu = new ContextMenuStrip();
         
-        menu.Items.Add("Start Capture", null, (s, e) => StartCapture());
-        menu.Items.Add("Stop Capture", null, (s, e) => StopCapture());
-        menu.Items.Add("-");
-        menu.Items.Add("Start Projection", null, (s, e) => StartProjection());
-        menu.Items.Add("Stop Projection", null, (s, e) => StopProjection());
-        menu.Items.Add("-");
-        menu.Items.Add("Settings...", null, (s, e) => ShowSettingsDialog());
-        menu.Items.Add("-");
-        menu.Items.Add("Exit", null, (s, e) => Close());
-        
-        menu.Show(this, location);
-    }
-
-    private void ShowSettingsDialog()
-    {
-        var settingsForm = new SettingsForm();
-        if (settingsForm.ShowDialog(this) == DialogResult.OK)
+        // Auto-scroll to bottom
+        if (_logListBox.Items.Count > 0)
         {
-            ApplySettings();
-            Invalidate();
+            _logListBox.TopIndex = _logListBox.Items.Count - 1;
         }
     }
 
@@ -256,18 +562,6 @@ public class ModMenuApplication : Form
             "projecting" => Color.Blue,
             "error" => Color.Red,
             _ => Color.Orange
-        };
-    }
-
-    private Color GetLogColorForGraphics(string level)
-    {
-        return level.ToLower() switch
-        {
-            "error" => Color.Red,
-            "warn" => Color.Orange,
-            "info" => Color.LightGray,
-            "debug" => Color.Gray,
-            _ => Color.White
         };
     }
 
@@ -385,126 +679,13 @@ public class ModMenuApplication : Form
         _captureEngine?.StopCapture();
         _projectionWindow?.StopProjection();
         
+        // Unsubscribe from events
+        GuiState.Instance.LogUpdated -= OnLogUpdated;
+        
         Log.Info("Pick6 Mod Menu shutting down");
         GuiState.Instance.SaveSettings();
         
         base.OnFormClosed(e);
-    }
-}
-
-/// <summary>
-/// Settings dialog form
-/// </summary>
-public class SettingsForm : Form
-{
-    private NumericUpDown _fpsNumeric = null!;
-    private NumericUpDown _widthNumeric = null!;
-    private NumericUpDown _heightNumeric = null!;
-    private CheckBox _hwAccelCheckbox = null!;
-    private CheckBox _autoStartCheckbox = null!;
-    private TrackBar _uiScaleTracker = null!;
-    private NumericUpDown _monitorNumeric = null!;
-
-    public SettingsForm()
-    {
-        InitializeForm();
-        LoadCurrentSettings();
-    }
-
-    private void InitializeForm()
-    {
-        Text = "Settings";
-        Size = new Size(400, 350);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
-        StartPosition = FormStartPosition.CenterParent;
-
-        var y = 20;
-        const int rowHeight = 35;
-
-        // FPS setting
-        Controls.Add(new Label { Text = "Target FPS:", Location = new Point(20, y), Size = new Size(120, 20) });
-        _fpsNumeric = new NumericUpDown { Location = new Point(150, y), Size = new Size(80, 20), Minimum = 1, Maximum = 120, Value = 60 };
-        Controls.Add(_fpsNumeric);
-        y += rowHeight;
-
-        // Width setting
-        Controls.Add(new Label { Text = "Width (0=auto):", Location = new Point(20, y), Size = new Size(120, 20) });
-        _widthNumeric = new NumericUpDown { Location = new Point(150, y), Size = new Size(80, 20), Maximum = 4000, Value = 0 };
-        Controls.Add(_widthNumeric);
-        y += rowHeight;
-
-        // Height setting
-        Controls.Add(new Label { Text = "Height (0=auto):", Location = new Point(20, y), Size = new Size(120, 20) });
-        _heightNumeric = new NumericUpDown { Location = new Point(150, y), Size = new Size(80, 20), Maximum = 4000, Value = 0 };
-        Controls.Add(_heightNumeric);
-        y += rowHeight;
-
-        // Hardware acceleration
-        _hwAccelCheckbox = new CheckBox { Text = "Hardware Acceleration", Location = new Point(20, y), Size = new Size(200, 20), Checked = true };
-        Controls.Add(_hwAccelCheckbox);
-        y += rowHeight;
-
-        // Auto-start
-        _autoStartCheckbox = new CheckBox { Text = "Auto-start Projection", Location = new Point(20, y), Size = new Size(200, 20) };
-        Controls.Add(_autoStartCheckbox);
-        y += rowHeight;
-
-        // UI Scale
-        Controls.Add(new Label { Text = "UI Scale:", Location = new Point(20, y), Size = new Size(120, 20) });
-        _uiScaleTracker = new TrackBar { Location = new Point(150, y), Size = new Size(150, 45), Minimum = 5, Maximum = 20, Value = 10, TickFrequency = 5 };
-        Controls.Add(_uiScaleTracker);
-        y += 50;
-
-        // Monitor
-        Controls.Add(new Label { Text = "Monitor Index:", Location = new Point(20, y), Size = new Size(120, 20) });
-        _monitorNumeric = new NumericUpDown { Location = new Point(150, y), Size = new Size(80, 20), Maximum = 10, Value = 0 };
-        Controls.Add(_monitorNumeric);
-        y += rowHeight + 20;
-
-        // Buttons
-        var okButton = new Button { Text = "OK", Size = new Size(80, 30), Location = new Point(220, y), DialogResult = DialogResult.OK };
-        var cancelButton = new Button { Text = "Cancel", Size = new Size(80, 30), Location = new Point(310, y), DialogResult = DialogResult.Cancel };
-        
-        Controls.Add(okButton);
-        Controls.Add(cancelButton);
-        
-        AcceptButton = okButton;
-        CancelButton = cancelButton;
-        
-        okButton.Click += (s, e) => SaveSettings();
-    }
-
-    private void LoadCurrentSettings()
-    {
-        var settings = GuiState.Instance.CurrentSettings;
-        
-        _fpsNumeric.Value = settings.TargetFPS;
-        _widthNumeric.Value = settings.ResolutionWidth;
-        _heightNumeric.Value = settings.ResolutionHeight;
-        _hwAccelCheckbox.Checked = settings.HardwareAcceleration;
-        _autoStartCheckbox.Checked = settings.AutoStartProjection;
-        _uiScaleTracker.Value = (int)(settings.UiScale * 10);
-        _monitorNumeric.Value = settings.MonitorIndex;
-    }
-
-    private void SaveSettings()
-    {
-        var settings = GuiState.Instance.CurrentSettings;
-        
-        settings.TargetFPS = (int)_fpsNumeric.Value;
-        settings.ResolutionWidth = (int)_widthNumeric.Value;
-        settings.ResolutionHeight = (int)_heightNumeric.Value;
-        settings.HardwareAcceleration = _hwAccelCheckbox.Checked;
-        settings.AutoStartProjection = _autoStartCheckbox.Checked;
-        settings.UiScale = _uiScaleTracker.Value / 10.0f;
-        settings.MonitorIndex = (int)_monitorNumeric.Value;
-        
-        settings.Validate();
-        GuiState.Instance.SaveSettings();
-        
-        Log.Info("Settings saved");
     }
 }
 #endif
