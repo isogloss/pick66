@@ -119,7 +119,7 @@ public class VulkanFrameCapture
                 // Optional diagnostic logging
                 if (enableDiagnostics && _statistics.TotalFrames % 60 == 0) // Log every ~1 second at 60fps
                 {
-                    Console.WriteLine($"[Vulkan Capture] {_statistics.GetSummary()}");
+                    Log.Debug($"[Vulkan Capture] {_statistics.GetSummary()}");
                 }
             }
             catch (Exception ex)

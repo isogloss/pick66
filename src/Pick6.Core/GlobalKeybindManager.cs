@@ -191,7 +191,7 @@ public class GlobalKeybindManager : IDisposable
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error executing keybind action: {ex.Message}");
+                        Log.Warn($"Error executing keybind action: {ex.Message}");
                     }
                 }
                 
@@ -200,7 +200,7 @@ public class GlobalKeybindManager : IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Global keybind monitoring error: {ex.Message}");
+            Log.Warn($"Global keybind monitoring error: {ex.Message}");
         }
     }
 
@@ -378,16 +378,16 @@ public static class DefaultKeybinds
                                       "F12 - Close Projection + Toggle Loader", closeProjectionAndToggleLoader);
             }
 
-            Console.WriteLine("✅ Default global keybinds registered:");
-            Console.WriteLine("   Ctrl+L - Toggle Loader Window");
-            Console.WriteLine("   Ctrl+P - Toggle Projection Window");
-            Console.WriteLine("   Ctrl+Shift+P - Stop Projection & Restore Menu");
-            Console.WriteLine("   Ctrl+Shift+Esc - Close Projection");
-            Console.WriteLine("   F12 - Close Projection + Toggle Loader");
+            Log.Info("Default global keybinds registered:");
+            Log.Info("   Ctrl+L - Toggle Loader Window");
+            Log.Info("   Ctrl+P - Toggle Projection Window");
+            Log.Info("   Ctrl+Shift+P - Stop Projection & Restore Menu");
+            Log.Info("   Ctrl+Shift+Esc - Close Projection");
+            Log.Info("   F12 - Close Projection + Toggle Loader");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Could not register some global keybinds: {ex.Message}");
+            Log.Warn($"Could not register some global keybinds: {ex.Message}");
         }
     }
 }

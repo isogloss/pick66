@@ -68,7 +68,7 @@ public static class MonitorHelper
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Could not enumerate monitors: {ex.Message}");
+            Log.Warn($"Could not enumerate monitors: {ex.Message}");
             // Fallback to single monitor
             monitors.Add(new MonitorInfo 
             { 

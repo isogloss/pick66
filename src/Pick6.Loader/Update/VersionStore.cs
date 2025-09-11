@@ -1,3 +1,5 @@
+using Pick6.Core;
+
 namespace Pick6.Loader.Update;
 
 /// <summary>
@@ -25,7 +27,7 @@ public class VersionStore
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Failed to read payload version: {ex.Message}");
+            Log.Warn($"Failed to read payload version: {ex.Message}");
             return null;
         }
     }
@@ -43,7 +45,7 @@ public class VersionStore
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Failed to write payload version: {ex.Message}");
+            Log.Warn($"Failed to write payload version: {ex.Message}");
             return false;
         }
     }
@@ -69,7 +71,7 @@ public class VersionStore
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Failed to create payload cache directory: {ex.Message}");
+            Log.Warn($"Failed to create payload cache directory: {ex.Message}");
             return false;
         }
     }

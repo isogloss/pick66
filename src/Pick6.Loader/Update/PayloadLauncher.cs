@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Pick6.Core;
 
 namespace Pick6.Loader.Update;
 
@@ -20,14 +21,14 @@ public class PayloadLauncher
     {
         try
         {
-            Console.WriteLine($"Loading payload assembly: {payloadInfo.EntryAssembly}");
+            Log.Info($"Loading payload assembly: {payloadInfo.EntryAssembly}");
 
             var cachePath = VersionStore.GetPayloadCachePath();
             var assemblyPath = Path.Combine(cachePath, payloadInfo.EntryAssembly);
 
             if (!File.Exists(assemblyPath))
             {
-                Console.WriteLine($"Warning: Payload assembly not found at {assemblyPath}");
+                Log.Warn($"Payload assembly not found at {assemblyPath}");
                 return false;
             }
 
@@ -35,7 +36,7 @@ public class PayloadLauncher
             var assembly = Assembly.LoadFrom(assemblyPath);
             if (assembly == null)
             {
-                Console.WriteLine("Warning: Failed to load payload assembly");
+                Log.Warn("Failed to load payload assembly");
                 return false;
             }
 
@@ -43,7 +44,7 @@ public class PayloadLauncher
             var type = assembly.GetType(payloadInfo.EntryType);
             if (type == null)
             {
-                Console.WriteLine($"Warning: Type '{payloadInfo.EntryType}' not found in payload assembly");
+                Log.Warn($"Type '{payloadInfo.EntryType}' not found in payload assembly");
                 return false;
             }
 
@@ -51,12 +52,12 @@ public class PayloadLauncher
             var method = type.GetMethod(payloadInfo.EntryMethod, BindingFlags.Static | BindingFlags.Public);
             if (method == null)
             {
-                Console.WriteLine($"Warning: Static method '{payloadInfo.EntryMethod}' not found in type '{payloadInfo.EntryType}'");
+                Log.Warn($"Static method '{payloadInfo.EntryMethod}' not found in type '{payloadInfo.EntryType}'");
                 return false;
             }
 
             // Invoke the entry method
-            Console.WriteLine($"Invoking payload entry point: {payloadInfo.EntryType}.{payloadInfo.EntryMethod}");
+            Log.Info($"Invoking payload entry point: {payloadInfo.EntryType}.{payloadInfo.EntryMethod}");
             
             var parameters = method.GetParameters();
             object? result;
@@ -73,16 +74,16 @@ public class PayloadLauncher
             }
             else
             {
-                Console.WriteLine($"Warning: Unsupported method signature for '{payloadInfo.EntryMethod}'. Expected no parameters or string[] args.");
+                Log.Warn($"Unsupported method signature for '{payloadInfo.EntryMethod}'. Expected no parameters or string[] args.");
                 return false;
             }
 
-            Console.WriteLine("Payload entry point invoked successfully");
+            Log.Info("Payload entry point invoked successfully");
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Failed to launch payload: {ex.Message}");
+            Log.Warn($"Failed to launch payload: {ex.Message}");
             return false;
         }
     }

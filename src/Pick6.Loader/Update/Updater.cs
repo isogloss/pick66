@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Pick6.Core;
 
 namespace Pick6.Loader.Update;
 
@@ -21,13 +22,13 @@ public class Updater
     {
         try
         {
-            Console.WriteLine("Checking for payload updates...");
+            Log.Info("Checking for payload updates...");
             
             // Fetch manifest
             var payloadInfo = await FetchManifestAsync(manifestUrl);
             if (payloadInfo == null)
             {
-                Console.WriteLine("Warning: Failed to fetch or parse update manifest");
+                Log.Warn("Failed to fetch or parse update manifest");
                 return false;
             }
 
@@ -35,11 +36,11 @@ public class Updater
             var currentVersion = VersionStore.GetCurrentVersion();
             if (currentVersion == payloadInfo.PayloadVersion)
             {
-                Console.WriteLine($"Payload is up to date (version {currentVersion})");
+                Log.Info($"Payload is up to date (version {currentVersion})");
                 return true;
             }
 
-            Console.WriteLine($"Update available: {currentVersion ?? "none"} -> {payloadInfo.PayloadVersion}");
+            Log.Info($"Update available: {currentVersion ?? "none"} -> {payloadInfo.PayloadVersion}");
 
             // Ensure cache directory exists
             if (!VersionStore.EnsurePayloadCacheDirectory())
@@ -53,14 +54,14 @@ public class Updater
             {
                 // Update version store
                 VersionStore.SetCurrentVersion(payloadInfo.PayloadVersion);
-                Console.WriteLine($"Successfully updated to payload version {payloadInfo.PayloadVersion}");
+                Log.Info($"Successfully updated to payload version {payloadInfo.PayloadVersion}");
             }
 
             return success;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Update check failed: {ex.Message}");
+            Log.Warn($"Update check failed: {ex.Message}");
             return false;
         }
     }
@@ -91,7 +92,7 @@ public class Updater
                 string.IsNullOrEmpty(sha256) || string.IsNullOrEmpty(entryAssembly) ||
                 string.IsNullOrEmpty(entryType) || string.IsNullOrEmpty(entryMethod))
             {
-                Console.WriteLine("Warning: Manifest is missing required fields");
+                Log.Warn("Manifest is missing required fields");
                 return null;
             }
 
@@ -99,7 +100,7 @@ public class Updater
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Failed to fetch manifest: {ex.Message}");
+            Log.Warn($"Failed to fetch manifest: {ex.Message}");
             return null;
         }
     }
@@ -108,7 +109,7 @@ public class Updater
     {
         try
         {
-            Console.WriteLine($"Downloading payload from {payloadInfo.PayloadUrl}...");
+            Log.Info($"Downloading payload from {payloadInfo.PayloadUrl}...");
 
             // Download payload
             using var response = await httpClient.GetAsync(payloadInfo.PayloadUrl);
@@ -119,11 +120,11 @@ public class Updater
             // Verify SHA256
             if (!VerifyPayloadIntegrity(payloadData, payloadInfo.Sha256))
             {
-                Console.WriteLine("Warning: Payload integrity verification failed");
+                Log.Warn("Payload integrity verification failed");
                 return false;
             }
 
-            Console.WriteLine("Payload integrity verified, extracting...");
+            Log.Info("Payload integrity verified, extracting...");
 
             // Extract to cache directory
             var cachePath = VersionStore.GetPayloadCachePath();
@@ -141,12 +142,12 @@ public class Updater
             
             archive.ExtractToDirectory(cachePath);
 
-            Console.WriteLine($"Payload extracted to {cachePath}");
+            Log.Info($"Payload extracted to {cachePath}");
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Failed to download/extract payload: {ex.Message}");
+            Log.Warn($"Failed to download/extract payload: {ex.Message}");
             return false;
         }
     }
@@ -163,7 +164,7 @@ public class Updater
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Failed to verify payload integrity: {ex.Message}");
+            Log.Warn($"Failed to verify payload integrity: {ex.Message}");
             return false;
         }
     }
