@@ -146,6 +146,9 @@ public class ConsoleMenu
                 case "8":
                     ShowStatus();
                     break;
+                case "9":
+                    TestProjectionWithDemoFrames();
+                    break;
                 case "0":
                 case "exit":
                 case "quit":
@@ -177,6 +180,7 @@ public class ConsoleMenu
         Console.WriteLine("6. Configure settings");
         Console.WriteLine("7. Quick start (auto-detect and start)");
         Console.WriteLine("8. Show status");
+        Console.WriteLine("9. Test projection with demo frames");
         Console.WriteLine("0. Exit");
         Console.WriteLine();
         Console.Write("Enter your choice: ");
@@ -452,6 +456,88 @@ public class ConsoleMenu
         _captureEngine?.StopCapture();
         _projectionWindow?.StopProjection();
         Console.WriteLine("✅ Pick6 has been shut down gracefully.");
+    }
+
+    private async void TestProjectionWithDemoFrames()
+    {
+        Console.WriteLine("\n=== Testing Projection with Demo Frames ===");
+        Console.WriteLine("This will start projection and generate colored test frames...");
+        
+        // Start projection first
+        _projectionWindow.StartProjection();
+        Console.WriteLine("✅ Projection window started");
+        
+        if (OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("🎨 Generating colorful test frames for 10 seconds...");
+            Console.WriteLine("   (You should see a projection window with changing colors)");
+            
+            await GenerateTestFramesAsync();
+            
+            Console.WriteLine("\nTest is running... The projection window should show colorful frames.");
+            Console.WriteLine("Press any key when you're done viewing the projection window.");
+            Console.ReadKey();
+        }
+        else
+        {
+            Console.WriteLine("⚠️ Demo frames test is only available on Windows platform");
+            Console.WriteLine("   On this platform, you'll see simulated projection output instead.");
+            
+            // Still run a basic test for non-Windows - but can't use Bitmap APIs
+            await Task.Delay(2000);
+        }
+        
+        _projectionWindow.StopProjection();
+        Console.WriteLine("✅ Projection test completed");
+    }
+
+    private async Task GenerateTestFramesAsync()
+    {
+        var random = new Random();
+        for (int i = 0; i < 300; i++) // 10 seconds at ~30 FPS
+        {
+            try
+            {
+                if (OperatingSystem.IsWindows())
+                {
+                    GenerateTestFrame(random, i);
+                }
+                await Task.Delay(33); // ~30 FPS
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error generating test frame: {ex.Message}");
+                break;
+            }
+        }
+        
+        Console.WriteLine("\n🏁 Test completed - stopping projection...");
+        _projectionWindow.StopProjection();
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private void GenerateTestFrame(Random random, int frameNumber)
+    {
+        // Create a test frame with random colors
+        using var testFrame = new Bitmap(800, 600);
+        using var graphics = Graphics.FromImage(testFrame);
+        
+        // Fill with a random color
+        var color = Color.FromArgb(
+            random.Next(50, 255),
+            random.Next(50, 255), 
+            random.Next(50, 255)
+        );
+        graphics.Clear(color);
+        
+        // Add some text
+        using var font = new Font("Arial", 24, FontStyle.Bold);
+        using var brush = new SolidBrush(Color.White);
+        graphics.DrawString($"Pick6 Test Frame #{frameNumber + 1}", font, brush, 50, 50);
+        graphics.DrawString($"Color: {color}", font, brush, 50, 100);
+        graphics.DrawString("ESC to close projection", new Font("Arial", 16), brush, 50, 500);
+        
+        _projectionWindow.UpdateFrame(testFrame);
     }
 
     public static void ShowHelp()
