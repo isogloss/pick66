@@ -1,4 +1,5 @@
 using Pick6.Core;
+using Pick6.Core.Util;
 using Pick6.Projection;
 using System.Drawing;
 
@@ -267,51 +268,50 @@ public class ConsoleMenu
             ShowMainMenu();
             var choice = Console.ReadLine()?.Trim();
 
-            switch (choice)
+            switch (choice?.ToLower())
             {
-                case "1":
-                    ScanForFiveM();
-                    break;
-                case "2":
-                    StartCapture();
-                    break;
-                case "3":
-                    StopCapture();
-                    break;
-                case "4":
-                    StartProjection();
-                    break;
-                case "5":
-                    StopProjection();
-                    break;
-                case "6":
-                    ConfigureSettings();
-                    break;
-                case "7":
-                    QuickStart();
-                    break;
-                case "8":
-                    ShowStatus();
-                    break;
-                case "9":
-                    TestProjectionWithDemoFrames();
-                    break;
-                case "k":
-                case "K":
-                case "keybinds":
-                    ConfigureKeybinds();
-                    break;
-                case "h":
-                case "H":
-                    ConfigureCloseProjectionToggleLoaderKeybind();
-                    break;
-                case "0":
-                case "exit":
-                case "quit":
-                    isRunning = false;
-                    break;
+                // A. Capture Settings
+                case "1": ScanForFiveM(); break;
+                case "2": StartCapture(); break;
+                case "3": StopCapture(); break;
+                case "4": ConfigureFPS(); break;
+                case "5": ConfigureResolution(); break;
+                case "6": ToggleHardwareAcceleration(); break;
+                
+                // B. Projection
+                case "7": StartProjection(); break;
+                case "8": StopProjection(); break;
+                case "9": ToggleMatchCaptureFPS(); break;
+                case "10": ConfigureProjectionFPS(); break;
+                case "11": SelectMonitor(); break;
+                case "12": TestProjectionWithDemoFrames(); break;
+                
+                // C. Performance & Diagnostics
+                case "13": ShowLiveStatistics(); break;
+                case "14": ShowPerformanceWarnings(); break;
+                case "15": ToggleStatsLogging(); break;
+                case "16": DumpDiagnostics(); break;
+                
+                // D. Output / Quality (TODO placeholders)
+                case "17": Console.WriteLine("Quality presets - Coming soon!"); break;
+                case "18": Console.WriteLine("Bitrate config - Coming soon!"); break;
+                case "19": Console.WriteLine("Output format - Coming soon!"); break;
+                case "20": Console.WriteLine("Recording - Coming soon!"); break;
+                
+                // E. Injection & Process
+                case "21": ScanForFiveM(); break; // Rescan = same as scan
+                case "22": ForceReinjection(); break;
+                case "23": ShowLastInjectionMethod(); break;
+                case "24": Console.WriteLine("Process priority - Coming soon!"); break;
+                
+                // F. System
+                case "k": case "keybinds": ConfigureKeybinds(); break;
+                case "h": case "help": ShowHelpEnhanced(); break;
+                case "q": case "quick": QuickStart(); break;
+                case "0": case "exit": case "quit": isRunning = false; break;
+                
                 default:
-                    Console.WriteLine("Invalid choice. Please try again.");
+                    Console.WriteLine("Invalid choice. Press 'H' for help or try again.");
                     break;
             }
 
@@ -326,24 +326,59 @@ public class ConsoleMenu
     private void ShowMainMenu()
     {
         Console.Clear();
-        Console.WriteLine("=== pick6 ===");
+        Console.WriteLine("╔══════════════════════════════════════════════════════════════════════════════╗");
+        Console.WriteLine("║                                   PICK6                                      ║");
+        Console.WriteLine("║                          Enhanced Console Interface                          ║");
+        Console.WriteLine("╚══════════════════════════════════════════════════════════════════════════════╝");
         Console.WriteLine();
-        Console.WriteLine("1. Scan for processes");
-        Console.WriteLine("2. Start capture");
-        Console.WriteLine("3. Stop capture");
-        Console.WriteLine("4. Start projection");
-        Console.WriteLine("5. Stop projection");
-        Console.WriteLine("6. Settings");
-        Console.WriteLine("7. Quick start");
-        Console.WriteLine("8. Status");
-        Console.WriteLine("9. Test projection");
-        Console.WriteLine("K. Keybinds");
+
+        // Show current status summary
+        var captureActive = _captureEngine != null && _captureEngine.Statistics.TotalFrames > 0;
+        var projectionActive = _projectionWindow?.IsProjecting ?? false;
         
-        // Show the configurable hotkey
-        var currentKey = GetCurrentCloseProjectionToggleLoaderKey();
-        Console.WriteLine($"H. Keybind: Close Projection + Toggle Loader ({currentKey})");
+        Console.WriteLine($"Status: Capture {(captureActive ? "🟢 Active" : "🔴 Inactive")} | " +
+                         $"Projection {(projectionActive ? "🟢 Active" : "🔴 Inactive")}");
+        if (captureActive)
+        {
+            Console.WriteLine($"        {_captureEngine.Statistics.GetSummary()}");
+        }
+        Console.WriteLine();
+
+        Console.WriteLine("┌─ A. Capture Settings ────────────────────────────────────────────────────────┐");
+        Console.WriteLine("│  1. Scan for FiveM processes    2. Start capture       3. Stop capture      │");
+        Console.WriteLine("│  4. Configure FPS (30/60/120)   5. Set resolution      6. Hardware accel    │");
+        Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
+        Console.WriteLine();
         
-        Console.WriteLine("0. Exit");
+        Console.WriteLine("┌─ B. Projection ───────────────────────────────────────────────────────────────┐");
+        Console.WriteLine("│  7. Start projection             8. Stop projection                           │");
+        Console.WriteLine("│  9. Toggle match capture FPS     10. Set projection FPS                      │");
+        Console.WriteLine("│  11. Select monitor              12. Test projection                          │");
+        Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
+        Console.WriteLine();
+        
+        Console.WriteLine("┌─ C. Performance & Diagnostics ───────────────────────────────────────────────┐");
+        Console.WriteLine("│  13. Show live statistics       14. Performance warnings                     │");
+        Console.WriteLine("│  15. Enable/disable stats log   16. Dump diagnostics                         │");
+        Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
+        Console.WriteLine();
+        
+        Console.WriteLine("┌─ D. Output / Quality ─────────────────────────────────────────────────────────┐");
+        Console.WriteLine("│  17. Quality presets (TODO)     18. Bitrate config (TODO)                   │");
+        Console.WriteLine("│  19. Output format (TODO)       20. Recording (TODO)                         │");
+        Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
+        Console.WriteLine();
+        
+        Console.WriteLine("┌─ E. Injection & Process ──────────────────────────────────────────────────────┐");
+        Console.WriteLine("│  21. Rescan FiveM                22. Force reinjection                        │");
+        Console.WriteLine("│  23. Show last injection method  24. Process priority (TODO)                 │");
+        Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
+        Console.WriteLine();
+        
+        Console.WriteLine("┌─ F. System ───────────────────────────────────────────────────────────────────┐");
+        Console.WriteLine("│  K. Configure keybinds           H. Help                                      │");
+        Console.WriteLine("│  Q. Quick start                  0. Exit                                      │");
+        Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
         Console.WriteLine();
         Console.Write("Choice: ");
     }
@@ -443,16 +478,23 @@ public class ConsoleMenu
     private void ScanForFiveM()
     {
         Console.WriteLine("\n=== Scanning for FiveM Processes (Enhanced) ===");
+        
+        using var spinner = new Spinner("Scanning for FiveM processes...");
+        spinner.Start();
+        
+        // Simulate scanning delay for demonstration
+        Thread.Sleep(500);
+        
         var summary = FiveMDetector.GetProcessSummary();
 
         if (summary.TotalProcessCount == 0)
         {
-            Console.WriteLine("❌ No FiveM processes found.");
+            spinner.Fail("No FiveM processes found");
             Console.WriteLine("   Please make sure FiveM is running and try again.");
         }
         else
         {
-            Console.WriteLine($"✅ Found {summary.TotalProcessCount} FiveM process(es):");
+            spinner.Success($"Found {summary.TotalProcessCount} FiveM process(es)");
             
             if (summary.VulkanProcesses.Any())
             {
@@ -481,12 +523,18 @@ public class ConsoleMenu
     {
         Console.WriteLine("\n=== Starting Capture (Enhanced) ===");
         
+        using var scanSpinner = new Spinner("Scanning for FiveM processes...");
+        scanSpinner.Start();
+        
         var summary = FiveMDetector.GetProcessSummary();
         if (summary.TotalProcessCount == 0)
         {
-            Console.WriteLine("❌ No FiveM processes found. Please start FiveM first.");
+            scanSpinner.Fail("No FiveM processes found");
+            Console.WriteLine("   Please start FiveM first.");
             return;
         }
+        
+        scanSpinner.Success($"Found {summary.TotalProcessCount} process(es)");
 
         // Prioritize Vulkan processes for injection
         ProcessInfo? targetProcess = null;
@@ -519,15 +567,18 @@ public class ConsoleMenu
         Console.WriteLine($"🎯 Targeting: {targetProcess}");
         Console.WriteLine($"📡 Method: {captureMethod}");
 
+        using var injectionSpinner = new Spinner($"Injecting into {targetProcess.ProcessName}...");
+        injectionSpinner.Start();
+
         if (_captureEngine.StartCapture(targetProcess.ProcessName))
         {
-            Console.WriteLine("✅ Capture started successfully!");
+            injectionSpinner.Success($"Capture started successfully - {captureMethod}");
             Console.WriteLine($"   FPS: {_captureEngine.Settings.TargetFPS}");
             Console.WriteLine($"   Resolution: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original")}");
         }
         else
         {
-            Console.WriteLine("❌ Failed to start capture.");
+            injectionSpinner.Fail("Failed to start capture");
             Console.WriteLine("   💡 Try running as administrator for injection support");
         }
     }
@@ -1244,4 +1295,437 @@ public class ConsoleMenu
         Console.WriteLine("    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \\");
         Console.WriteLine("    -p:PublishReadyToRun=true");
     }
+
+    #region Enhanced Menu Methods
+
+    /// <summary>
+    /// Configure FPS with preset options
+    /// </summary>
+    private void ConfigureFPS()
+    {
+        Console.WriteLine("\n=== Configure Target FPS ===");
+        Console.WriteLine($"Current FPS: {_captureEngine.Settings.TargetFPS}");
+        Console.WriteLine();
+        Console.WriteLine("1. 30 FPS (Low performance/battery saving)");
+        Console.WriteLine("2. 60 FPS (Standard)");
+        Console.WriteLine("3. 120 FPS (High performance)");
+        Console.WriteLine("4. 144 FPS (Gaming monitors)");
+        Console.WriteLine("5. Custom FPS");
+        Console.WriteLine("0. Back");
+        Console.Write("Choice: ");
+
+        var choice = Console.ReadLine()?.Trim();
+        int newFPS = _captureEngine.Settings.TargetFPS;
+
+        switch (choice)
+        {
+            case "1": newFPS = 30; break;
+            case "2": newFPS = 60; break;
+            case "3": newFPS = 120; break;
+            case "4": newFPS = 144; break;
+            case "5":
+                Console.Write("Enter custom FPS (15-240): ");
+                if (int.TryParse(Console.ReadLine(), out int customFPS))
+                {
+                    newFPS = Math.Max(15, Math.Min(240, customFPS));
+                }
+                break;
+            case "0": return;
+        }
+
+        if (newFPS != _captureEngine.Settings.TargetFPS)
+        {
+            _captureEngine.Settings.TargetFPS = newFPS;
+            Console.WriteLine($"✅ FPS updated to {newFPS}");
+            
+            // Also update projection FPS if it's running
+            if (_projectionWindow.IsProjecting)
+            {
+                _projectionWindow.SetTargetFPS(newFPS);
+                Console.WriteLine($"   Projection FPS also updated to {newFPS}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Configure capture resolution
+    /// </summary>
+    private void ConfigureResolution()
+    {
+        Console.WriteLine("\n=== Configure Resolution ===");
+        Console.WriteLine($"Current: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original (no scaling)")}");
+        Console.WriteLine();
+        Console.WriteLine("1. Original (no scaling)");
+        Console.WriteLine("2. 1920x1080 (1080p)");
+        Console.WriteLine("3. 1280x720 (720p)");
+        Console.WriteLine("4. 2560x1440 (1440p)");
+        Console.WriteLine("5. Custom resolution");
+        Console.WriteLine("0. Back");
+        Console.Write("Choice: ");
+
+        var choice = Console.ReadLine()?.Trim();
+
+        switch (choice)
+        {
+            case "1":
+                _captureEngine.Settings.ScaleWidth = 0;
+                _captureEngine.Settings.ScaleHeight = 0;
+                Console.WriteLine("✅ Resolution set to original (no scaling)");
+                break;
+            case "2":
+                _captureEngine.Settings.ScaleWidth = 1920;
+                _captureEngine.Settings.ScaleHeight = 1080;
+                Console.WriteLine("✅ Resolution set to 1920x1080");
+                break;
+            case "3":
+                _captureEngine.Settings.ScaleWidth = 1280;
+                _captureEngine.Settings.ScaleHeight = 720;
+                Console.WriteLine("✅ Resolution set to 1280x720");
+                break;
+            case "4":
+                _captureEngine.Settings.ScaleWidth = 2560;
+                _captureEngine.Settings.ScaleHeight = 1440;
+                Console.WriteLine("✅ Resolution set to 2560x1440");
+                break;
+            case "5":
+                Console.Write("Enter width: ");
+                if (int.TryParse(Console.ReadLine(), out int width) && width > 0)
+                {
+                    Console.Write("Enter height: ");
+                    if (int.TryParse(Console.ReadLine(), out int height) && height > 0)
+                    {
+                        _captureEngine.Settings.ScaleWidth = width;
+                        _captureEngine.Settings.ScaleHeight = height;
+                        Console.WriteLine($"✅ Resolution set to {width}x{height}");
+                    }
+                }
+                break;
+            case "0": return;
+        }
+    }
+
+    /// <summary>
+    /// Toggle hardware acceleration
+    /// </summary>
+    private void ToggleHardwareAcceleration()
+    {
+        _captureEngine.Settings.UseHardwareAcceleration = !_captureEngine.Settings.UseHardwareAcceleration;
+        var status = _captureEngine.Settings.UseHardwareAcceleration ? "enabled" : "disabled";
+        Console.WriteLine($"✅ Hardware acceleration {status}");
+    }
+
+    /// <summary>
+    /// Toggle match capture FPS mode
+    /// </summary>
+    private void ToggleMatchCaptureFPS()
+    {
+        // This would need to be implemented in the projection window
+        Console.WriteLine("✅ Match capture FPS toggled (TODO: implement in BorderlessProjectionWindow)");
+    }
+
+    /// <summary>
+    /// Configure projection FPS
+    /// </summary>
+    private void ConfigureProjectionFPS()
+    {
+        Console.WriteLine("\n=== Configure Projection FPS ===");
+        Console.Write("Enter projection FPS (15-240): ");
+        if (int.TryParse(Console.ReadLine(), out int fps) && fps >= 15 && fps <= 240)
+        {
+            _projectionWindow.SetTargetFPS(fps);
+            Console.WriteLine($"✅ Projection FPS set to {fps}");
+        }
+        else
+        {
+            Console.WriteLine("❌ Invalid FPS. Must be between 15 and 240.");
+        }
+    }
+
+    /// <summary>
+    /// Select monitor for projection
+    /// </summary>
+    private void SelectMonitor()
+    {
+        ShowAvailableMonitors();
+        Console.Write($"Select monitor (0-{MonitorHelper.GetAllMonitors().Count - 1}): ");
+        if (int.TryParse(Console.ReadLine(), out int monitorIndex))
+        {
+            _selectedMonitor = monitorIndex;
+            Console.WriteLine($"✅ Monitor {monitorIndex} selected");
+        }
+    }
+
+    /// <summary>
+    /// Show live statistics
+    /// </summary>
+    private void ShowLiveStatistics()
+    {
+        Console.WriteLine("\n=== Live Performance Statistics ===");
+        Console.WriteLine("Press any key to stop monitoring...");
+        Console.WriteLine();
+
+        var startTime = DateTime.Now;
+        
+        while (!Console.KeyAvailable)
+        {
+            // Clear previous output
+            Console.SetCursorPosition(0, Console.CursorTop - 4);
+            
+            // Show capture statistics
+            Console.WriteLine($"Capture:    {_captureEngine.Statistics.GetSummary()}                    ");
+            
+            // Show projection statistics if available and active
+            var projectionStats = "Projection: Not active                                            ";
+            if (_projectionWindow.IsProjecting)
+            {
+                // Note: BorderlessProjectionWindow doesn't directly expose stats,
+                // this is a limitation of the current architecture
+                projectionStats = "Projection: Active (stats not available via current interface)";
+            }
+            Console.WriteLine(projectionStats);
+            
+            var elapsed = DateTime.Now - startTime;
+            Console.WriteLine($"Uptime:     {elapsed:hh\\:mm\\:ss}                                               ");
+            Console.WriteLine($"Memory:     {GC.GetTotalMemory(false) / 1024 / 1024:F1} MB                               ");
+            
+            Thread.Sleep(100); // Update 10 times per second
+        }
+        
+        Console.ReadKey(); // Consume the key press
+        Console.WriteLine("Statistics monitoring stopped.");
+    }
+
+    /// <summary>
+    /// Show performance warnings and recommendations
+    /// </summary>
+    private void ShowPerformanceWarnings()
+    {
+        Console.WriteLine("\n=== Performance Analysis ===");
+        
+        var captureStats = _captureEngine.Statistics;
+        var hasWarnings = false;
+        
+        // Check capture performance
+        if (captureStats.TotalFrames > 180) // At least 3 seconds of data
+        {
+            var targetFPS = _captureEngine.Settings.TargetFPS;
+            var avgFPS = captureStats.AverageFps;
+            
+            if (avgFPS < targetFPS * 0.7)
+            {
+                hasWarnings = true;
+                Console.WriteLine($"⚠️  Capture FPS Warning: Average {avgFPS:F1} FPS is significantly below target {targetFPS} FPS");
+                Console.WriteLine("   Possible causes: CPU overload, insufficient memory, game blocking capture");
+            }
+            
+            if (captureStats.P95FrameTimeMs > (1000.0 / targetFPS) * 2.0)
+            {
+                hasWarnings = true;
+                Console.WriteLine($"⚠️  Frame Time Warning: 95th percentile frame time is {captureStats.P95FrameTimeMs:F1}ms (target: {1000.0/targetFPS:F1}ms)");
+                Console.WriteLine("   This indicates inconsistent frame delivery");
+            }
+            
+            if (captureStats.DropRate > 5.0)
+            {
+                hasWarnings = true;
+                Console.WriteLine($"⚠️  Drop Rate Warning: {captureStats.DropRate:F1}% of frames are dropped");
+                Console.WriteLine("   Consider reducing FPS or resolution");
+            }
+        }
+        
+        // Check memory usage
+        var memoryMB = GC.GetTotalMemory(false) / 1024 / 1024;
+        if (memoryMB > 500)
+        {
+            hasWarnings = true;
+            Console.WriteLine($"⚠️  Memory Usage Warning: {memoryMB:F1} MB allocated");
+            Console.WriteLine("   High memory usage may indicate a memory leak or excessive frame buffering");
+        }
+        
+        if (!hasWarnings)
+        {
+            Console.WriteLine("✅ No performance issues detected");
+            Console.WriteLine($"   Capture: {captureStats.AverageFps:F1} avg FPS, {captureStats.DropRate:F1}% drop rate");
+            Console.WriteLine($"   Memory: {memoryMB:F1} MB");
+        }
+        
+        Console.WriteLine("\n💡 Performance Tips:");
+        Console.WriteLine("   • Run as administrator for better injection support");
+        Console.WriteLine("   • Close other applications to free up CPU/memory");
+        Console.WriteLine("   • Lower FPS or resolution if performance is poor");
+        Console.WriteLine("   • Use Vulkan injection when available (better than window capture)");
+    }
+
+    /// <summary>
+    /// Toggle statistics logging
+    /// </summary>
+    private void ToggleStatsLogging()
+    {
+        var currentValue = Environment.GetEnvironmentVariable("PICK6_DIAG");
+        var isEnabled = currentValue == "1";
+        
+        if (isEnabled)
+        {
+            Environment.SetEnvironmentVariable("PICK6_DIAG", "0");
+            Console.WriteLine("✅ Diagnostic logging disabled");
+        }
+        else
+        {
+            Environment.SetEnvironmentVariable("PICK6_DIAG", "1");
+            Console.WriteLine("✅ Diagnostic logging enabled");
+            Console.WriteLine("   Frame timing logs will appear in console");
+        }
+    }
+
+    /// <summary>
+    /// Dump detailed diagnostics to file
+    /// </summary>
+    private void DumpDiagnostics()
+    {
+        var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        var filename = $"pick6_diagnostics_{timestamp}.txt";
+        
+        try
+        {
+            using var writer = new StreamWriter(filename);
+            writer.WriteLine("PICK6 Diagnostics Report");
+            writer.WriteLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            writer.WriteLine($"Version: {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
+            writer.WriteLine();
+            
+            writer.WriteLine("=== Capture Engine ===");
+            writer.WriteLine($"Target FPS: {_captureEngine.Settings.TargetFPS}");
+            writer.WriteLine($"Resolution: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original")}");
+            writer.WriteLine($"Hardware Acceleration: {_captureEngine.Settings.UseHardwareAcceleration}");
+            writer.WriteLine($"Statistics: {_captureEngine.Statistics.GetSummary()}");
+            writer.WriteLine();
+            
+            writer.WriteLine("=== System Information ===");
+            writer.WriteLine($"OS: {Environment.OSVersion}");
+            writer.WriteLine($"CLR Version: {Environment.Version}");
+            writer.WriteLine($"Working Set: {Environment.WorkingSet / 1024 / 1024} MB");
+            writer.WriteLine($"GC Memory: {GC.GetTotalMemory(false) / 1024 / 1024} MB");
+            writer.WriteLine($"Processor Count: {Environment.ProcessorCount}");
+            writer.WriteLine();
+            
+            writer.WriteLine("=== FiveM Detection ===");
+            var summary = FiveMDetector.GetProcessSummary();
+            writer.WriteLine($"Total Processes: {summary.TotalProcessCount}");
+            writer.WriteLine($"Vulkan Processes: {summary.VulkanProcesses.Count}");
+            writer.WriteLine($"Traditional Processes: {summary.TraditionalProcesses.Count}");
+            writer.WriteLine($"Vulkan Support: {summary.HasVulkanSupport}");
+            writer.WriteLine();
+            
+            writer.WriteLine("=== Environment Variables ===");
+            writer.WriteLine($"PICK6_DIAG: {Environment.GetEnvironmentVariable("PICK6_DIAG") ?? "not set"}");
+            
+            Console.WriteLine($"✅ Diagnostics saved to {filename}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to save diagnostics: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Force reinjection by restarting capture
+    /// </summary>
+    private void ForceReinjection()
+    {
+        Console.WriteLine("\n=== Force Reinjection ===");
+        
+        if (_captureEngine.Statistics.TotalFrames > 0)
+        {
+            Console.WriteLine("Stopping current capture...");
+            _captureEngine.StopCapture();
+            Thread.Sleep(500); // Brief delay
+        }
+        
+        Console.WriteLine("Attempting reinjection...");
+        StartCapture();
+    }
+
+    /// <summary>
+    /// Show information about the last injection method used
+    /// </summary>
+    private void ShowLastInjectionMethod()
+    {
+        Console.WriteLine("\n=== Last Injection Method ===");
+        
+        var summary = FiveMDetector.GetProcessSummary();
+        
+        if (summary.TotalProcessCount == 0)
+        {
+            Console.WriteLine("❌ No FiveM processes currently detected");
+            return;
+        }
+        
+        string preferredMethod = summary.VulkanProcesses.Any() ? "Vulkan Injection" : "GDI Window Capture";
+        var isActive = _captureEngine.Statistics.TotalFrames > 0;
+        
+        Console.WriteLine($"Preferred method: {preferredMethod}");
+        Console.WriteLine($"Capture status: {(isActive ? "🟢 Active" : "🔴 Inactive")}");
+        
+        if (isActive)
+        {
+            Console.WriteLine($"Performance: {_captureEngine.Statistics.GetSummary()}");
+        }
+        
+        Console.WriteLine();
+        Console.WriteLine("Available processes:");
+        if (summary.VulkanProcesses.Any())
+        {
+            Console.WriteLine("🎮 Vulkan processes (preferred):");
+            foreach (var proc in summary.VulkanProcesses)
+            {
+                Console.WriteLine($"   • {proc}");
+            }
+        }
+        
+        if (summary.TraditionalProcesses.Any())
+        {
+            Console.WriteLine("🖥️ Traditional processes (fallback):");
+            foreach (var proc in summary.TraditionalProcesses)
+            {
+                Console.WriteLine($"   • {proc}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Show help information
+    /// </summary>
+    private void ShowHelpEnhanced()
+    {
+        Console.WriteLine("\n=== PICK6 Help ===");
+        Console.WriteLine();
+        Console.WriteLine("Quick Start:");
+        Console.WriteLine("1. Start FiveM and join a server");
+        Console.WriteLine("2. Run Pick6 and select option '2' (Start capture)");
+        Console.WriteLine("3. Select option '7' (Start projection) to display the game");
+        Console.WriteLine("4. Use option '13' to monitor performance in real-time");
+        Console.WriteLine();
+        Console.WriteLine("Menu Sections:");
+        Console.WriteLine("A. Capture Settings  - Configure FiveM capture (FPS, resolution, hardware)");
+        Console.WriteLine("B. Projection        - Control display window (start/stop, monitor selection)");
+        Console.WriteLine("C. Diagnostics       - Monitor performance, view statistics and warnings");
+        Console.WriteLine("D. Output/Quality    - Future encoding and recording features");
+        Console.WriteLine("E. Injection         - Process management and reinjection");
+        Console.WriteLine("F. System           - Keybinds, help, and utility functions");
+        Console.WriteLine();
+        Console.WriteLine("Performance Tips:");
+        Console.WriteLine("• For best results, run as administrator");
+        Console.WriteLine("• Vulkan injection provides better performance than window capture");
+        Console.WriteLine("• Set PICK6_DIAG=1 environment variable for detailed frame timing logs");
+        Console.WriteLine("• Use option '14' to check for performance warnings");
+        Console.WriteLine("• Lower FPS (option '4') if you experience frame drops");
+        Console.WriteLine();
+        Console.WriteLine("Keybinds (Windows only):");
+        Console.WriteLine("• Ctrl+P: Toggle projection");
+        Console.WriteLine("• Ctrl+Shift+P: Stop projection and return to menu");
+        Console.WriteLine("• Ctrl+L: Toggle loader window (GUI mode only)");
+        Console.WriteLine("• See option 'K' to configure custom keybinds");
+    }
+
+    #endregion
 }
