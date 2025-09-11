@@ -2,7 +2,7 @@
 
 A real-time game capture and projection application specifically designed for FiveM, providing OBS-like screen capture functionality with borderless fullscreen projection and **automatic injection workflow**.
 
-**🆕 NEW: Complete C++ Implementation with Advanced Features!**
+**🆕 NEW: Unified Entry Point with pick6_loader!**
 
 ## Available Implementations
 
@@ -13,13 +13,33 @@ A real-time game capture and projection application specifically designed for Fi
 - **DirectX 11**: Hardware-accelerated rendering
 - **Cross-platform**: Windows (primary) + Linux (development)
 
-### C# Version - `src/`
+### C# Version - `src/` (UNIFIED)
+- **Single Executable**: `pick6_loader.exe` replaces multiple separate executables
+- **Cross-platform**: Windows GUI + console, Linux/macOS console only
 - **Easy Development**: Managed code with .NET 8
-- **Windows Forms GUI**: Familiar Windows interface
-- **Rapid Prototyping**: Quick feature development
-- **Cross-platform**: Windows, Linux, macOS
+- **Windows Forms GUI**: Familiar Windows interface on Windows
+- **Console Fallback**: Works everywhere with console interface
 
 ## Quick Start
+
+### Unified Entry Point (pick6_loader.exe)
+
+```bash
+# Windows: Launch GUI by default
+pick6_loader.exe
+
+# Force console mode (any platform)
+pick6_loader.exe --console
+
+# Console mode with auto-start
+pick6_loader.exe --console --auto-start
+
+# Custom settings in console mode
+pick6_loader.exe --console --fps 30 --resolution 1920 1080
+
+# Show help
+pick6_loader.exe --help
+```
 
 ### C++ Version (Recommended for Performance)
 ```bash
@@ -32,10 +52,17 @@ cmake --build . --config Release  # Windows
 ./bin/Pick6CPP
 ```
 
-### C# Version (Recommended for Development)
+### C# Version (Unified pick6_loader)
 ```bash
+# Build the unified loader
 dotnet build
-dotnet run --project src/Pick6.GUI
+
+# Run with default behavior (GUI on Windows, console elsewhere)
+dotnet run --project src/Pick6.Loader
+
+# Or build and run the published executable
+dotnet build -c Release
+./src/Pick6.Loader/bin/Release/net8.0/pick6_loader
 ```
 
 ## Features
@@ -46,28 +73,14 @@ dotnet run --project src/Pick6.GUI
 ⚡ **Real-time Capture**: Low-latency frame capture with configurable FPS
 🎯 **Smart Detection**: Auto-detection of FiveM processes with Vulkan support
 ⚙️ **Configurable**: Adjustable resolution, FPS, and capture settings
-📦 **Dual Interface**: GUI mode (OBS-style) and console mode
+📦 **Unified Interface**: Single executable with GUI mode (Windows) and console mode (cross-platform)
 🔄 **Automatic Injection**: Click "Start Injection" and system handles everything
-
-## Quick Start
-
-### GUI Mode (Recommended - OBS-style interface)
-1. **Download and Run**: Simply run `Pick6.GUI.exe` 
-2. **Click "Start Injection"**: This preps the system for automatic monitoring
-3. **Start FiveM**: The system automatically detects and injects when FiveM starts
-4. **Enjoy**: Your FiveM game will be projected in a borderless window
-
-### Console Mode (Legacy)
-1. **Download and Run**: Run `Pick6.Launcher.exe` (attempts GUI first, falls back to console)
-2. **Start FiveM**: Make sure FiveM is running
-3. **Quick Start**: Choose option 7 in the menu for automatic setup
-4. **Enjoy**: Your FiveM game will be projected in a borderless window
 
 ## Usage
 
-### GUI Mode (Pick6.GUI.exe) - **NEW!**
+### GUI Mode (pick6_loader.exe on Windows) - **UNIFIED!**
 
-The new GUI interface works exactly like OBS Game Capture:
+The new unified interface works exactly like OBS Game Capture:
 
 1. **Start Injection**: Click the blue "Start Injection" button
 2. **Automatic Monitoring**: System continuously monitors for FiveM processes
@@ -83,28 +96,28 @@ The new GUI interface works exactly like OBS Game Capture:
 ### Console Mode Options
 
 ```bash
-# GUI Mode (default - launches Pick6.GUI.exe if available)
-Pick6.Launcher.exe
+# Default behavior (GUI on Windows, console elsewhere)
+pick6_loader.exe
 
-# Force console mode
-Pick6.Launcher.exe --console
+# Force console mode (any platform)
+pick6_loader.exe --console
 
-# Auto-start capture and projection (console mode)
-Pick6.Launcher.exe --console --auto-start
+# Console mode with auto-start
+pick6_loader.exe --console --auto-start
 
 # Set custom FPS (console mode)
-Pick6.Launcher.exe --console --fps 30
+pick6_loader.exe --console --fps 30
 
 # Set custom resolution (console mode)
-Pick6.Launcher.exe --console --resolution 1920 1080 --fps 60
+pick6_loader.exe --console --resolution 1920 1080 --fps 60
 
 # Show help
-Pick6.Launcher.exe --help
+pick6_loader.exe --help
 ```
 
 ### Console Interactive Mode
 
-Run `Pick6.Launcher.exe --console` to enter interactive mode:
+Run `pick6_loader.exe --console` to enter interactive mode:
 
 1. **Scan for FiveM processes** - Detect running FiveM instances (enhanced with Vulkan detection)
 2. **Start capture** - Begin capturing frames (uses Vulkan injection when available)
@@ -193,17 +206,42 @@ Pick6 automatically detects various FiveM versions including:
 
 ## Building from Source
 
+### Standard Build
 ```bash
 # Clone the repository
 git clone https://github.com/isogloss/pick66.git
 cd pick66
 
-# Build the solution
+# Build the unified solution
 dotnet build
 
-# Run the launcher
-dotnet run --project src/Pick6.Launcher
+# Run the unified loader (default behavior)
+dotnet run --project src/Pick6.Loader
+
+# Or build and run executable directly
+dotnet build -c Release
+./src/Pick6.Loader/bin/Release/net8.0/pick6_loader
 ```
+
+### Single-File Publishing
+
+For a single-file distributable executable:
+
+```bash
+# Windows (produces pick6_loader.exe)
+dotnet publish src/Pick6.Loader -c Release -r win-x64 --self-contained true \
+  -p:PublishSingleFile=true \
+  -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:PublishReadyToRun=true
+
+# Linux
+dotnet publish src/Pick6.Loader -c Release -r linux-x64 --self-contained true \
+  -p:PublishSingleFile=true \
+  -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:PublishReadyToRun=true
+```
+
+The published executable will be in `src/Pick6.Loader/bin/Release/net8.0/[runtime]/publish/`
 
 ## Project Structure
 
@@ -216,12 +254,13 @@ dotnet run --project src/Pick6.Launcher
 │   │   └── main.cpp       # Application entry point
 │   ├── build/             # CMake build directory
 │   └── README.md          # C++ specific documentation
-├── src/                   # C# Implementation
-│   ├── Pick6.Core/        # Core capture engine
-│   ├── Pick6.UI/          # Console interface
-│   ├── Pick6.GUI/         # Windows Forms GUI
-│   ├── Pick6.Projection/  # Projection window logic
-│   └── Pick6.Launcher/    # Main executable
+├── src/                     # C# Implementation (UNIFIED)
+│   ├── Pick6.Core/          # Core capture engine (class library)
+│   ├── Pick6.Projection/    # Projection window logic (class library)
+│   ├── Pick6.Loader/        # 🆕 UNIFIED EXECUTABLE (pick6_loader.exe)
+│   ├── Pick6.UI/            # ⚠️ DEPRECATED - use Pick6.Loader --console
+│   ├── Pick6.GUI/           # ⚠️ DEPRECATED - use Pick6.Loader (default)
+│   └── Pick6.Launcher/      # ⚠️ DEPRECATED - use Pick6.Loader
 └── README.md              # This file
 ```
 
