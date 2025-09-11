@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using Pick6.Core;
 
 namespace Pick6.Projection;
 
@@ -15,6 +16,8 @@ public class WindowsProjectionForm
     private Bitmap? _currentFrame;
     private readonly object _frameLock = new();
     private Thread? _renderThread;
+    private int _targetFPS = 60;
+    private int _screenIndex = 0;
 
     public event EventHandler? ProjectionStarted;
     public event EventHandler? ProjectionStopped;
@@ -26,11 +29,70 @@ public class WindowsProjectionForm
     {
         if (_isProjecting || !OperatingSystem.IsWindows()) return;
 
+        _screenIndex = screenIndex;
         _isProjecting = true;
         CreateBorderlessWindow(screenIndex);
         StartRenderLoop();
         
         ProjectionStarted?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Set the target FPS for the projection
+    /// </summary>
+    public void SetTargetFPS(int fps)
+    {
+        _targetFPS = Math.Max(15, Math.Min(120, fps));
+    }
+
+    /// <summary>
+    /// Enable or disable stealth mode (hidden from Alt+Tab and taskbar)
+    /// </summary>
+    [SupportedOSPlatform("windows")]
+    public void SetStealthMode(bool enabled)
+    {
+        if (_windowHandle == IntPtr.Zero) return;
+
+        if (enabled)
+        {
+            EnableStealthMode();
+        }
+        else
+        {
+            DisableStealthMode();
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private void EnableStealthMode()
+    {
+        if (_windowHandle == IntPtr.Zero) return;
+
+        // Hide from Alt+Tab by removing from taskbar and setting as tool window
+        var exStyle = GetWindowLong(_windowHandle, GWL_EXSTYLE);
+        exStyle |= (int)WS_EX_TOOLWINDOW;
+        exStyle &= ~(int)WS_EX_APPWINDOW;
+        SetWindowLong(_windowHandle, GWL_EXSTYLE, exStyle);
+
+        // Force window to update
+        SetWindowPos(_windowHandle, IntPtr.Zero, 0, 0, 0, 0, 
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private void DisableStealthMode()
+    {
+        if (_windowHandle == IntPtr.Zero) return;
+
+        // Show in Alt+Tab by adding to taskbar and removing tool window style
+        var exStyle = GetWindowLong(_windowHandle, GWL_EXSTYLE);
+        exStyle &= ~(int)WS_EX_TOOLWINDOW;
+        exStyle |= (int)WS_EX_APPWINDOW;
+        SetWindowLong(_windowHandle, GWL_EXSTYLE, exStyle);
+
+        // Force window to update
+        SetWindowPos(_windowHandle, IntPtr.Zero, 0, 0, 0, 0, 
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
     }
 
     /// <summary>
@@ -88,7 +150,7 @@ public class WindowsProjectionForm
 
         // Create the window
         _windowHandle = CreateWindowEx(
-            WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+            WS_EX_TOPMOST | WS_EX_TOOLWINDOW, // Start with stealth mode enabled
             "Pick6ProjectionWindow",
             "Pick6 Projection",
             WS_POPUP,
@@ -107,6 +169,9 @@ public class WindowsProjectionForm
             ShowWindow(_windowHandle, SW_SHOW);
             UpdateWindow(_windowHandle);
             SetForegroundWindow(_windowHandle);
+            
+            // Enable stealth mode by default
+            EnableStealthMode();
         }
     }
 
@@ -115,10 +180,22 @@ public class WindowsProjectionForm
     {
         _renderThread = new Thread(() =>
         {
+            var frameTimeMs = 1000.0 / _targetFPS;
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var lastRenderTime = 0.0;
+
             while (_isProjecting && _windowHandle != IntPtr.Zero)
             {
-                RenderFrame();
-                Thread.Sleep(16); // ~60 FPS
+                var currentTime = stopwatch.Elapsed.TotalMilliseconds;
+                
+                if (currentTime - lastRenderTime >= frameTimeMs)
+                {
+                    RenderFrame();
+                    lastRenderTime = currentTime;
+                }
+                
+                // Small sleep to prevent 100% CPU usage
+                Thread.Sleep(1);
             }
         })
         { IsBackground = true };
@@ -156,8 +233,7 @@ public class WindowsProjectionForm
 
     private Rectangle GetScreenBounds(int screenIndex)
     {
-        // Default to primary screen
-        return new Rectangle(0, 0, 1920, 1080); // Placeholder - would use actual screen API
+        return MonitorHelper.GetMonitorBounds(screenIndex);
     }
 
     [SupportedOSPlatform("windows")]
@@ -225,6 +301,15 @@ public class WindowsProjectionForm
     [DllImport("user32.dll")]
     private static extern void PostQuitMessage(int nExitCode);
 
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
     private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     [StructLayout(LayoutKind.Sequential)]
@@ -254,6 +339,7 @@ public class WindowsProjectionForm
     private const uint WS_POPUP = 0x80000000;
     private const uint WS_EX_TOPMOST = 0x00000008;
     private const uint WS_EX_TOOLWINDOW = 0x00000080;
+    private const uint WS_EX_APPWINDOW = 0x00040000;
     private const uint CS_HREDRAW = 0x0002;
     private const uint CS_VREDRAW = 0x0001;
     private const int SW_SHOW = 5;
@@ -263,5 +349,10 @@ public class WindowsProjectionForm
     private const int VK_ESCAPE = 0x1B;
     private const int IDC_ARROW = 32512;
     private const int COLOR_WINDOW = 5;
+    private const int GWL_EXSTYLE = -20;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_FRAMECHANGED = 0x0020;
     #endregion
 }

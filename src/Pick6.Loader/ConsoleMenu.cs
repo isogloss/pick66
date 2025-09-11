@@ -12,6 +12,7 @@ public class ConsoleMenu
 {
     private readonly GameCaptureEngine _captureEngine;
     private readonly BorderlessProjectionWindow _projectionWindow;
+    private int _selectedMonitor = 0;
 
     public ConsoleMenu()
     {
@@ -288,8 +289,8 @@ public class ConsoleMenu
     private void StartProjection()
     {
         Console.WriteLine("\n=== Starting Projection ===");
-        _projectionWindow.StartProjection();
-        Console.WriteLine("✅ Borderless projection window started.");
+        _projectionWindow.StartProjection(_selectedMonitor);
+        Console.WriteLine($"✅ Borderless projection window started on monitor {_selectedMonitor}.");
         Console.WriteLine("   The projection window should now be visible.");
     }
 
@@ -307,6 +308,14 @@ public class ConsoleMenu
         Console.WriteLine($"Current Target FPS: {_captureEngine.Settings.TargetFPS}");
         Console.WriteLine($"Current Resolution: {(_captureEngine.Settings.ScaleWidth > 0 ? $"{_captureEngine.Settings.ScaleWidth}x{_captureEngine.Settings.ScaleHeight}" : "Original (auto-detect)")}");
         Console.WriteLine($"Hardware Acceleration: {_captureEngine.Settings.UseHardwareAcceleration}");
+        Console.WriteLine($"Target Monitor: {_selectedMonitor}");
+        
+        // Show available monitors
+        if (OperatingSystem.IsWindows())
+        {
+            ShowAvailableMonitors();
+        }
+        
         Console.WriteLine();
 
         Console.WriteLine("Enter new values (press Enter to keep current):");
@@ -316,6 +325,7 @@ public class ConsoleMenu
         if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 120)
         {
             _captureEngine.Settings.TargetFPS = fps;
+            _projectionWindow.SetTargetFPS(fps);
             Console.WriteLine($"✅ FPS updated to {fps}");
         }
 
@@ -339,7 +349,52 @@ public class ConsoleMenu
             Console.WriteLine($"✅ Resolution updated to {(width > 0 && height > 0 ? $"{width}x{height}" : "Original")}");
         }
 
+        // Monitor selection
+        if (OperatingSystem.IsWindows())
+        {
+            Console.Write($"Target Monitor ({_selectedMonitor}): ");
+            var monitorInput = Console.ReadLine();
+            if (int.TryParse(monitorInput, out int monitor) && monitor >= 0)
+            {
+                try
+                {
+                    var monitors = MonitorHelper.GetAllMonitors();
+                    if (monitor < monitors.Count)
+                    {
+                        _selectedMonitor = monitor;
+                        Console.WriteLine($"✅ Target monitor updated to {monitor}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"❌ Invalid monitor index. Available: 0-{monitors.Count - 1}");
+                    }
+                }
+                catch
+                {
+                    Console.WriteLine("❌ Could not access monitor information");
+                }
+            }
+        }
+
         Console.WriteLine("✅ Settings updated successfully!");
+    }
+
+    private void ShowAvailableMonitors()
+    {
+        try
+        {
+            var monitors = MonitorHelper.GetAllMonitors();
+            Console.WriteLine($"\nAvailable Monitors ({monitors.Count}):");
+            foreach (var monitor in monitors)
+            {
+                var bounds = $"at {monitor.Bounds.X},{monitor.Bounds.Y}";
+                Console.WriteLine($"  {monitor.Index}: Monitor {monitor.Index + 1} - {monitor.Bounds.Width}x{monitor.Bounds.Height} {bounds}{(monitor.IsPrimary ? " (Primary)" : "")}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Could not enumerate monitors: {ex.Message}");
+        }
     }
 
     private void QuickStart()
@@ -381,7 +436,7 @@ public class ConsoleMenu
         if (_captureEngine.StartCapture(targetProcess.ProcessName))
         {
             Console.WriteLine("✅ Capture started!");
-            _projectionWindow.StartProjection();
+            _projectionWindow.StartProjection(_selectedMonitor);
             Console.WriteLine("✅ Projection started!");
             Console.WriteLine();
             Console.WriteLine("🎮 Pick6 is now running! The game should be projected in a borderless window.");
@@ -444,7 +499,7 @@ public class ConsoleMenu
             if (targetProcess != null && _captureEngine.StartCapture(targetProcess.ProcessName))
             {
                 Console.WriteLine($"[INFO] Auto-started capture for: {targetProcess}");
-                _projectionWindow.StartProjection();
+                _projectionWindow.StartProjection(_selectedMonitor);
                 Console.WriteLine("[INFO] Auto-started projection");
             }
         }
@@ -464,7 +519,7 @@ public class ConsoleMenu
         Console.WriteLine("This will start projection and generate colored test frames...");
         
         // Start projection first
-        _projectionWindow.StartProjection();
+        _projectionWindow.StartProjection(_selectedMonitor);
         Console.WriteLine("✅ Projection window started");
         
         if (OperatingSystem.IsWindows())

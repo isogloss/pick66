@@ -1,6 +1,8 @@
 using Pick6.Core;
 using Pick6.Projection;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace Pick6.Loader;
 
@@ -11,10 +13,12 @@ public partial class MainForm : Form
 {
     private GameCaptureEngine? _captureEngine;
     private BorderlessProjectionWindow? _projectionWindow;
+    private GlobalKeybindManager? _keybindManager;
     private System.Timers.Timer? _processMonitorTimer;
     private bool _isInjectionPrepped = false;
     private bool _isMonitoring = false;
     private bool _isCapturing = false;
+    private bool _loaderVisible = true;
 
     // UI Controls
     private Button _injectButton = null!;
@@ -24,6 +28,7 @@ public partial class MainForm : Form
     private Label _captureStatusLabel = null!;
     private CheckBox _autoProjectCheckbox = null!;
     private NumericUpDown _fpsNumeric = null!;
+    private ComboBox _monitorComboBox = null!;
     private Panel _settingsPanel = null!;
     private GroupBox _statusGroup = null!;
     private GroupBox _settingsGroup = null!;
@@ -34,12 +39,40 @@ public partial class MainForm : Form
         InitializeEngines();
         SetupEventHandlers();
         UpdateUI();
+        
+        // Enable stealth mode for the loader window
+        if (OperatingSystem.IsWindows())
+        {
+            EnableStealthMode();
+        }
+    }
+
+    private void InitializeMonitorSelection()
+    {
+        try
+        {
+            _monitorComboBox.Items.Clear();
+            var monitors = MonitorHelper.GetAllMonitors();
+            
+            foreach (var monitor in monitors)
+            {
+                _monitorComboBox.Items.Add(monitor.ToString());
+            }
+            
+            _monitorComboBox.SelectedIndex = 0;
+        }
+        catch (Exception)
+        {
+            // Fallback if monitor enumeration fails
+            _monitorComboBox.Items.Add("0: Primary Monitor");
+            _monitorComboBox.SelectedIndex = 0;
+        }
     }
 
     private void InitializeComponent()
     {
         Text = "Pick6 - Game Capture";
-        Size = new Size(480, 400);
+        Size = new Size(480, 430);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
@@ -113,7 +146,7 @@ public partial class MainForm : Form
         {
             Text = "Settings",
             Location = new Point(20, 220),
-            Size = new Size(430, 120),
+            Size = new Size(430, 150),
             Font = new Font("Segoe UI", 9)
         };
 
@@ -144,18 +177,101 @@ public partial class MainForm : Form
             Font = new Font("Segoe UI", 9)
         };
 
+        var monitorLabel = new Label
+        {
+            Text = "Target Monitor:",
+            Location = new Point(15, 85),
+            Size = new Size(100, 20),
+            Font = new Font("Segoe UI", 9)
+        };
+
+        _monitorComboBox = new ComboBox
+        {
+            Location = new Point(120, 83),
+            Size = new Size(200, 20),
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Font = new Font("Segoe UI", 9)
+        };
+
         // Add controls to groups
         _statusGroup.Controls.AddRange(new Control[] { _statusLabel, _processStatusLabel, _captureStatusLabel });
-        _settingsGroup.Controls.AddRange(new Control[] { _autoProjectCheckbox, fpsLabel, _fpsNumeric });
+        _settingsGroup.Controls.AddRange(new Control[] { _autoProjectCheckbox, fpsLabel, _fpsNumeric, monitorLabel, _monitorComboBox });
 
         // Add all controls to form
         Controls.AddRange(new Control[] { _injectButton, _stopButton, _statusGroup, _settingsGroup });
+
+        // Initialize monitor combo box
+        InitializeMonitorSelection();
     }
 
     private void InitializeEngines()
     {
         _captureEngine = new GameCaptureEngine();
         _projectionWindow = new BorderlessProjectionWindow();
+        
+        // Initialize global keybind manager
+        if (OperatingSystem.IsWindows())
+        {
+            _keybindManager = new GlobalKeybindManager();
+            SetupGlobalKeybinds();
+        }
+    }
+
+    private void SetupGlobalKeybinds()
+    {
+        if (_keybindManager == null) return;
+
+        DefaultKeybinds.RegisterDefaultKeybinds(_keybindManager,
+            toggleLoader: () => BeginInvoke(() => ToggleLoaderVisibility()),
+            toggleProjection: () => BeginInvoke(() => ToggleProjection()),
+            closeProjection: () => BeginInvoke(() => StopProjectionOnly())
+        );
+
+        _keybindManager.StartMonitoring();
+    }
+
+    private void ToggleLoaderVisibility()
+    {
+        if (_loaderVisible)
+        {
+            this.WindowState = FormWindowState.Minimized;
+            this.ShowInTaskbar = false;
+            _loaderVisible = false;
+        }
+        else
+        {
+            this.WindowState = FormWindowState.Normal;
+            this.ShowInTaskbar = true;
+            this.Activate();
+            _loaderVisible = true;
+        }
+    }
+
+    private void ToggleProjection()
+    {
+        if (_projectionWindow != null)
+        {
+            if (_autoProjectCheckbox.Checked && _isCapturing)
+            {
+                // Stop projection
+                _projectionWindow.StopProjection();
+                _autoProjectCheckbox.Checked = false;
+            }
+            else if (_isCapturing)
+            {
+                // Start projection
+                var selectedMonitorIndex = _monitorComboBox.SelectedIndex;
+                _projectionWindow.SetTargetFPS((int)_fpsNumeric.Value);
+                _projectionWindow.StartProjection(selectedMonitorIndex);
+                _autoProjectCheckbox.Checked = true;
+            }
+        }
+    }
+
+    private void StopProjectionOnly()
+    {
+        _projectionWindow?.StopProjection();
+        _autoProjectCheckbox.Checked = false;
     }
 
     private void SetupEventHandlers()
@@ -203,6 +319,9 @@ public partial class MainForm : Form
         {
             if (_captureEngine != null)
                 _captureEngine.Settings.TargetFPS = (int)_fpsNumeric.Value;
+            
+            if (_projectionWindow != null)
+                _projectionWindow.SetTargetFPS((int)_fpsNumeric.Value);
         };
     }
 
@@ -305,6 +424,7 @@ public partial class MainForm : Form
 
         // Apply current settings
         _captureEngine.Settings.TargetFPS = (int)_fpsNumeric.Value;
+        _projectionWindow.SetTargetFPS((int)_fpsNumeric.Value);
 
         if (_captureEngine.StartCapture(targetProcess.ProcessName))
         {
@@ -317,7 +437,8 @@ public partial class MainForm : Form
             // Auto-start projection if enabled
             if (_autoProjectCheckbox.Checked && OperatingSystem.IsWindows())
             {
-                _projectionWindow?.StartProjection();
+                var selectedMonitorIndex = _monitorComboBox.SelectedIndex;
+                _projectionWindow?.StartProjection(selectedMonitorIndex);
             }
         }
         else
@@ -365,6 +486,53 @@ public partial class MainForm : Form
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         StopInjection();
+        _keybindManager?.Dispose();
         base.OnFormClosing(e);
     }
+
+    /// <summary>
+    /// Enable stealth mode for the loader window (hidden from Alt+Tab and taskbar)
+    /// </summary>
+    [SupportedOSPlatform("windows")]
+    private void EnableStealthMode()
+    {
+        try
+        {
+            var handle = this.Handle;
+            if (handle == IntPtr.Zero) return;
+
+            // Hide from Alt+Tab by setting as tool window
+            var exStyle = GetWindowLong(handle, GWL_EXSTYLE);
+            exStyle |= WS_EX_TOOLWINDOW;
+            exStyle &= ~WS_EX_APPWINDOW;
+            SetWindowLong(handle, GWL_EXSTYLE, exStyle);
+
+            // Force window to update
+            SetWindowPos(handle, IntPtr.Zero, 0, 0, 0, 0, 
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not enable stealth mode for loader: {ex.Message}");
+        }
+    }
+
+    #region Win32 API for Stealth Mode
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_TOOLWINDOW = 0x00000080;
+    private const int WS_EX_APPWINDOW = 0x00040000;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_FRAMECHANGED = 0x0020;
+    #endregion
 }
