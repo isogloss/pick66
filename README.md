@@ -88,9 +88,19 @@ install.cmd -OutputPath "C:\MyApps"
 ### ⚙️ Installation & Distribution
 - **Single-File Executable**: Self-contained Windows x64 executable (~21MB)
 - **PowerShell Install Script**: Automated build, publish, and installation
+- **Cross-PowerShell Compatibility**: Works with both PowerShell 5.1 and PowerShell 7+
+- **Enhanced Error Handling**: Improved error reporting and troubleshooting
 - **SHA256 Verification**: Cryptographic integrity checking
 - **No Dependencies**: Includes .NET 8 runtime, runs on any Windows 10/11 system
 - **Downloads Folder Deployment**: Installs to user-accessible location
+
+### 🔧 Installation Troubleshooting
+
+If you encounter PowerShell parsing errors:
+1. **Use the wrapper**: `install.cmd -Launch` (recommended)
+2. **Try PowerShell 7+**: `pwsh -ExecutionPolicy Bypass -File install.ps1 -Launch`
+3. **Check syntax**: Run `.\validate-powershell.ps1` to verify script integrity
+4. **Report issues**: File a bug report with the exact error message
 
 ## 💻 Usage
 
