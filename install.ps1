@@ -1,4 +1,5 @@
 #!/usr/bin/env pwsh
+#requires -Version 7.0
 <#
 .SYNOPSIS
     Pick66 Installation Script - Builds and installs Pick66 to Downloads folder
@@ -6,6 +7,11 @@
 .DESCRIPTION
     This script builds Pick66 in Release mode, publishes a self-contained Windows x64 
     single-file executable, and installs it to the current user's Downloads folder.
+
+    Correct invocation patterns:
+    • pwsh ./install.ps1 -Launch        (PowerShell 7+ command line)
+    • ./install.ps1 -Launch             (From PowerShell 7+ prompt)
+    • install.cmd -Launch               (Windows wrapper - double-click safe)
 
 .PARAMETER Launch
     Launch the application immediately after successful installation
@@ -15,6 +21,15 @@
 
 .PARAMETER OutputPath
     Custom output path (default: user's Downloads folder)
+
+.NOTES
+    Prerequisites:
+    - PowerShell 7.0 or later
+    - .NET 8 SDK or later
+    - Windows 10/11 (target platform)
+
+    Environment Variables:
+    - PICK66_LAUNCH=1 : Automatically launch after installation (same as -Launch)
 
 .EXAMPLE
     .\install.ps1
@@ -27,6 +42,10 @@
 .EXAMPLE
     .\install.ps1 -Clean -Launch
     Clean build, install, and launch
+
+.EXAMPLE
+    install.cmd -Launch
+    Install and launch using Windows wrapper (double-click safe)
 #>
 
 param(
@@ -35,13 +54,51 @@ param(
     [string]$OutputPath = ""
 )
 
+# Environment variable support - treat PICK66_LAUNCH=1 as implicit -Launch
+if ($env:PICK66_LAUNCH -eq "1" -and !$Launch) {
+    $Launch = $true
+}
+
+# Preflight checks for common mis-invocation scenarios
+function Test-InvocationEnvironment {
+    # Check PowerShell version
+    if ($PSVersionTable.PSVersion.Major -lt 7) {
+        Write-Warning "PowerShell 7.0 or later is recommended. Current version: $($PSVersionTable.PSVersion)"
+        Write-Host "Some features may not work correctly with older PowerShell versions." -ForegroundColor $ColorWarning
+    }
+    
+    # Check if running in a proper console environment
+    $isProperConsole = $true
+    $shouldWarn = $false
+    
+    try {
+        # Check for common mis-invocation patterns
+        if ($Host.Name -notmatch 'Console' -and [string]::IsNullOrEmpty($env:WT_SESSION) -and [Environment]::UserInteractive) {
+            $isProperConsole = $false
+            $shouldWarn = $true
+        }
+    }
+    catch {
+        # If we can't determine the environment, continue silently
+    }
+    
+    if ($shouldWarn -and $isProperConsole -eq $false) {
+        Write-Host ""
+        Write-Warning "This script should be run from a PowerShell console for best results."
+        Write-Host "Recommended usage:" -ForegroundColor $ColorInfo
+        Write-Host "  pwsh -NoLogo -ExecutionPolicy Bypass -File install.ps1 -Launch" -ForegroundColor $ColorInfo
+        Write-Host "  OR use the provided wrapper: install.cmd -Launch" -ForegroundColor $ColorInfo
+        Write-Host ""
+    }
+}
+
 # Script configuration
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
 # Project configuration
-$ProjectPath = "src/Pick66.App/Pick66.App.csproj"
-$ExeName = "pick66.exe"
+$ProjectPath = "src/Pick6.Loader/Pick6.Loader.csproj"
+$ExeName = "pick6_loader.exe"
 $AppDisplayName = "Pick66 - Projection Interface"
 
 # Colors for output
@@ -301,10 +358,35 @@ function Show-Usage {
     Write-Host ""
 }
 
+function Request-InteractiveLaunch {
+    # Only prompt if Launch is not already set and we're in an interactive session
+    if ($Launch -or !([Environment]::UserInteractive)) {
+        return
+    }
+    
+    try {
+        # Check if we can actually prompt the user
+        if ($Host.UI.RawUI -and $Host.Name -match 'Console') {
+            Write-Host ""
+            $response = Read-Host "Launch Pick66 now? (Y/N)"
+            if ($response -match '^[Yy]') {
+                $script:Launch = $true
+                Write-Success "Launch scheduled after installation"
+            }
+        }
+    }
+    catch {
+        # If we can't prompt (non-interactive context, CI, etc.), continue silently
+    }
+}
+
 # Main execution
 try {
     Write-Header $AppDisplayName
     Write-Host "Installation Script v1.0" -ForegroundColor $ColorInfo
+    
+    # Run preflight checks
+    Test-InvocationEnvironment
     
     # Check prerequisites
     if (!(Test-DotNetSdk)) {
@@ -314,13 +396,17 @@ try {
     # Check project exists
     if (!(Test-Path $ProjectPath)) {
         Write-Error "Project file not found: $ProjectPath"
-        Write-Host "Please run this script from the repository root directory." -ForegroundColor $ColorWarning
+        Write-Host "Please ensure you are running this script from the repository root directory." -ForegroundColor $ColorWarning
+        Write-Host "Alternative: Use the provided wrapper 'install.cmd' which handles paths automatically." -ForegroundColor $ColorWarning
         exit 1
     }
     
     # Get output directory
     $outputDirectory = Get-OutputDirectory
     Write-Host "Target directory: $outputDirectory" -ForegroundColor $ColorInfo
+    
+    # Ask for interactive launch if not specified
+    Request-InteractiveLaunch
     
     # Execute build pipeline
     Remove-BuildArtifacts
@@ -341,9 +427,10 @@ catch {
     Write-Host ""
     Write-Host "💡 Troubleshooting:" -ForegroundColor $ColorWarning
     Write-Host "   • Ensure .NET 8 SDK is installed"
-    Write-Host "   • Run from the repository root directory"
+    Write-Host "   • Run from the repository root directory OR use install.cmd"
     Write-Host "   • Check that all project files exist"
     Write-Host "   • Try running with -Clean flag"
+    Write-Host "   • For execution issues, use: pwsh -ExecutionPolicy Bypass -File install.ps1"
     Write-Host ""
     
     exit 1
