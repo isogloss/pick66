@@ -5,28 +5,6 @@ using System.Runtime.Versioning;
 namespace Pick6.Projection;
 
 /// <summary>
-/// Borderless projection window for real-time frame display
-/// </summary>
-public class Program
-{
-    public static void Main()
-    {
-        Console.WriteLine("Pick6 Projection Window");
-        Console.WriteLine("This module handles the borderless fullscreen projection");
-        
-        if (OperatingSystem.IsWindows())
-        {
-            Console.WriteLine("Windows projection mode would be available");
-            // On Windows, this would create a borderless fullscreen window
-        }
-        else
-        {
-            Console.WriteLine("Projection simulation mode");
-        }
-    }
-}
-
-/// <summary>
 /// Borderless fullscreen projection window implementation
 /// </summary>
 public class BorderlessProjectionWindow
