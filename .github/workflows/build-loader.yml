@@ -10,10 +10,29 @@ on:
         description: 'Version to build'
         required: true
         default: '1.0.0'
+  pull_request:
+    paths:
+      - '**/*.ps1'
+      - 'install.cmd'
 
 jobs:
+  validate-powershell:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Validate PowerShell Scripts
+      run: |
+        Write-Host "Validating PowerShell scripts..." -ForegroundColor Cyan
+        .\validate-powershell.ps1 -Path install.ps1
+        if ($LASTEXITCODE -ne 0) { exit 1 }
+        Write-Host "✅ All PowerShell scripts validated successfully" -ForegroundColor Green
+      shell: pwsh
+      
   build:
     runs-on: windows-latest
+    needs: validate-powershell
     
     steps:
     - name: Checkout code

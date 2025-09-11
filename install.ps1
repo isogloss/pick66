@@ -123,6 +123,20 @@ function Test-InvocationEnvironment {
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+# Enhanced error handling - trap unhandled errors
+trap {
+    Write-Host ""
+    Write-Host "💥 Unhandled Error:" -ForegroundColor Red
+    Write-Host "   $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "   Location: $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "💡 If this error persists:" -ForegroundColor Yellow
+    Write-Host "   • Report this issue at: https://github.com/isogloss/pick66/issues" -ForegroundColor Yellow
+    Write-Host "   • Include the full error message above" -ForegroundColor Yellow
+    Write-Host ""
+    exit 1
+}
+
 # Project configuration
 $ProjectPath = "src/Pick6.Loader/Pick6.Loader.csproj"
 $ExeName = "pick6_loader.exe"
@@ -298,7 +312,7 @@ function Publish-Application {
         $fileInfo = Get-Item $exePath
         $fileSize = [math]::Round($fileInfo.Length / 1MB, 1)
         
-        Write-Success "Publish completed successfully ($fileSize MB)"
+        Write-Success "Publish completed successfully (${fileSize} MB)"
         return $exePath
     }
     catch {
@@ -342,7 +356,7 @@ function Install-Application {
         Write-Host ""
         Write-Host "📄 Executable Details:" -ForegroundColor $ColorInfo
         Write-Host "   Path: $targetPath"
-        Write-Host "   Size: $fileSize MB"
+        Write-Host "   Size: ${fileSize} MB"
         Write-Host "   SHA256: $hashShort..."
         Write-Host ""
         Write-Host "🚀 Ready for use!" -ForegroundColor $ColorSuccess
