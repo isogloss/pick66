@@ -123,6 +123,10 @@ public class ConsoleMenu
                         i++;
                     }
                     break;
+                case "--fps-logging":
+                    _projectionWindow.SetFpsLogging(true);
+                    Console.WriteLine("[INFO] FPS logging enabled");
+                    break;
                 case "--resolution":
                     if (i + 2 < args.Length && 
                         int.TryParse(args[i + 1], out int width) &&
@@ -364,7 +368,7 @@ public class ConsoleMenu
         
         Console.Write($"Target FPS ({_captureEngine.Settings.TargetFPS}): ");
         var fpsInput = Console.ReadLine();
-        if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 120)
+        if (int.TryParse(fpsInput, out int fps) && fps > 0 && fps <= 240)
         {
             _captureEngine.Settings.TargetFPS = fps;
             _projectionWindow.SetTargetFPS(fps);
@@ -700,7 +704,8 @@ public class ConsoleMenu
         Console.WriteLine("  --gui                 Force GUI mode (default on Windows)");
         Console.WriteLine("  --console             Force console mode");
         Console.WriteLine("  --auto-start          Automatically start capture and projection (console mode)");
-        Console.WriteLine("  --fps <number>        Set target FPS (console mode, default: 60)");
+        Console.WriteLine("  --fps <number>        Set target FPS (console mode, default: 60, max: 240)");
+        Console.WriteLine("  --fps-logging         Enable FPS logging for debugging");
         Console.WriteLine("  --resolution <w> <h>  Set output resolution (console mode)");
         Console.WriteLine("  --monitor <index>     Set target monitor for projection (console mode)");
         Console.WriteLine("  --help                Show this help message");
@@ -715,14 +720,15 @@ public class ConsoleMenu
         Console.WriteLine();
         Console.WriteLine("New Features:");
         Console.WriteLine("  🖥️  Monitor Selection: Choose target display for projection (GUI & console)");
-        Console.WriteLine("  🎯 FPS Control: Consistent frame rate control (15-120 FPS)");
+        Console.WriteLine("  🎯 FPS Control: Consistent frame rate control (15-240 FPS)");
         Console.WriteLine("  ⌨️  Global Hotkeys: System-wide keyboard shortcuts (Windows only)");
         Console.WriteLine("  👻 Stealth Mode: Hidden from Alt+Tab and taskbar");
         Console.WriteLine("  ⚡ Performance: Optimized render loop for smooth 60+ FPS projection");
         Console.WriteLine();
-        Console.WriteLine("Global Hotkeys (Windows GUI mode):");
+        Console.WriteLine("Global Hotkeys (Windows):");
         Console.WriteLine("  Ctrl+L                Toggle loader window visibility");
         Console.WriteLine("  Ctrl+P                Toggle projection window");
+        Console.WriteLine("  Ctrl+Shift+P          Stop projection & restore menu");
         Console.WriteLine("  Ctrl+Shift+Esc        Close projection immediately");
         Console.WriteLine("  ESC (in projection)   Close projection window");
         Console.WriteLine();

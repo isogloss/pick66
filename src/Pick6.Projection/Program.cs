@@ -36,6 +36,22 @@ public class BorderlessProjectionWindow
     }
 
     /// <summary>
+    /// Enable or disable match capture FPS mode
+    /// </summary>
+    public void SetMatchCaptureFPS(bool enabled)
+    {
+        _windowsProjection?.SetMatchCaptureFPS(enabled);
+    }
+
+    /// <summary>
+    /// Update the projection FPS based on capture engine settings
+    /// </summary>
+    public void UpdateCaptureFPS(int captureFPS)
+    {
+        _windowsProjection?.UpdateCaptureFPS(captureFPS);
+    }
+
+    /// <summary>
     /// Start the borderless projection
     /// </summary>
     public void StartProjection(int screenIndex = 0)

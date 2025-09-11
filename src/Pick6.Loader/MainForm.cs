@@ -26,6 +26,7 @@ public partial class MainForm : Form
     private Label _processStatusLabel = null!;
     private Label _captureStatusLabel = null!;
     private CheckBox _autoProjectCheckbox = null!;
+    private CheckBox _matchCaptureFpsCheckbox = null!;
     private NumericUpDown _fpsNumeric = null!;
     private ComboBox _monitorComboBox = null!;
     private Panel _settingsPanel = null!;
@@ -158,6 +159,15 @@ public partial class MainForm : Form
             Font = new Font("Segoe UI", 9)
         };
 
+        _matchCaptureFpsCheckbox = new CheckBox
+        {
+            Text = "Match capture FPS",
+            Location = new Point(220, 25),
+            Size = new Size(150, 20),
+            Checked = false,
+            Font = new Font("Segoe UI", 9)
+        };
+
         var fpsLabel = new Label
         {
             Text = "Target FPS:",
@@ -171,7 +181,7 @@ public partial class MainForm : Form
             Location = new Point(100, 53),
             Size = new Size(60, 20),
             Minimum = 15,
-            Maximum = 120,
+            Maximum = 240,
             Value = 60,
             Font = new Font("Segoe UI", 9)
         };
@@ -194,7 +204,7 @@ public partial class MainForm : Form
 
         // Add controls to groups
         _statusGroup.Controls.AddRange(new Control[] { _statusLabel, _processStatusLabel, _captureStatusLabel });
-        _settingsGroup.Controls.AddRange(new Control[] { _autoProjectCheckbox, fpsLabel, _fpsNumeric, monitorLabel, _monitorComboBox });
+        _settingsGroup.Controls.AddRange(new Control[] { _autoProjectCheckbox, _matchCaptureFpsCheckbox, fpsLabel, _fpsNumeric, monitorLabel, _monitorComboBox });
 
         // Add all controls to form
         Controls.AddRange(new Control[] { _injectButton, _stopButton, _statusGroup, _settingsGroup });
@@ -347,8 +357,25 @@ public partial class MainForm : Form
             if (_captureEngine != null)
                 _captureEngine.Settings.TargetFPS = (int)_fpsNumeric.Value;
             
-            if (_projectionWindow != null)
+            if (_projectionWindow != null && !_matchCaptureFpsCheckbox.Checked)
                 _projectionWindow.SetTargetFPS((int)_fpsNumeric.Value);
+        };
+
+        _matchCaptureFpsCheckbox.CheckedChanged += (s, e) =>
+        {
+            if (_projectionWindow != null)
+            {
+                _projectionWindow.SetMatchCaptureFPS(_matchCaptureFpsCheckbox.Checked);
+                
+                // If enabling match mode, sync FPS immediately
+                if (_matchCaptureFpsCheckbox.Checked && _captureEngine != null)
+                {
+                    _projectionWindow.UpdateCaptureFPS(_captureEngine.Settings.TargetFPS);
+                }
+                
+                // Disable/enable the FPS numeric control based on match mode
+                _fpsNumeric.Enabled = !_matchCaptureFpsCheckbox.Checked;
+            }
         };
     }
 
@@ -451,7 +478,17 @@ public partial class MainForm : Form
 
         // Apply current settings
         _captureEngine.Settings.TargetFPS = (int)_fpsNumeric.Value;
-        _projectionWindow.SetTargetFPS((int)_fpsNumeric.Value);
+        
+        // Set projection FPS based on match capture FPS mode
+        if (_matchCaptureFpsCheckbox.Checked)
+        {
+            _projectionWindow.SetMatchCaptureFPS(true);
+            _projectionWindow.UpdateCaptureFPS(_captureEngine.Settings.TargetFPS);
+        }
+        else
+        {
+            _projectionWindow.SetTargetFPS((int)_fpsNumeric.Value);
+        }
 
         if (_captureEngine.StartCapture(targetProcess.ProcessName))
         {

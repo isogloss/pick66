@@ -26,6 +26,7 @@ public class WindowsProjectionForm
     private bool _enableFpsLogging = false;
     private int _frameCount = 0;
     private DateTime _lastFpsLogTime = DateTime.Now;
+    private bool _matchCaptureFPS = false;
 
     public event EventHandler? ProjectionStarted;
     public event EventHandler? ProjectionStopped;
@@ -63,6 +64,26 @@ public class WindowsProjectionForm
         {
             _frameCount = 0;
             _lastFpsLogTime = DateTime.Now;
+        }
+    }
+
+    /// <summary>
+    /// Enable or disable match capture FPS mode
+    /// When enabled, projection FPS will automatically match the capture engine's target FPS
+    /// </summary>
+    public void SetMatchCaptureFPS(bool enabled)
+    {
+        _matchCaptureFPS = enabled;
+    }
+
+    /// <summary>
+    /// Update the projection FPS based on capture engine settings (used in match capture FPS mode)
+    /// </summary>
+    public void UpdateCaptureFPS(int captureFPS)
+    {
+        if (_matchCaptureFPS && captureFPS > 0)
+        {
+            SetTargetFPS(captureFPS);
         }
     }
 
