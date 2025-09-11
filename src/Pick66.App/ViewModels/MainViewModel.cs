@@ -1,108 +1,61 @@
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
-using Pick66.Core;
+using System.Windows.Input;
+using System.Windows;
 using Pick66.App.Commands;
 
 namespace Pick66.App.ViewModels;
 
 /// <summary>
-/// Main view model for the Pick66 lottery application
+/// Main view model for the Pick66 projection application
 /// </summary>
 public class MainViewModel : INotifyPropertyChanged
 {
-    private readonly INumberPickerService _numberPickerService;
-    private int _ticketCount = 1;
-    private int _numbersPerTicket = 6;
-    private int _minInclusive = 1;
-    private int _maxInclusive = 49;
-    private bool _unique = true;
+    private bool _isProjectionActive;
+    private string _projectionStatus = "Idle";
+    private string _statusMessage = "Ready to start projection";
     private bool _isBusy;
-    private string _busyMessage = "Working...";
     private CancellationTokenSource? _cancellationTokenSource;
 
-    public MainViewModel() : this(new NumberPickerService())
+    public MainViewModel()
     {
-    }
-
-    public MainViewModel(INumberPickerService numberPickerService)
-    {
-        _numberPickerService = numberPickerService ?? throw new ArgumentNullException(nameof(numberPickerService));
-        Tickets = new ObservableCollection<string>();
-        GenerateCommand = new AsyncRelayCommand(GenerateTicketsAsync, () => !IsBusy);
-        ClearCommand = new RelayCommand(ClearTickets, () => !IsBusy && Tickets.Count > 0);
+        LogMessages = new ObservableCollection<string>();
+        StartProjectionCommand = new AsyncRelayCommand(StartProjectionAsync, () => !IsProjectionActive && !IsBusy);
+        StopProjectionCommand = new RelayCommand(StopProjection, () => IsProjectionActive && !IsBusy);
+        ClearLogsCommand = new RelayCommand(ClearLogs, () => LogMessages.Count > 0);
+        
+        // Add welcome message
+        LogMessages.Add($"[{DateTime.Now:HH:mm:ss}] Pick66 Projection Interface initialized");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     #region Properties
 
-    public int TicketCount
+    public bool IsProjectionActive
     {
-        get => _ticketCount;
-        set
+        get => _isProjectionActive;
+        private set
         {
-            if (SetProperty(ref _ticketCount, Math.Max(1, value)))
+            if (SetProperty(ref _isProjectionActive, value))
             {
-                OnPropertyChanged(nameof(CanGenerate));
+                OnPropertyChanged(nameof(StatusText));
+                CommandManager.InvalidateRequerySuggested();
             }
         }
     }
 
-    public int NumbersPerTicket
+    public string ProjectionStatus
     {
-        get => _numbersPerTicket;
-        set
-        {
-            if (SetProperty(ref _numbersPerTicket, Math.Max(1, value)))
-            {
-                OnPropertyChanged(nameof(CanGenerate));
-            }
-        }
+        get => _projectionStatus;
+        private set => SetProperty(ref _projectionStatus, value);
     }
 
-    public int MinInclusive
+    public string StatusMessage
     {
-        get => _minInclusive;
-        set
-        {
-            if (SetProperty(ref _minInclusive, value))
-            {
-                if (_minInclusive > _maxInclusive)
-                {
-                    MaxInclusive = _minInclusive;
-                }
-                OnPropertyChanged(nameof(CanGenerate));
-            }
-        }
-    }
-
-    public int MaxInclusive
-    {
-        get => _maxInclusive;
-        set
-        {
-            if (SetProperty(ref _maxInclusive, value))
-            {
-                if (_maxInclusive < _minInclusive)
-                {
-                    MinInclusive = _maxInclusive;
-                }
-                OnPropertyChanged(nameof(CanGenerate));
-            }
-        }
-    }
-
-    public bool Unique
-    {
-        get => _unique;
-        set
-        {
-            if (SetProperty(ref _unique, value))
-            {
-                OnPropertyChanged(nameof(CanGenerate));
-            }
-        }
+        get => _statusMessage;
+        private set => SetProperty(ref _statusMessage, value);
     }
 
     public bool IsBusy
@@ -112,108 +65,128 @@ public class MainViewModel : INotifyPropertyChanged
         {
             if (SetProperty(ref _isBusy, value))
             {
-                OnPropertyChanged(nameof(CanGenerate));
+                CommandManager.InvalidateRequerySuggested();
             }
         }
     }
 
-    public string BusyMessage
-    {
-        get => _busyMessage;
-        private set => SetProperty(ref _busyMessage, value);
-    }
+    public string StatusText => IsProjectionActive ? "Running" : "Idle";
 
-    public ObservableCollection<string> Tickets { get; }
-
-    public bool CanGenerate
-    {
-        get
-        {
-            if (IsBusy) return false;
-            if (TicketCount <= 0 || NumbersPerTicket <= 0) return false;
-            if (MinInclusive > MaxInclusive) return false;
-            if (Unique && NumbersPerTicket > (MaxInclusive - MinInclusive + 1)) return false;
-            return true;
-        }
-    }
+    public ObservableCollection<string> LogMessages { get; }
 
     #endregion
 
     #region Commands
 
-    public AsyncRelayCommand GenerateCommand { get; }
-    public RelayCommand ClearCommand { get; }
+    public AsyncRelayCommand StartProjectionCommand { get; }
+    public RelayCommand StopProjectionCommand { get; }
+    public RelayCommand ClearLogsCommand { get; }
 
     #endregion
 
     #region Methods
 
-    private async Task GenerateTicketsAsync()
+    private async Task StartProjectionAsync()
     {
-        if (!CanGenerate) return;
+        if (IsProjectionActive) return;
 
         try
         {
             IsBusy = true;
+            StatusMessage = "Starting projection...";
+            AddLogMessage("Starting projection interface...");
+
             _cancellationTokenSource = new CancellationTokenSource();
 
-            // Clear previous results
-            Tickets.Clear();
+            // Simulate startup process
+            await Task.Delay(1000, _cancellationTokenSource.Token);
+            
+            IsProjectionActive = true;
+            ProjectionStatus = "Running";
+            StatusMessage = "Projection active - monitoring display";
+            AddLogMessage("Projection interface started successfully");
 
-            // Update busy message
-            if (TicketCount == 1)
+            // Start monitoring loop (simulated)
+            _ = Task.Run(async () =>
             {
-                BusyMessage = "Generating ticket...";
-            }
-            else
-            {
-                BusyMessage = $"Generating {TicketCount} tickets...";
-            }
-
-            var progress = new Progress<int>(count =>
-            {
-                if (TicketCount > 1)
+                try
                 {
-                    BusyMessage = $"Generated {count} of {TicketCount} tickets...";
+                    while (IsProjectionActive && !_cancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        await Task.Delay(5000, _cancellationTokenSource.Token);
+                        if (IsProjectionActive)
+                        {
+                            AddLogMessage($"Projection active - Status: OK");
+                        }
+                    }
                 }
-            });
-
-            var tickets = await _numberPickerService.GenerateTicketsAsync(
-                TicketCount, 
-                NumbersPerTicket, 
-                MinInclusive, 
-                MaxInclusive, 
-                Unique, 
-                progress, 
-                _cancellationTokenSource.Token);
-
-            // Add results to collection
-            for (int i = 0; i < tickets.Count; i++)
-            {
-                var numbers = string.Join(" ", tickets[i].Select(n => n.ToString("D2")));
-                Tickets.Add($"Ticket {i + 1:D3}: {numbers}");
-            }
+                catch (OperationCanceledException)
+                {
+                    // Expected when stopping
+                }
+            }, _cancellationTokenSource.Token);
         }
         catch (OperationCanceledException)
         {
-            // User cancelled - do nothing
+            AddLogMessage("Projection startup cancelled");
         }
         catch (Exception ex)
         {
-            Tickets.Add($"Error: {ex.Message}");
+            AddLogMessage($"Error starting projection: {ex.Message}");
         }
         finally
         {
             IsBusy = false;
-            BusyMessage = "Working...";
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = null;
         }
     }
 
-    private void ClearTickets()
+    private void StopProjection()
     {
-        Tickets.Clear();
+        if (!IsProjectionActive) return;
+
+        try
+        {
+            IsProjectionActive = false;
+            ProjectionStatus = "Idle";
+            StatusMessage = "Ready to start projection";
+            
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
+
+            AddLogMessage("Projection interface stopped");
+        }
+        catch (Exception ex)
+        {
+            AddLogMessage($"Error stopping projection: {ex.Message}");
+        }
+    }
+
+    private void ClearLogs()
+    {
+        LogMessages.Clear();
+        AddLogMessage($"[{DateTime.Now:HH:mm:ss}] Log cleared");
+    }
+
+    private void AddLogMessage(string message)
+    {
+        var timestampedMessage = $"[{DateTime.Now:HH:mm:ss}] {message}";
+        
+        // Ensure UI thread access
+        if (Application.Current?.Dispatcher.CheckAccess() == true)
+        {
+            LogMessages.Add(timestampedMessage);
+        }
+        else
+        {
+            Application.Current?.Dispatcher.BeginInvoke(() => LogMessages.Add(timestampedMessage));
+        }
+
+        // Keep only last 100 messages
+        while (LogMessages.Count > 100)
+        {
+            LogMessages.RemoveAt(0);
+        }
     }
 
     #endregion

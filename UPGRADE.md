@@ -1,28 +1,45 @@
 # Pick66 Upgrade Guide
 
-This document provides guidance for upgrading from previous versions of Pick66 and understanding the new features and installation process.
+This document provides guidance for upgrading from previous versions of Pick66 and understanding the transformation to a projection interface application.
 
-## What's New
+## Major Changes in This Version
 
-### Enhanced Installation Process
+### ⚠️ Breaking Change: Lottery Functionality Removed
 
+**Important:** This version of Pick66 has completely removed all lottery number generation functionality. The application is now focused exclusively on projection interface capabilities.
+
+### What's New
+
+#### Enhanced WPF Application
+- **Modern Projection Interface**: Professional WPF application with colored theme
+- **Blue Accent Theme**: Modern dark theme with blue accent colors (#3B82F6)
+- **Start/Stop Controls**: Simple projection control interface
+- **Activity Logging**: Real-time activity monitoring and logging
+- **Status Indicators**: Visual status indicators with colored states
+
+#### Enhanced Installation Process
 **New PowerShell Install Script** (`install.ps1`)
-- One-command installation to Downloads folder
-- SHA256 hash verification for security
-- Single-file, self-contained Windows executable (~21MB)
+- Targets the new WPF projection interface application
+- Self-contained Windows executable 
+- Single-command installation to Downloads folder
 - No .NET runtime installation required
 - Optional launch and clean build flags
 
+### Removed Functionality
+
+**⚠️ Important:** The following features have been completely removed:
+- **Lottery Number Generation**: Pick66.Core library and all related functionality
+- **Console Demo**: Pick66.Console application 
+- **Unit Tests**: Pick66.Tests project (lottery-specific tests)
+- **Fisher-Yates Algorithm**: Random number generation logic
+- **Ticket Generation**: All ticket-related UI and logic
+
 ### Preserved Functionality
 
-All existing features remain fully functional:
-
-- **Lottery Number Generation**: Full Pick66.Core functionality preserved
-- **Game Capture**: Complete Pick6 FiveM capture system maintained
-- **Command Line Interface**: All existing CLI arguments work unchanged
-- **Settings Persistence**: Configuration continues to be stored in `%APPDATA%/Pick6`
-- **Update System**: Auto-update mechanism remains available
-- **Mod Menu GUI**: Current ImGui-style interface preserved
+Game capture and projection functionality from the Pick6 modules remains available:
+- **Game Capture**: Pick6 FiveM capture system 
+- **Settings Persistence**: Configuration storage capabilities
+- **Mod Menu GUI**: ImGui-style interfaces
 
 ## Installation
 
@@ -61,34 +78,35 @@ cd pick66
 After installation, verify the executable:
 
 ```cmd
-# Check version and help
-pick66.exe --help
-
-# Test lottery generation
-pick66.exe --check-updates-only
+# Launch the projection interface application
+pick66.exe
 ```
 
 ## Migrating from Previous Versions
 
+### ⚠️ Breaking Changes
+
+**Lottery Functionality Removed**: If you were using Pick66 for lottery number generation, you will need to use alternative software as this functionality has been completely removed.
+
 ### Settings Migration
 
-Settings are automatically preserved across versions:
-- **Location**: `%APPDATA%/Pick6/settings.json` (unchanged)
-- **Format**: Compatible with previous versions
-- **Migration**: Automatic on first run
+Settings for non-removed functionality are preserved:
+- **Location**: Application-managed configuration
+- **Format**: WPF application settings
+- **Migration**: Automatic interface adaptation
 
 ### Configuration Files
 
-No manual configuration changes required:
-- Existing settings files remain compatible
-- New settings use sensible defaults
-- Validation ensures corrupted settings fall back to defaults
+Configuration is now managed through the application interface:
+- Previous lottery settings are no longer applicable
+- Projection interface settings are managed internally
+- No manual configuration files required
 
 ### Build Process Changes
 
-The build process has been streamlined:
+The build process now targets the WPF application:
 
-**Old Process**:
+**Previous Process**:
 ```bash
 dotnet build -c Release
 dotnet publish src/Pick6.Loader -c Release -r win-x64 --self-contained
@@ -101,25 +119,25 @@ dotnet publish src/Pick6.Loader -c Release -r win-x64 --self-contained
 
 ### Project Structure
 
-The solution structure remains largely unchanged:
-- `Pick6.Core`: Game capture functionality
-- `Pick66.Core`: Lottery number generation  
-- `Pick6.Loader`: Main application entry point
-- `Pick6.ModGui`: User interface
+The solution structure has been updated:
+- `Pick6.Core`: Game capture functionality (preserved)
+- `Pick66.App`: Projection interface WPF application (new)
+- `Pick6.Loader`: Main application entry point (preserved)
+- `Pick6.ModGui`: User interface (preserved)
 - `Pick66.Tests`: Unit tests
 
 ## Feature Comparison
 
 | Feature | Previous | Current | Status |
 |---------|----------|---------|--------|
-| Lottery Generation | ✅ | ✅ | Preserved |
+| Projection Interface | ❌ | ✅ | **New** |
+| Colored Theme | ❌ | ✅ | **New** |
+| Activity Logging | ❌ | ✅ | **New** |
+| WPF Application | ❌ | ✅ | **New** |
 | Game Capture | ✅ | ✅ | Preserved |
-| Console Interface | ✅ | ✅ | Preserved |
-| GUI Interface | ✅ | ✅ | Enhanced |
 | Single-file Build | ❌ | ✅ | **New** |
-| Install Script | ❌ | ✅ | **New** |
-| Hash Verification | ❌ | ✅ | **New** |
-| Auto-launch Option | ❌ | ✅ | **New** |
+| Install Script | ❌ | ✅ | **Enhanced** |
+| Status Indicators | ❌ | ✅ | **New** |
 
 ## Troubleshooting
 
