@@ -7,7 +7,7 @@
 ### Prerequisites
 - **.NET 8 SDK** (download from https://dot.net)
 - **Windows 10/11** (target platform)
-- **PowerShell 7+** (recommended - get from https://github.com/PowerShell/PowerShell)
+- **PowerShell 5.1+** (Windows PowerShell 5.1 supported, PowerShell 7+ recommended)
 
 ### Fast Installation
 
@@ -194,9 +194,61 @@ dotnet publish src/Pick6.Loader/Pick6.Loader.csproj \
 - **Functional Testing**: Projection control validation and status monitoring
 - **UI Testing**: Colored theme and visual indicator testing
 
+## 🔄 PowerShell Compatibility
+
+### Supported PowerShell Versions
+- **Windows PowerShell 5.1**: ✅ Fully supported with compatibility mode
+- **PowerShell 7.0+**: ✅ Recommended for optimal performance and features
+
+### Version-Specific Behavior
+The installation script automatically detects your PowerShell version:
+
+- **PowerShell 5.1**: Runs in compatibility mode with a friendly warning recommending PowerShell 7+
+- **PowerShell 7+**: Runs with all features enabled and optimal performance
+- **Below 5.1**: Shows error message and installation guidance
+
+### Installation Examples by Version
+
+**Windows PowerShell 5.1**:
+```cmd
+# Using the Windows wrapper (recommended)
+install.cmd -Launch
+
+# Or directly with PowerShell 5.1
+powershell.exe -ExecutionPolicy Bypass -File install.ps1 -Launch
+```
+
+**PowerShell 7+**:
+```powershell
+# Direct execution (optimal)
+pwsh -ExecutionPolicy Bypass -File install.ps1 -Launch
+
+# Or from PowerShell 7+ prompt
+./install.ps1 -Launch
+```
+
+### Migration Recommendation
+While Windows PowerShell 5.1 is fully supported, we recommend upgrading to PowerShell 7+ for:
+- Better performance during build operations
+- Enhanced error handling and diagnostics  
+- Future feature compatibility
+- Improved security and cross-platform support
+
+Download PowerShell 7+ from: https://github.com/PowerShell/PowerShell
+
 ## 🐛 Troubleshooting
 
 ### Installation Issues
+
+**PowerShell Version Issues**:
+```cmd
+# Error: "#requires" statement for Windows PowerShell 7.0
+# Solution: Script now works with PowerShell 5.1+, just run normally:
+powershell.exe -ExecutionPolicy Bypass -File install.ps1
+
+# For PowerShell 7+ (optimal):
+pwsh -ExecutionPolicy Bypass -File install.ps1
+```
 
 **PowerShell Execution Policy**:
 ```powershell

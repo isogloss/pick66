@@ -50,8 +50,7 @@
 param(
     [switch]$Launch,
     [switch]$Clean,
-    [string]$OutputPath = "",
-    [switch]$TestOnly
+    [string]$OutputPath = ""
 )
 
 # PowerShell version compatibility check
@@ -416,13 +415,6 @@ try {
     # Run preflight checks
     if (!(Test-InvocationEnvironment)) {
         exit 1
-    }
-    
-    # Test mode - just run version checks and exit
-    if ($TestOnly) {
-        Write-Success "✅ Script compatibility test completed successfully!"
-        Write-Host "Script can run on this PowerShell version." -ForegroundColor $ColorInfo
-        exit 0
     }
     
     # Check prerequisites
