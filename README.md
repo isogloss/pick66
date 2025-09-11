@@ -2,6 +2,42 @@
 
 A real-time game capture and projection application specifically designed for FiveM, providing OBS-like screen capture functionality with borderless fullscreen projection and **automatic injection workflow**.
 
+**🆕 NEW: Complete C++ Implementation with Advanced Features!**
+
+## Available Implementations
+
+### C++ Version (NEW) - `cpp/`
+- **Native Performance**: Maximum speed and efficiency
+- **Advanced Stealth**: Hide from Alt+Tab and Task Manager
+- **Custom Keybinds**: Fully configurable global hotkeys
+- **DirectX 11**: Hardware-accelerated rendering
+- **Cross-platform**: Windows (primary) + Linux (development)
+
+### C# Version - `src/`
+- **Easy Development**: Managed code with .NET 8
+- **Windows Forms GUI**: Familiar Windows interface
+- **Rapid Prototyping**: Quick feature development
+- **Cross-platform**: Windows, Linux, macOS
+
+## Quick Start
+
+### C++ Version (Recommended for Performance)
+```bash
+cd cpp
+mkdir build && cd build
+cmake ..
+make -j4        # Linux
+# or
+cmake --build . --config Release  # Windows
+./bin/Pick6CPP
+```
+
+### C# Version (Recommended for Development)
+```bash
+dotnet build
+dotnet run --project src/Pick6.GUI
+```
+
 ## Features
 
 🎮 **FiveM Focused**: Specifically designed for FiveM game capture
@@ -172,11 +208,21 @@ dotnet run --project src/Pick6.Launcher
 ## Project Structure
 
 ```
-src/
-├── Pick6.Core/          # Core capture engine
-├── Pick6.UI/            # User interface
-├── Pick6.Projection/    # Projection window logic
-└── Pick6.Launcher/      # Main executable
+├── cpp/                    # C++ Implementation (NEW)
+│   ├── src/
+│   │   ├── core/          # Game capture engine
+│   │   ├── gui/           # UI and keybind management
+│   │   ├── projection/    # Projection window + stealth
+│   │   └── main.cpp       # Application entry point
+│   ├── build/             # CMake build directory
+│   └── README.md          # C++ specific documentation
+├── src/                   # C# Implementation
+│   ├── Pick6.Core/        # Core capture engine
+│   ├── Pick6.UI/          # Console interface
+│   ├── Pick6.GUI/         # Windows Forms GUI
+│   ├── Pick6.Projection/  # Projection window logic
+│   └── Pick6.Launcher/    # Main executable
+└── README.md              # This file
 ```
 
 ## License

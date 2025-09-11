@@ -6,6 +6,17 @@ dist/
 *.dll
 *.pdb
 
+# C++ build outputs
+cpp/build/
+cpp/bin/
+*.o
+*.so
+*.a
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+
 # Visual Studio
 .vs/
 *.user
@@ -37,3 +48,6 @@ Thumbs.db
 # Runtime files
 *.pid
 *.lock
+
+# Configuration files (but not default ones)
+keybinds.cfg
