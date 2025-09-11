@@ -41,10 +41,7 @@ public partial class MainForm : Form
         UpdateUI();
         
         // Enable stealth mode for the loader window
-        if (OperatingSystem.IsWindows())
-        {
-            EnableStealthMode();
-        }
+        EnableStealthMode();
     }
 
     private void InitializeMonitorSelection()
@@ -219,11 +216,8 @@ public partial class MainForm : Form
         _projectionWindow = new BorderlessProjectionWindow();
         
         // Initialize global keybind manager
-        if (OperatingSystem.IsWindows())
-        {
-            _keybindManager = new GlobalKeybindManager();
-            SetupGlobalKeybinds();
-        }
+        _keybindManager = new GlobalKeybindManager();
+        SetupGlobalKeybinds();
     }
 
     private void SetupGlobalKeybinds()
@@ -318,7 +312,7 @@ public partial class MainForm : Form
         // Forward captured frames to projection window
         _captureEngine.FrameCaptured += (s, e) =>
         {
-            if (OperatingSystem.IsWindows() && _autoProjectCheckbox.Checked)
+            if (_autoProjectCheckbox.Checked)
             {
                 _projectionWindow.UpdateFrame(e.Frame);
             }
@@ -499,7 +493,7 @@ public partial class MainForm : Form
             _captureStatusLabel.ForeColor = Color.Green;
 
             // Auto-start projection if enabled
-            if (_autoProjectCheckbox.Checked && OperatingSystem.IsWindows())
+            if (_autoProjectCheckbox.Checked)
             {
                 var selectedMonitorIndex = _monitorComboBox.SelectedIndex;
                 _projectionWindow?.StartProjection(selectedMonitorIndex);
