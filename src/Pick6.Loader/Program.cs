@@ -65,7 +65,8 @@ public class Program
 #endif
         }
 
-        // Default behavior: GUI on Windows, console elsewhere
+        // Default behavior: Always prefer GUI on Windows (unless --console is specified)
+        // This makes the loader a proper GUI application by default
 #if WINDOWS
         return RunMode.Gui;
 #else
