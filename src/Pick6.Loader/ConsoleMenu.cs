@@ -20,12 +20,9 @@ public class ConsoleMenu
         _captureEngine = new GameCaptureEngine();
         _projectionWindow = new BorderlessProjectionWindow();
         
-        // Initialize global keybind manager for Windows
-        if (OperatingSystem.IsWindows())
-        {
-            _keybindManager = new GlobalKeybindManager();
-            SetupGlobalKeybinds();
-        }
+        // Initialize global keybind manager
+        _keybindManager = new GlobalKeybindManager();
+        SetupGlobalKeybinds();
         
         SetupEventHandlers();
     }
@@ -38,7 +35,8 @@ public class ConsoleMenu
             toggleLoader: null, // No loader window in console mode
             toggleProjection: () => ToggleProjection(),
             closeProjection: () => StopProjectionOnly(),
-            stopProjectionAndRestore: () => StopProjectionAndRestoreMenu()
+            stopProjectionAndRestore: () => StopProjectionAndRestoreMenu(),
+            closeProjectionAndToggleLoader: () => CloseProjectionAndToggleLoader()
         );
 
         _keybindManager.StartMonitoring();
@@ -50,11 +48,8 @@ public class ConsoleMenu
         var isRunning = true;
 
         Console.WriteLine("================================================");
-        Console.WriteLine("        Pick6 - OBS Game Capture Clone        ");
-        Console.WriteLine("         Console Mode                          ");
+        Console.WriteLine("                   pick6                        ");
         Console.WriteLine("================================================");
-        Console.WriteLine();
-        Console.WriteLine("💡 For a better experience on Windows, run without --console flag for GUI mode");
         Console.WriteLine();
 
         // Handle Ctrl+C gracefully
@@ -82,10 +77,7 @@ public class ConsoleMenu
         // Forward captured frames to projection window
         _captureEngine.FrameCaptured += (s, e) =>
         {
-            if (OperatingSystem.IsWindows())
-            {
-                _projectionWindow.UpdateFrame(e.Frame);
-            }
+            _projectionWindow.UpdateFrame(e.Frame);
         };
 
         // Handle capture errors
@@ -199,6 +191,10 @@ public class ConsoleMenu
                 case "keybinds":
                     ConfigureKeybinds();
                     break;
+                case "h":
+                case "H":
+                    ConfigureCloseProjectionToggleLoaderKeybind();
+                    break;
                 case "0":
                 case "exit":
                 case "quit":
@@ -220,23 +216,118 @@ public class ConsoleMenu
     private void ShowMainMenu()
     {
         Console.Clear();
-        Console.WriteLine("=== Pick6 Main Menu ===");
+        Console.WriteLine("=== pick6 ===");
         Console.WriteLine();
-        Console.WriteLine($"Current Settings: FPS={_captureEngine.Settings.TargetFPS}, Monitor={_selectedMonitor}");
-        Console.WriteLine();
-        Console.WriteLine("1. Scan for FiveM processes");
+        Console.WriteLine("1. Scan for processes");
         Console.WriteLine("2. Start capture");
         Console.WriteLine("3. Stop capture");
         Console.WriteLine("4. Start projection");
         Console.WriteLine("5. Stop projection");
-        Console.WriteLine("6. Configure settings");
-        Console.WriteLine("7. Quick start (auto-detect and start)");
-        Console.WriteLine("8. Show status");
-        Console.WriteLine("9. Test projection with demo frames");
-        Console.WriteLine("K. Keybinds - Configure global hotkeys");
+        Console.WriteLine("6. Settings");
+        Console.WriteLine("7. Quick start");
+        Console.WriteLine("8. Status");
+        Console.WriteLine("9. Test projection");
+        Console.WriteLine("K. Keybinds");
+        
+        // Show the configurable hotkey
+        var currentKey = GetCurrentCloseProjectionToggleLoaderKey();
+        Console.WriteLine($"H. Keybind: Close Projection + Toggle Loader ({currentKey})");
+        
         Console.WriteLine("0. Exit");
         Console.WriteLine();
-        Console.Write("Enter your choice: ");
+        Console.Write("Choice: ");
+    }
+
+    private string GetCurrentCloseProjectionToggleLoaderKey()
+    {
+        if (_keybindManager == null) return "Not Available";
+        
+        var keybinds = _keybindManager.GetRegisteredKeybinds();
+        var targetKeybind = keybinds.FirstOrDefault(kb => kb.Description.Contains("Close Projection + Toggle Loader"));
+        
+        if (targetKeybind == null) return "F12";
+        
+        return GlobalKeybindManager.FormatKeybindString(targetKeybind.Ctrl, targetKeybind.Alt, targetKeybind.Shift, targetKeybind.VirtualKey);
+    }
+
+    private void ConfigureCloseProjectionToggleLoaderKeybind()
+    {
+        Console.Clear();
+        Console.WriteLine("=== Configure Close Projection + Toggle Loader Keybind ===");
+        Console.WriteLine();
+        Console.WriteLine("Current keybind: " + GetCurrentCloseProjectionToggleLoaderKey());
+        Console.WriteLine();
+        Console.WriteLine("Press the new key combination you want to use...");
+        Console.WriteLine("(Supports: F1-F12, A-Z, with optional Ctrl, Alt, Shift modifiers)");
+        Console.WriteLine("Press ESC to cancel");
+        Console.WriteLine();
+        
+        // TODO: Implement key capture logic here
+        // For now, let's provide a simple text input method
+        Console.Write("Enter new key (e.g., F12, Ctrl+F1, Alt+Shift+P): ");
+        var input = Console.ReadLine()?.Trim().ToUpper();
+        
+        if (string.IsNullOrEmpty(input) || input == "ESC")
+        {
+            Console.WriteLine("Keybind configuration cancelled.");
+            Thread.Sleep(1000);
+            return;
+        }
+        
+        // Parse the input and update the keybind
+        if (TryParseKeybindInput(input, out bool ctrl, out bool alt, out bool shift, out int virtualKey))
+        {
+            UpdateCloseProjectionToggleLoaderKeybind(ctrl, alt, shift, virtualKey);
+            Console.WriteLine($"✅ Keybind updated to: {GlobalKeybindManager.FormatKeybindString(ctrl, alt, shift, virtualKey)}");
+        }
+        else
+        {
+            Console.WriteLine("❌ Invalid key combination. Please use format like: F12, Ctrl+F1, Alt+Shift+P");
+        }
+        
+        Thread.Sleep(2000);
+    }
+
+    private bool TryParseKeybindInput(string input, out bool ctrl, out bool alt, out bool shift, out int virtualKey)
+    {
+        ctrl = alt = shift = false;
+        virtualKey = -1;
+        
+        var parts = input.Split('+');
+        string keyName = parts[parts.Length - 1]; // Last part is the key
+        
+        // Check for modifiers
+        for (int i = 0; i < parts.Length - 1; i++)
+        {
+            switch (parts[i])
+            {
+                case "CTRL": ctrl = true; break;
+                case "ALT": alt = true; break;
+                case "SHIFT": shift = true; break;
+            }
+        }
+        
+        // Convert key name to virtual key
+        virtualKey = GlobalKeybindManager.GetVirtualKeyFromName(keyName);
+        return virtualKey != -1;
+    }
+
+    private void UpdateCloseProjectionToggleLoaderKeybind(bool ctrl, bool alt, bool shift, int virtualKey)
+    {
+        if (_keybindManager == null) return;
+        
+        // First, find and remove the existing keybind
+        var keybinds = _keybindManager.GetRegisteredKeybinds();
+        var existingKeybind = keybinds.FirstOrDefault(kb => kb.Description.Contains("Close Projection + Toggle Loader"));
+        
+        if (existingKeybind != null)
+        {
+            _keybindManager.UnregisterKeybind(existingKeybind.KeybindId);
+        }
+        
+        // Register the new keybind
+        var description = $"{GlobalKeybindManager.FormatKeybindString(ctrl, alt, shift, virtualKey)} - Close Projection + Toggle Loader";
+        _keybindManager.RegisterKeybind(virtualKey, ctrl, alt, shift, description, () => CloseProjectionAndToggleLoader());
     }
 
     private void ScanForFiveM()
@@ -363,10 +454,7 @@ public class ConsoleMenu
         Console.WriteLine($"Target Monitor: {_selectedMonitor}");
         
         // Show available monitors
-        if (OperatingSystem.IsWindows())
-        {
-            ShowAvailableMonitors();
-        }
+        ShowAvailableMonitors();
         
         Console.WriteLine();
 
@@ -402,29 +490,26 @@ public class ConsoleMenu
         }
 
         // Monitor selection
-        if (OperatingSystem.IsWindows())
+        Console.Write($"Target Monitor ({_selectedMonitor}): ");
+        var monitorInput = Console.ReadLine();
+        if (int.TryParse(monitorInput, out int monitor) && monitor >= 0)
         {
-            Console.Write($"Target Monitor ({_selectedMonitor}): ");
-            var monitorInput = Console.ReadLine();
-            if (int.TryParse(monitorInput, out int monitor) && monitor >= 0)
+            try
             {
-                try
+                var monitors = MonitorHelper.GetAllMonitors();
+                if (monitor < monitors.Count)
                 {
-                    var monitors = MonitorHelper.GetAllMonitors();
-                    if (monitor < monitors.Count)
-                    {
-                        _selectedMonitor = monitor;
-                        Console.WriteLine($"✅ Target monitor updated to {monitor}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"❌ Invalid monitor index. Available: 0-{monitors.Count - 1}");
-                    }
+                    _selectedMonitor = monitor;
+                    Console.WriteLine($"✅ Target monitor updated to {monitor}");
                 }
-                catch
+                else
                 {
-                    Console.WriteLine("❌ Could not access monitor information");
+                    Console.WriteLine($"❌ Invalid monitor index. Available: 0-{monitors.Count - 1}");
                 }
+            }
+            catch
+            {
+                Console.WriteLine("❌ Could not access monitor information");
             }
         }
 
@@ -625,6 +710,24 @@ public class ConsoleMenu
         }
     }
 
+    private void CloseProjectionAndToggleLoader()
+    {
+        try
+        {
+            // First: Close/stop the projection
+            _projectionWindow?.StopProjection();
+            Console.WriteLine("[INFO] Projection closed via combined hotkey");
+            
+            // Second: Toggle loader (in console mode, display current status)
+            Console.WriteLine("[INFO] Loader status: Console mode active");
+            Console.WriteLine("[INFO] Press any key to return to main menu or use other hotkeys");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to execute close projection + toggle loader: {ex.Message}");
+        }
+    }
+
     private void Cleanup()
     {
         Console.WriteLine("\n=== Shutting Down ===");
@@ -636,32 +739,18 @@ public class ConsoleMenu
 
     private async void TestProjectionWithDemoFrames()
     {
-        Console.WriteLine("\n=== Testing Projection with Demo Frames ===");
-        Console.WriteLine("This will start projection and generate colored test frames...");
+        Console.WriteLine("\n=== Testing Projection ===");
         
         // Start projection first
         _projectionWindow.StartProjection(_selectedMonitor);
         Console.WriteLine("✅ Projection window started");
         
-        if (OperatingSystem.IsWindows())
-        {
-            Console.WriteLine("🎨 Generating colorful test frames for 10 seconds...");
-            Console.WriteLine("   (You should see a projection window with changing colors)");
-            
-            await GenerateTestFramesAsync();
-            
-            Console.WriteLine("\nTest is running... The projection window should show colorful frames.");
-            Console.WriteLine("Press any key when you're done viewing the projection window.");
-            Console.ReadKey();
-        }
-        else
-        {
-            Console.WriteLine("⚠️ Demo frames test is only available on Windows platform");
-            Console.WriteLine("   On this platform, you'll see simulated projection output instead.");
-            
-            // Still run a basic test for non-Windows - but can't use Bitmap APIs
-            await Task.Delay(2000);
-        }
+        Console.WriteLine("🎨 Generating colorful test frames...");
+        
+        await GenerateTestFramesAsync();
+        
+        Console.WriteLine("\nPress any key when done viewing the projection window.");
+        Console.ReadKey();
         
         _projectionWindow.StopProjection();
         Console.WriteLine("✅ Projection test completed");
@@ -674,10 +763,7 @@ public class ConsoleMenu
         {
             try
             {
-                if (OperatingSystem.IsWindows())
-                {
-                    GenerateTestFrame(random, i);
-                }
+                GenerateTestFrame(random, i);
                 await Task.Delay(33); // ~30 FPS
             }
             catch (Exception ex)
@@ -690,7 +776,6 @@ public class ConsoleMenu
         Console.WriteLine("\n🏁 Test frames generation completed.");
     }
 
-    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private void GenerateTestFrame(Random random, int frameNumber)
     {
         // Create a test frame with random colors
@@ -717,10 +802,10 @@ public class ConsoleMenu
 
     private void ConfigureKeybinds()
     {
-        if (_keybindManager == null || !OperatingSystem.IsWindows())
+        if (_keybindManager == null)
         {
             Console.WriteLine("\n=== Keybinds Configuration ===");
-            Console.WriteLine("❌ Global keybinds are only available on Windows platform.");
+            Console.WriteLine("❌ Keybind manager not available.");
             return;
         }
 

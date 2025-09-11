@@ -59,16 +59,7 @@ public class BorderlessProjectionWindow
         if (_isProjecting) return;
 
         _isProjecting = true;
-        
-        if (OperatingSystem.IsWindows())
-        {
-            StartWindowsProjection(screenIndex);
-        }
-        else
-        {
-            StartSimulatedProjection();
-        }
-
+        StartWindowsProjection(screenIndex);
         ProjectionStarted?.Invoke(this, EventArgs.Empty);
     }
 
@@ -81,7 +72,7 @@ public class BorderlessProjectionWindow
 
         _isProjecting = false;
 
-        if (OperatingSystem.IsWindows() && _windowsProjection != null)
+        if (_windowsProjection != null)
         {
             _windowsProjection.StopProjection();
             _windowsProjection = null;
@@ -96,14 +87,9 @@ public class BorderlessProjectionWindow
     public void UpdateFrame(Bitmap frame)
     {
         if (!_isProjecting) return;
-
-        if (OperatingSystem.IsWindows())
-        {
-            UpdateFrameWindows(frame);
-        }
+        UpdateFrameWindows(frame);
     }
 
-    [SupportedOSPlatform("windows")]
     private void UpdateFrameWindows(Bitmap frame)
     {
         lock (_frameLock)
@@ -116,7 +102,6 @@ public class BorderlessProjectionWindow
         }
     }
 
-    [SupportedOSPlatform("windows")]
     private void StartWindowsProjection(int screenIndex)
     {
         try
@@ -140,43 +125,6 @@ public class BorderlessProjectionWindow
             Console.WriteLine($"❌ Failed to start Windows projection: {ex.Message}");
             _isProjecting = false;
         }
-    }
-
-    private void StartSimulatedProjection()
-    {
-        Console.WriteLine("Starting simulated projection (non-Windows platform)");
-        
-        Task.Run(async () =>
-        {
-            int frameCount = 0;
-            var frameTimeMs = 1000.0 / _targetFPS;
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            var lastFrameTime = 0.0;
-            
-            while (_isProjecting)
-            {
-                var currentTime = stopwatch.Elapsed.TotalMilliseconds;
-                
-                if (currentTime - lastFrameTime >= frameTimeMs)
-                {
-                    lock (_frameLock)
-                    {
-                        if (_currentFrame != null)
-                        {
-                            frameCount++;
-                            if (frameCount % _targetFPS == 0) // Log every second worth of frames
-                            {
-                                // On non-Windows platforms, we can't access Bitmap properties safely
-                                Console.WriteLine($"Simulated projection frame {frameCount} (FPS: {_targetFPS})");
-                            }
-                        }
-                    }
-                    lastFrameTime = currentTime;
-                }
-                
-                await Task.Delay(1); // Small delay to prevent 100% CPU usage
-            }
-        });
     }
 }
 

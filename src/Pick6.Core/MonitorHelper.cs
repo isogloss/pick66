@@ -28,25 +28,9 @@ public static class MonitorHelper
     /// </summary>
     public static List<MonitorInfo> GetAllMonitors()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            // Fallback for non-Windows platforms
-            return new List<MonitorInfo>
-            {
-                new MonitorInfo 
-                { 
-                    Index = 0, 
-                    Bounds = new Rectangle(0, 0, 1920, 1080), 
-                    IsPrimary = true,
-                    DisplayName = "Primary Monitor (1920x1080)"
-                }
-            };
-        }
-
         return GetWindowsMonitors();
     }
 
-    [SupportedOSPlatform("windows")]
     private static List<MonitorInfo> GetWindowsMonitors()
     {
         var monitors = new List<MonitorInfo>();

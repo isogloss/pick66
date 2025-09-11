@@ -36,7 +36,7 @@ public class WindowsProjectionForm
     /// </summary>
     public void StartProjection(int screenIndex = 0)
     {
-        if (_isProjecting || !OperatingSystem.IsWindows()) return;
+        if (_isProjecting) return;
 
         _screenIndex = screenIndex;
         _isProjecting = true;
@@ -148,10 +148,7 @@ public class WindowsProjectionForm
         _renderThread?.Join(1000);
         
         // Clean up GDI resources
-        if (OperatingSystem.IsWindows())
-        {
-            CleanupGDIResources();
-        }
+        CleanupGDIResources();
         
         if (_windowHandle != IntPtr.Zero)
         {

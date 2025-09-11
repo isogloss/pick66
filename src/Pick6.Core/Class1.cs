@@ -35,19 +35,14 @@ public class GameCaptureEngine
         {
             if (_isCapturing) return false;
 
-            // First try Vulkan injection approach (Windows only)
-            if (_useVulkanCapture && OperatingSystem.IsWindows() && TryStartVulkanCapture(processName))
+            // First try Vulkan injection approach
+            if (_useVulkanCapture && TryStartVulkanCapture(processName))
             {
                 return true;
             }
 
-            // Fall back to GDI window capture (Windows only)
-            if (OperatingSystem.IsWindows())
-            {
-                return StartGdiCapture(processName);
-            }
-            
-            ErrorOccurred?.Invoke(this, "Game capture is only supported on Windows");
+            // Fall back to GDI window capture
+            return StartGdiCapture(processName);
             return false;
         }
     }
@@ -89,7 +84,7 @@ public class GameCaptureEngine
             _vulkanCapture.FrameCaptured += (s, e) => FrameCaptured?.Invoke(this, e);
             _vulkanCapture.ErrorOccurred += (s, msg) => ErrorOccurred?.Invoke(this, msg);
 
-            if (OperatingSystem.IsWindows() && _vulkanCapture.StartCapture(targetProcess.ProcessId))
+            if (_vulkanCapture.StartCapture(targetProcess.ProcessId))
             {
                 _isCapturing = true;
                 return true;
