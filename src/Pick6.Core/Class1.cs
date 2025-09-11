@@ -52,7 +52,6 @@ public class GameCaptureEngine
 
             // Fall back to GDI window capture
             return StartGdiCapture(processName);
-            return false;
         }
     }
 
