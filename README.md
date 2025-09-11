@@ -1,19 +1,49 @@
-# Pick6 - OBS Game Capture Clone
+# Pick6 + Pick66 - Advanced Game Capture and Overlay System
 
-A real-time game capture and projection application specifically designed for FiveM, providing OBS-like screen capture functionality with borderless fullscreen projection and **automatic injection workflow**.
+A comprehensive game capture and overlay solution with **two complementary implementations**:
 
-**🆕 NEW: Complete C++ Implementation with Advanced Features!**
+- **Pick6** (Original): Real-time capture and projection with Vulkan injection
+- **Pick66** (NEW): Safe proxy DLL approach with D3D11/DXGI interception and ImGui overlay
+
+## 🆕 Pick66 Launcher - Safe Proxy Approach
+
+**Pick66.Launcher** introduces a revolutionary **proxy DLL approach** that's safer and more compatible than traditional injection methods.
+
+### Key Advantages of Pick66:
+- **🛡️ Anti-cheat Safe**: No process injection, uses local proxy DLLs
+- **🔄 Fully Reversible**: Automatic backup/restore of original files  
+- **🎮 ImGui Overlay**: In-game overlay with Alt+F12 toggle
+- **⚙️ GUI Interface**: Windows Forms launcher for easy management
+- **📁 Local Installation**: Only affects game directory, no system changes
+
+### Quick Start (Pick66 - Recommended for safety):
+1. **Run Pick66.Launcher.exe** (Windows only)
+2. **Browse to FiveM/GTA V directory**
+3. **Click "Install Proxy Hook"** (auto-detects best approach)
+4. **Launch your game** - overlay toggles with Alt+F12
+5. **Uninstall anytime** to restore original state
+
+## Original Pick6 Implementation
+
+The original Pick6 system provides high-performance capture through Vulkan injection:
 
 ## Available Implementations
 
-### C++ Version (NEW) - `cpp/`
+### Pick66 Launcher (NEW - Safe Proxy Approach) - `src/Pick66.Launcher/`
+- **🛡️ Safe & Reversible**: Proxy DLL approach, no process injection
+- **🎮 ImGui Overlay**: D3D11-rendered in-game overlay (Alt+F12)
+- **⚙️ Windows GUI**: Easy-to-use launcher interface
+- **📁 Local Only**: No system modifications, game directory only
+- **🔄 Auto-backup**: Preserves original DLLs automatically
+
+### Pick6 C++ Version - `cpp/`
 - **Native Performance**: Maximum speed and efficiency
 - **Advanced Stealth**: Hide from Alt+Tab and Task Manager
 - **Custom Keybinds**: Fully configurable global hotkeys
 - **DirectX 11**: Hardware-accelerated rendering
 - **Cross-platform**: Windows (primary) + Linux (development)
 
-### C# Version - `src/`
+### Pick6 C# Version - `src/`
 - **Easy Development**: Managed code with .NET 8
 - **Windows Forms GUI**: Familiar Windows interface
 - **Rapid Prototyping**: Quick feature development
@@ -21,7 +51,22 @@ A real-time game capture and projection application specifically designed for Fi
 
 ## Quick Start
 
-### C++ Version (Recommended for Performance)
+### Pick66 Launcher (Safest - Recommended)
+```bash
+# Download and run the Windows GUI launcher
+Pick66.Launcher.exe
+
+# Or build from source
+dotnet build src/Pick66.Launcher/Pick66.Launcher.csproj -c Release -r win-x64
+```
+
+1. **Select Game Directory**: Browse to FiveM or GTA V folder
+2. **Install Proxy**: Click "Install Proxy Hook" (auto-detects DXGI vs D3D11)
+3. **Launch Game**: Use launcher or run game normally
+4. **Toggle Overlay**: Press Alt+F12 in-game to show/hide overlay
+5. **Uninstall**: Click "Uninstall Proxy" to restore original state
+
+### Pick6 C++ Version (Performance)
 ```bash
 cd cpp
 mkdir build && cd build
@@ -32,7 +77,7 @@ cmake --build . --config Release  # Windows
 ./bin/Pick6CPP
 ```
 
-### C# Version (Recommended for Development)
+### Pick6 C# Version (Development)
 ```bash
 dotnet build
 dotnet run --project src/Pick6.GUI
@@ -208,7 +253,7 @@ dotnet run --project src/Pick6.Launcher
 ## Project Structure
 
 ```
-├── cpp/                    # C++ Implementation (NEW)
+├── cpp/                    # C++ Implementation
 │   ├── src/
 │   │   ├── core/          # Game capture engine
 │   │   ├── gui/           # UI and keybind management
@@ -217,11 +262,17 @@ dotnet run --project src/Pick6.Launcher
 │   ├── build/             # CMake build directory
 │   └── README.md          # C++ specific documentation
 ├── src/                   # C# Implementation
-│   ├── Pick6.Core/        # Core capture engine
+│   ├── Pick6.Core/        # Core capture engine (original)
 │   ├── Pick6.UI/          # Console interface
 │   ├── Pick6.GUI/         # Windows Forms GUI
 │   ├── Pick6.Projection/  # Projection window logic
-│   └── Pick6.Launcher/    # Main executable
+│   ├── Pick6.Launcher/    # Original executable
+│   ├── Pick66.Launcher/   # NEW: Safe proxy DLL launcher
+│   └── Pick66.ProxyDlls/  # NEW: D3D11/DXGI proxy implementations
+│       ├── Common/        # Shared proxy functionality
+│       ├── DxgiProxy/     # DXGI.dll proxy
+│       └── D3D11Proxy/    # D3D11.dll proxy
+├── PICK66_LAUNCHER.md     # Pick66 detailed documentation
 └── README.md              # This file
 ```
 
