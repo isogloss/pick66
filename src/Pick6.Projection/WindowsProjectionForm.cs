@@ -217,28 +217,44 @@ public class WindowsProjectionForm
                     _memoryDC = CreateCompatibleDC(windowDC);
                 }
 
-                // Create new compatible bitmap for the frame
-                var newHBitmap = CreateCompatibleBitmap(windowDC, frame.Width, frame.Height);
-                if (newHBitmap != IntPtr.Zero)
+                // Check if we need to recreate the bitmap (size changed)
+                var needNewBitmap = _currentHBitmap == IntPtr.Zero;
+                if (!needNewBitmap)
                 {
-                    // Select the new bitmap into the memory DC
-                    var oldBitmap = SelectObject(_memoryDC, newHBitmap);
-                    
-                    // Copy frame data to the memory DC
-                    using (var memoryGraphics = Graphics.FromHdc(_memoryDC))
-                    {
-                        memoryGraphics.DrawImage(frame, 0, 0);
-                    }
+                    // TODO: Check if frame size changed and recreate if necessary
+                    // For now, we'll recreate on every frame for simplicity but this could be optimized
+                    needNewBitmap = true;
+                }
 
-                    // Clean up previous bitmap
+                if (needNewBitmap)
+                {
+                    // Clean up previous bitmap first
                     if (_currentHBitmap != IntPtr.Zero)
                     {
-                        SelectObject(_memoryDC, oldBitmap);
+                        if (_memoryDC != IntPtr.Zero && _oldBitmap != IntPtr.Zero)
+                        {
+                            SelectObject(_memoryDC, _oldBitmap);
+                        }
                         DeleteObject(_currentHBitmap);
+                        _currentHBitmap = IntPtr.Zero;
                     }
 
-                    _currentHBitmap = newHBitmap;
-                    _oldBitmap = oldBitmap;
+                    // Create new compatible bitmap for the frame
+                    _currentHBitmap = CreateCompatibleBitmap(windowDC, frame.Width, frame.Height);
+                    if (_currentHBitmap != IntPtr.Zero)
+                    {
+                        _oldBitmap = SelectObject(_memoryDC, _currentHBitmap);
+                    }
+                }
+
+                // Update the bitmap content with the new frame
+                if (_memoryDC != IntPtr.Zero && _currentHBitmap != IntPtr.Zero)
+                {
+                    using (var memoryGraphics = Graphics.FromHdc(_memoryDC))
+                    {
+                        memoryGraphics.Clear(Color.Black); // Clear previous content
+                        memoryGraphics.DrawImage(frame, 0, 0, frame.Width, frame.Height);
+                    }
                 }
             }
             finally
@@ -328,7 +344,8 @@ public class WindowsProjectionForm
                             if (elapsed.TotalSeconds >= 1.0)
                             {
                                 var actualFps = _frameCount / elapsed.TotalSeconds;
-                                Console.WriteLine($"Projection FPS: {actualFps:F1} (target: {_targetFPS})");
+                                var hasFrame = _currentFrame != null ? "with frame" : "no frame";
+                                Console.WriteLine($"Projection FPS: {actualFps:F1} (target: {_targetFPS}) - {hasFrame}");
                                 _frameCount = 0;
                                 _lastFpsLogTime = DateTime.Now;
                             }
@@ -372,7 +389,14 @@ public class WindowsProjectionForm
 
         lock (_frameLock)
         {
-            if (_currentFrame == null) return;
+            // Get window dimensions
+            var windowRect = new RECT();
+            if (!GetClientRect(_windowHandle, out windowRect)) return;
+            
+            var windowWidth = windowRect.Right - windowRect.Left;
+            var windowHeight = windowRect.Bottom - windowRect.Top;
+            
+            if (windowWidth <= 0 || windowHeight <= 0) return;
 
             // Fast GDI-based blitting for better performance
             var windowDC = GetDC(_windowHandle);
@@ -380,25 +404,33 @@ public class WindowsProjectionForm
             {
                 try
                 {
-                    var windowRect = new RECT();
-                    GetClientRect(_windowHandle, out windowRect);
-                    
-                    var windowWidth = windowRect.Right - windowRect.Left;
-                    var windowHeight = windowRect.Bottom - windowRect.Top;
-
-                    // Use StretchBlt from memory DC for much faster rendering
-                    if (_memoryDC != IntPtr.Zero && _currentHBitmap != IntPtr.Zero)
+                    if (_currentFrame != null && _memoryDC != IntPtr.Zero && _currentHBitmap != IntPtr.Zero)
                     {
+                        // Use StretchBlt from memory DC for much faster rendering
                         StretchBlt(windowDC, 0, 0, windowWidth, windowHeight,
                                  _memoryDC, 0, 0, _currentFrame.Width, _currentFrame.Height, SRCCOPY);
                     }
-                    else
+                    else if (_currentFrame != null)
                     {
                         // Fallback to GDI+ if memory DC is not available
                         using (var graphics = Graphics.FromHdc(windowDC))
                         {
                             graphics.DrawImage(_currentFrame, 0, 0, windowWidth, windowHeight);
                         }
+                    }
+                    else
+                    {
+                        // No frame available - render a black screen with text
+                        var blackBrush = CreateSolidBrush(0x000000); // Black
+                        var rect = new RECT { Left = 0, Top = 0, Right = windowWidth, Bottom = windowHeight };
+                        FillRect(windowDC, ref rect, blackBrush);
+                        DeleteObject(blackBrush);
+                        
+                        // Add text indicating waiting for frames
+                        SetBkMode(windowDC, 1); // TRANSPARENT
+                        SetTextColor(windowDC, 0xFFFFFF); // White
+                        var text = "Pick6 Projection - Waiting for frames...";
+                        TextOut(windowDC, 50, windowHeight / 2, text, text.Length);
                     }
                 }
                 finally
@@ -518,6 +550,21 @@ public class WindowsProjectionForm
     [DllImport("gdi32.dll")]
     private static extern bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight,
         IntPtr hdcSrc, int nXSrc, int nYSrc, uint dwRop);
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateSolidBrush(uint crColor);
+
+    [DllImport("user32.dll")]
+    private static extern int FillRect(IntPtr hDC, ref RECT lprc, IntPtr hbr);
+
+    [DllImport("gdi32.dll")]
+    private static extern int SetBkMode(IntPtr hdc, int mode);
+
+    [DllImport("gdi32.dll")]
+    private static extern uint SetTextColor(IntPtr hdc, uint color);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool TextOut(IntPtr hdc, int x, int y, string lpString, int c);
 
     private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 

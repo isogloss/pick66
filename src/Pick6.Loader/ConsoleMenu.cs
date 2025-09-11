@@ -38,7 +38,7 @@ public class ConsoleMenu
             toggleLoader: null, // No loader window in console mode
             toggleProjection: () => ToggleProjection(),
             closeProjection: () => StopProjectionOnly(),
-            stopProjectionAndRestore: () => StopProjectionOnly() // Same as close in console mode
+            stopProjectionAndRestore: () => StopProjectionAndRestoreMenu()
         );
 
         _keybindManager.StartMonitoring();
@@ -194,6 +194,11 @@ public class ConsoleMenu
                 case "9":
                     TestProjectionWithDemoFrames();
                     break;
+                case "k":
+                case "K":
+                case "keybinds":
+                    ConfigureKeybinds();
+                    break;
                 case "0":
                 case "exit":
                 case "quit":
@@ -228,6 +233,7 @@ public class ConsoleMenu
         Console.WriteLine("7. Quick start (auto-detect and start)");
         Console.WriteLine("8. Show status");
         Console.WriteLine("9. Test projection with demo frames");
+        Console.WriteLine("K. Keybinds - Configure global hotkeys");
         Console.WriteLine("0. Exit");
         Console.WriteLine();
         Console.Write("Enter your choice: ");
@@ -603,6 +609,22 @@ public class ConsoleMenu
         }
     }
 
+    private void StopProjectionAndRestoreMenu()
+    {
+        try
+        {
+            _projectionWindow?.StopProjection();
+            Console.WriteLine("[INFO] Projection stopped and menu restored via keybind");
+            
+            // In console mode, we can't really "restore" a window, but we can display a message
+            Console.WriteLine("[INFO] Return to console to access the main menu");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to stop projection and restore menu: {ex.Message}");
+        }
+    }
+
     private void Cleanup()
     {
         Console.WriteLine("\n=== Shutting Down ===");
@@ -665,8 +687,7 @@ public class ConsoleMenu
             }
         }
         
-        Console.WriteLine("\n🏁 Test completed - stopping projection...");
-        _projectionWindow.StopProjection();
+        Console.WriteLine("\n🏁 Test frames generation completed.");
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -692,6 +713,262 @@ public class ConsoleMenu
         graphics.DrawString("ESC to close projection", new Font("Arial", 16), brush, 50, 500);
         
         _projectionWindow.UpdateFrame(testFrame);
+    }
+
+    private void ConfigureKeybinds()
+    {
+        if (_keybindManager == null || !OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("\n=== Keybinds Configuration ===");
+            Console.WriteLine("❌ Global keybinds are only available on Windows platform.");
+            return;
+        }
+
+        var isRunning = true;
+        while (isRunning)
+        {
+            Console.Clear();
+            Console.WriteLine("=== Keybinds Configuration ===");
+            Console.WriteLine();
+            
+            var keybinds = _keybindManager.GetRegisteredKeybinds();
+            if (keybinds.Count == 0)
+            {
+                Console.WriteLine("No keybinds are currently registered.");
+            }
+            else
+            {
+                Console.WriteLine("Current Keybinds:");
+                for (int i = 0; i < keybinds.Count; i++)
+                {
+                    var kb = keybinds[i];
+                    var keyCombo = GlobalKeybindManager.FormatKeybindString(kb.Ctrl, kb.Alt, kb.Shift, kb.VirtualKey);
+                    Console.WriteLine($"  {i + 1}. {keyCombo} - {kb.Description}");
+                }
+            }
+            
+            Console.WriteLine();
+            Console.WriteLine("Options:");
+            Console.WriteLine("1. Add new keybind");
+            Console.WriteLine("2. Remove keybind");
+            Console.WriteLine("3. Test keybind");
+            Console.WriteLine("4. Reset to defaults");
+            Console.WriteLine("0. Return to main menu");
+            Console.WriteLine();
+            Console.Write("Enter your choice: ");
+            
+            var choice = Console.ReadLine()?.Trim();
+            switch (choice)
+            {
+                case "1":
+                    AddNewKeybind();
+                    break;
+                case "2":
+                    RemoveKeybind();
+                    break;
+                case "3":
+                    TestKeybind();
+                    break;
+                case "4":
+                    ResetKeybindsToDefaults();
+                    break;
+                case "0":
+                    isRunning = false;
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Please try again.");
+                    break;
+            }
+            
+            if (isRunning)
+            {
+                Console.WriteLine("\nPress any key to continue...");
+                Console.ReadKey();
+            }
+        }
+    }
+
+    private void AddNewKeybind()
+    {
+        Console.WriteLine("\n=== Add New Keybind ===");
+        Console.WriteLine("Available actions:");
+        Console.WriteLine("1. Toggle projection");
+        Console.WriteLine("2. Stop projection");
+        Console.WriteLine("3. Stop projection + restore menu");
+        Console.WriteLine("4. Custom test action");
+        Console.Write("Select action (1-4): ");
+        
+        var actionChoice = Console.ReadLine()?.Trim();
+        if (string.IsNullOrEmpty(actionChoice) || !int.TryParse(actionChoice, out int actionNum) || actionNum < 1 || actionNum > 4)
+        {
+            Console.WriteLine("Invalid action selection.");
+            return;
+        }
+
+        Action action;
+        string description;
+        switch (actionNum)
+        {
+            case 1:
+                action = () => ToggleProjection();
+                description = "Toggle projection";
+                break;
+            case 2:
+                action = () => StopProjectionOnly();
+                description = "Stop projection";
+                break;
+            case 3:
+                action = () => StopProjectionAndRestoreMenu();
+                description = "Stop projection + restore menu";
+                break;
+            case 4:
+                action = () => Console.WriteLine("[TEST] Custom keybind triggered!");
+                description = "Test action";
+                break;
+            default:
+                Console.WriteLine("Invalid action.");
+                return;
+        }
+
+        // Get key combination
+        Console.WriteLine("\nEnter key combination:");
+        Console.Write("Use Ctrl? (y/n): ");
+        var ctrlInput = Console.ReadLine()?.Trim().ToLower();
+        bool useCtrl = ctrlInput == "y" || ctrlInput == "yes";
+
+        Console.Write("Use Alt? (y/n): ");
+        var altInput = Console.ReadLine()?.Trim().ToLower();
+        bool useAlt = altInput == "y" || altInput == "yes";
+
+        Console.Write("Use Shift? (y/n): ");
+        var shiftInput = Console.ReadLine()?.Trim().ToLower();
+        bool useShift = shiftInput == "y" || shiftInput == "yes";
+
+        Console.Write("Enter key (A-Z, ESC, F1-F3): ");
+        var keyInput = Console.ReadLine()?.Trim();
+        if (string.IsNullOrEmpty(keyInput))
+        {
+            Console.WriteLine("Invalid key input.");
+            return;
+        }
+
+        var virtualKey = GlobalKeybindManager.GetVirtualKeyFromName(keyInput);
+        if (virtualKey == -1)
+        {
+            Console.WriteLine($"Unsupported key: {keyInput}");
+            return;
+        }
+
+        // Check for conflicts
+        if (_keybindManager.IsKeybindRegistered(virtualKey, useCtrl, useAlt, useShift))
+        {
+            var keyCombo = GlobalKeybindManager.FormatKeybindString(useCtrl, useAlt, useShift, virtualKey);
+            Console.WriteLine($"⚠️ Keybind {keyCombo} is already registered.");
+            Console.Write("Overwrite existing keybind? (y/n): ");
+            var overwriteInput = Console.ReadLine()?.Trim().ToLower();
+            if (overwriteInput != "y" && overwriteInput != "yes")
+            {
+                Console.WriteLine("Keybind addition cancelled.");
+                return;
+            }
+            
+            // Remove the existing keybind first
+            var existingId = GlobalKeybindManager.GenerateKeybindId(virtualKey, useCtrl, useAlt, useShift);
+            _keybindManager.UnregisterKeybind(existingId);
+        }
+
+        // Register the new keybind
+        if (_keybindManager.RegisterKeybind(virtualKey, useCtrl, useAlt, useShift, description, action))
+        {
+            var keyCombo = GlobalKeybindManager.FormatKeybindString(useCtrl, useAlt, useShift, virtualKey);
+            Console.WriteLine($"✅ Successfully registered keybind: {keyCombo} - {description}");
+        }
+        else
+        {
+            Console.WriteLine("❌ Failed to register keybind. The key combination might be reserved by the system.");
+        }
+    }
+
+    private void RemoveKeybind()
+    {
+        Console.WriteLine("\n=== Remove Keybind ===");
+        var keybinds = _keybindManager?.GetRegisteredKeybinds() ?? new List<GlobalKeybindManager.KeybindInfo>();
+        
+        if (keybinds.Count == 0)
+        {
+            Console.WriteLine("No keybinds to remove.");
+            return;
+        }
+
+        Console.WriteLine("Current keybinds:");
+        for (int i = 0; i < keybinds.Count; i++)
+        {
+            var kb = keybinds[i];
+            var keyCombo = GlobalKeybindManager.FormatKeybindString(kb.Ctrl, kb.Alt, kb.Shift, kb.VirtualKey);
+            Console.WriteLine($"  {i + 1}. {keyCombo} - {kb.Description}");
+        }
+
+        Console.Write($"Enter keybind number to remove (1-{keybinds.Count}): ");
+        var input = Console.ReadLine()?.Trim();
+        if (int.TryParse(input, out int index) && index >= 1 && index <= keybinds.Count)
+        {
+            var keybind = keybinds[index - 1];
+            if (_keybindManager!.UnregisterKeybind(keybind.KeybindId))
+            {
+                var keyCombo = GlobalKeybindManager.FormatKeybindString(keybind.Ctrl, keybind.Alt, keybind.Shift, keybind.VirtualKey);
+                Console.WriteLine($"✅ Removed keybind: {keyCombo}");
+            }
+            else
+            {
+                Console.WriteLine("❌ Failed to remove keybind.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Invalid selection.");
+        }
+    }
+
+    private void TestKeybind()
+    {
+        Console.WriteLine("\n=== Test Keybind ===");
+        Console.WriteLine("Press any registered global keybind to test it.");
+        Console.WriteLine("Press ESC to return to the keybinds menu.");
+        Console.WriteLine("Note: You may need to focus another window and then press the keybind.");
+        Console.WriteLine("\nWaiting for keybind press...");
+        
+        // Wait for ESC key to return
+        ConsoleKeyInfo key;
+        do
+        {
+            key = Console.ReadKey(true);
+        } while (key.Key != ConsoleKey.Escape);
+        
+        Console.WriteLine("Test mode ended.");
+    }
+
+    private void ResetKeybindsToDefaults()
+    {
+        Console.WriteLine("\n=== Reset Keybinds to Defaults ===");
+        Console.Write("This will remove all custom keybinds and restore defaults. Continue? (y/n): ");
+        var input = Console.ReadLine()?.Trim().ToLower();
+        
+        if (input == "y" || input == "yes")
+        {
+            if (_keybindManager != null)
+            {
+                // Stop monitoring and clear all keybinds
+                _keybindManager.StopMonitoring();
+                
+                // Restart with defaults
+                SetupGlobalKeybinds();
+                Console.WriteLine("✅ Keybinds reset to defaults.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Reset cancelled.");
+        }
     }
 
     public static void ShowHelp()
