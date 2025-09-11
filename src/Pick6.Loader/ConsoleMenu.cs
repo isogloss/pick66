@@ -665,8 +665,7 @@ public class ConsoleMenu
             }
         }
         
-        Console.WriteLine("\n🏁 Test completed - stopping projection...");
-        _projectionWindow.StopProjection();
+        Console.WriteLine("\n🏁 Test frames generation completed.");
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
