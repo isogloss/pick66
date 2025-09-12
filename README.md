@@ -55,6 +55,9 @@ install.cmd -Clean -Launch
 
 # Custom installation path
 install.cmd -OutputPath "C:\MyApps"
+
+# Verbose build with detailed MSBuild diagnostics
+install.cmd -VerboseBuild
 ```
 
 **PowerShell Direct Options:**
@@ -67,6 +70,12 @@ install.cmd -OutputPath "C:\MyApps"
 
 # Custom installation path
 .\install.ps1 -OutputPath "C:\MyApps"
+
+# Verbose build with detailed MSBuild diagnostics
+.\install.ps1 -VerboseBuild
+
+# Combine options for troubleshooting
+.\install.ps1 -VerboseBuild -Clean -Launch
 ```
 
 ## 📋 Features Overview
@@ -89,6 +98,9 @@ install.cmd -OutputPath "C:\MyApps"
 - **Single-File Executable**: Self-contained Windows x64 executable (~21MB)
 - **PowerShell Install Script**: Automated build, publish, and installation
 - **Cross-PowerShell Compatibility**: Works with both PowerShell 5.1 and PowerShell 7+
+- **Path-Independent Execution**: Install script works from any directory
+- **Enhanced Build Diagnostics**: Automatic retry with verbose output on build failures
+- **VerboseBuild Switch**: Optional detailed MSBuild output for troubleshooting (`-VerboseBuild`)
 - **Enhanced Error Handling**: Improved error reporting and troubleshooting
 - **SHA256 Verification**: Cryptographic integrity checking
 - **No Dependencies**: Includes .NET 8 runtime, runs on any Windows 10/11 system
