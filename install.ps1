@@ -21,6 +21,9 @@
 .PARAMETER OutputPath
     Custom output path (default: user's Downloads folder)
 
+.PARAMETER VerboseBuild
+    Enable detailed MSBuild output and diagnostics for troubleshooting build issues
+
 .NOTES
     Prerequisites:
     - PowerShell 7.0 or later
@@ -45,12 +48,17 @@
 .EXAMPLE
     install.cmd -Launch
     Install and launch using Windows wrapper (double-click safe)
+
+.EXAMPLE
+    .\install.ps1 -VerboseBuild
+    Install with detailed MSBuild output for troubleshooting
 #>
 
 param(
     [switch]$Launch,
     [switch]$Clean,
-    [string]$OutputPath = ""
+    [string]$OutputPath = "",
+    [switch]$VerboseBuild
 )
 
 # PowerShell version compatibility check
@@ -123,6 +131,10 @@ function Test-InvocationEnvironment {
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+# Establish script root and set working directory
+$ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $ScriptRoot
+
 # Enhanced error handling - trap unhandled errors
 trap {
     Write-Host ""
@@ -138,7 +150,7 @@ trap {
 }
 
 # Project configuration
-$ProjectPath = "src/Pick6.Loader/Pick6.Loader.csproj"
+$ProjectPath = Join-Path $ScriptRoot "src/Pick6.Loader/Pick6.Loader.csproj"
 $ExeName = "pick6_loader.exe"
 $AppDisplayName = "Pick66 - Projection Interface"
 
@@ -157,22 +169,22 @@ function Write-Header {
     Write-Host ""
 }
 
-function Write-Step {
+function Write-LogInfo {
     param([string]$Message)
     Write-Host "[*] $Message" -ForegroundColor $ColorInfo
 }
 
-function Write-Success {
+function Write-LogSuccess {
     param([string]$Message)
     Write-Host "[OK] $Message" -ForegroundColor $ColorSuccess
 }
 
-function Write-Warning {
+function Write-LogWarn {
     param([string]$Message)
     Write-Host "[!] $Message" -ForegroundColor $ColorWarning
 }
 
-function Write-Error {
+function Write-LogError {
     param([string]$Message)
     Write-Host "[X] $Message" -ForegroundColor $ColorError
 }
@@ -180,7 +192,7 @@ function Write-Error {
 function Test-DotNetSdk {
     try {
         $dotnetVersion = dotnet --version
-        Write-Success "Found .NET SDK version: $dotnetVersion"
+        Write-LogSuccess "Found .NET SDK version: $dotnetVersion"
         
         # Check minimum version (8.0)
         if ($dotnetVersion -match "^(\d+)\.") {
@@ -193,7 +205,7 @@ function Test-DotNetSdk {
         return $true
     }
     catch {
-        Write-Error "Failed to detect .NET SDK: $($_.Exception.Message)"
+        Write-LogError "Failed to detect .NET SDK: $($_.Exception.Message)"
         Write-Host "Please install .NET 8 SDK from: https://dot.net" -ForegroundColor $ColorWarning
         return $false
     }
@@ -216,7 +228,7 @@ function Get-OutputDirectory {
         return $downloadsPath
     }
     catch {
-        Write-Warning "Could not determine Downloads folder, using current directory"
+        Write-LogWarn "Could not determine Downloads folder, using current directory"
         return (Get-Location).Path
     }
 }
@@ -224,7 +236,7 @@ function Get-OutputDirectory {
 function Remove-BuildArtifacts {
     if (!$Clean) { return }
     
-    Write-Step "Cleaning previous build artifacts..."
+    Write-LogInfo "Cleaning previous build artifacts..."
     
     try {
         # Clean standard build outputs
@@ -245,33 +257,17 @@ function Remove-BuildArtifacts {
             }
         }
         
-        Write-Success "Build artifacts cleaned"
+        Write-LogSuccess "Build artifacts cleaned"
     }
     catch {
-        Write-Warning "Could not clean all artifacts: $($_.Exception.Message)"
-    }
-}
-
-function Build-Project {
-    Write-Step "Building project in Release mode..."
-    
-    try {
-        $buildResult = dotnet build $ProjectPath --configuration Release --verbosity quiet
-        if ($LASTEXITCODE -ne 0) {
-            throw "Build failed with exit code $LASTEXITCODE"
-        }
-        Write-Success "Build completed successfully"
-    }
-    catch {
-        Write-Error "Build failed: $($_.Exception.Message)"
-        throw
+        Write-LogWarn "Could not clean all artifacts: $($_.Exception.Message)"
     }
 }
 
 function Publish-Application {
     param([string]$OutputDir)
     
-    Write-Step "Publishing self-contained single-file executable..."
+    Write-LogInfo "Publishing self-contained single-file executable..."
     
     try {
         # Create publish directory
@@ -280,6 +276,9 @@ function Publish-Application {
             Remove-Item $publishDir -Recurse -Force
         }
         New-Item -Path $publishDir -ItemType Directory | Out-Null
+        
+        # Determine verbosity level
+        $verbosity = if ($VerboseBuild) { "minimal" } else { "quiet" }
         
         # Publish with optimizations
         $publishArgs = @(
@@ -294,12 +293,38 @@ function Publish-Application {
             "/p:PublishReadyToRun=true"
             "/p:DebugType=none"
             "/p:DebugSymbols=false"
-            "--verbosity", "quiet"
+            "--verbosity", $verbosity
         )
         
-        $publishResult = & dotnet @publishArgs
+        Write-Host "Running: dotnet $($publishArgs -join ' ')" -ForegroundColor Gray
+        
+        # Capture output to display errors properly
+        $output = & dotnet @publishArgs 2>&1
+        
         if ($LASTEXITCODE -ne 0) {
-            throw "Publish failed with exit code $LASTEXITCODE"
+            # If not verbose and failed, retry with minimal verbosity for diagnostics
+            if (!$VerboseBuild) {
+                Write-LogWarn "Publish failed, retrying with diagnostic verbosity..."
+                $publishArgs[-1] = "minimal"  # Change last argument (verbosity) to minimal
+                $output = & dotnet @publishArgs 2>&1
+                
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Host ""
+                    Write-Host "Build/Publish Error Details:" -ForegroundColor $ColorError
+                    Write-Host $output -ForegroundColor $ColorError
+                    throw "Publish failed with exit code $LASTEXITCODE after retry with diagnostics"
+                }
+            } else {
+                Write-Host ""
+                Write-Host "Build/Publish Error Details:" -ForegroundColor $ColorError
+                Write-Host $output -ForegroundColor $ColorError
+                throw "Publish failed with exit code $LASTEXITCODE"
+            }
+        } else {
+            # Show output if verbose mode
+            if ($VerboseBuild -and $output) {
+                Write-Host $output
+            }
         }
         
         # Find the executable
@@ -312,11 +337,11 @@ function Publish-Application {
         $fileInfo = Get-Item $exePath
         $fileSize = [math]::Round($fileInfo.Length / 1MB, 1)
         
-        Write-Success ("Publish completed successfully ({0} MB)" -f $fileSize)
+        Write-LogSuccess ("Publish completed successfully ({0} MB)" -f $fileSize)
         return $exePath
     }
     catch {
-        Write-Error "Publish failed: $($_.Exception.Message)"
+        Write-LogError "Publish failed: $($_.Exception.Message)"
         throw
     }
 }
@@ -327,7 +352,7 @@ function Install-Application {
         [string]$TargetDir
     )
     
-    Write-Step "Installing to $TargetDir..."
+    Write-LogInfo "Installing to $TargetDir..."
     
     try {
         # Ensure target directory exists
@@ -352,7 +377,7 @@ function Install-Application {
         $fileInfo = Get-Item $targetPath
         $fileSize = [math]::Round($fileInfo.Length / 1MB, 1)
         
-        Write-Success "Installation completed successfully"
+        Write-LogSuccess "Installation completed successfully"
         Write-Host ""
         Write-Host "Executable Details:" -ForegroundColor $ColorInfo
         Write-Host "   Path: $targetPath"
@@ -367,7 +392,7 @@ function Install-Application {
         return $targetPath
     }
     catch {
-        Write-Error "Installation failed: $($_.Exception.Message)"
+        Write-LogError "Installation failed: $($_.Exception.Message)"
         throw
     }
 }
@@ -377,14 +402,14 @@ function Launch-Application {
     
     if (!$Launch) { return }
     
-    Write-Step "Launching application..."
+    Write-LogInfo "Launching application..."
     
     try {
         Start-Process $ExePath
-        Write-Success "Application launched successfully"
+        Write-LogSuccess "Application launched successfully"
     }
     catch {
-        Write-Warning "Could not launch application: $($_.Exception.Message)"
+        Write-LogWarn "Could not launch application: $($_.Exception.Message)"
         Write-Host "You can manually launch it from: $ExePath"
     }
 }
@@ -412,7 +437,7 @@ function Request-InteractiveLaunch {
             $response = Read-Host "Launch Pick66 now? (Y/N)"
             if ($response -match '^[Yy]') {
                 $script:Launch = $true
-                Write-Success "Launch scheduled after installation"
+                Write-LogSuccess "Launch scheduled after installation"
             }
         }
     }
@@ -438,8 +463,10 @@ try {
     
     # Check project exists
     if (!(Test-Path $ProjectPath)) {
-        Write-Error "Project file not found: $ProjectPath"
-        Write-Host "Please ensure you are running this script from the repository root directory." -ForegroundColor $ColorWarning
+        Write-LogError "Project file not found: $ProjectPath"
+        Write-Host "Script root: $ScriptRoot" -ForegroundColor $ColorWarning
+        Write-Host "Resolved project path: $ProjectPath" -ForegroundColor $ColorWarning
+        Write-Host "Please ensure the script is run from the repository root or all project files exist." -ForegroundColor $ColorWarning
         Write-Host "Alternative: Use the provided wrapper 'install.cmd' which handles paths automatically." -ForegroundColor $ColorWarning
         exit 1
     }
@@ -453,26 +480,26 @@ try {
     
     # Execute build pipeline
     Remove-BuildArtifacts
-    Build-Project
     $publishedExe = Publish-Application $outputDirectory
     $installedExe = Install-Application $publishedExe $outputDirectory
     Launch-Application $installedExe
     Show-Usage
     
     Write-Host ""
-    Write-Success "Installation completed successfully!"
+    Write-LogSuccess "Installation completed successfully!"
     
     exit 0
 }
 catch {
     Write-Host ""
-    Write-Error "Installation failed: $($_.Exception.Message)"
+    Write-LogError "Installation failed: $($_.Exception.Message)"
     Write-Host ""
     Write-Host "Troubleshooting:" -ForegroundColor $ColorWarning
     Write-Host "   • Ensure .NET 8 SDK is installed"
     Write-Host "   • Run from the repository root directory OR use install.cmd"
     Write-Host "   • Check that all project files exist"
     Write-Host "   • Try running with -Clean flag"
+    Write-Host "   • Use -VerboseBuild for detailed diagnostic output"
     Write-Host "   • For execution issues, use: pwsh -ExecutionPolicy Bypass -File install.ps1"
     Write-Host ""
     
