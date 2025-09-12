@@ -10,7 +10,8 @@ echo PowerShell 7+ not found, falling back to Windows PowerShell...
 powershell -NoLogo -ExecutionPolicy Bypass -File "%~dp0install.ps1" %*
 if %ERRORLEVEL% neq 0 (
     echo.
-    echo Error: Script execution failed. Please ensure PowerShell is properly installed.
+    echo Error: Script execution failed (exit code %ERRORLEVEL%). 
+    echo Build diagnostics have been displayed above.
     echo Recommended: Install PowerShell 7+ from https://github.com/PowerShell/PowerShell
     echo.
     pause
