@@ -126,11 +126,11 @@ $ProgressPreference = "SilentlyContinue"
 # Enhanced error handling - trap unhandled errors
 trap {
     Write-Host ""
-    Write-Host "💥 Unhandled Error:" -ForegroundColor Red
+    Write-Host "[X] Unhandled Error:" -ForegroundColor Red
     Write-Host "   $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "   Location: $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "💡 If this error persists:" -ForegroundColor Yellow
+    Write-Host "If this error persists:" -ForegroundColor Yellow
     Write-Host "   • Report this issue at: https://github.com/isogloss/pick66/issues" -ForegroundColor Yellow
     Write-Host "   • Include the full error message above" -ForegroundColor Yellow
     Write-Host ""
@@ -159,22 +159,22 @@ function Write-Header {
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "🔧 $Message" -ForegroundColor $ColorInfo
+    Write-Host "[*] $Message" -ForegroundColor $ColorInfo
 }
 
 function Write-Success {
     param([string]$Message)
-    Write-Host "✅ $Message" -ForegroundColor $ColorSuccess
+    Write-Host "[OK] $Message" -ForegroundColor $ColorSuccess
 }
 
 function Write-Warning {
     param([string]$Message)
-    Write-Host "⚠️  $Message" -ForegroundColor $ColorWarning
+    Write-Host "[!] $Message" -ForegroundColor $ColorWarning
 }
 
 function Write-Error {
     param([string]$Message)
-    Write-Host "❌ $Message" -ForegroundColor $ColorError
+    Write-Host "[X] $Message" -ForegroundColor $ColorError
 }
 
 function Test-DotNetSdk {
@@ -312,7 +312,7 @@ function Publish-Application {
         $fileInfo = Get-Item $exePath
         $fileSize = [math]::Round($fileInfo.Length / 1MB, 1)
         
-        Write-Success "Publish completed successfully (${fileSize} MB)"
+        Write-Success ("Publish completed successfully ({0} MB)" -f $fileSize)
         return $exePath
     }
     catch {
@@ -354,12 +354,12 @@ function Install-Application {
         
         Write-Success "Installation completed successfully"
         Write-Host ""
-        Write-Host "📄 Executable Details:" -ForegroundColor $ColorInfo
+        Write-Host "Executable Details:" -ForegroundColor $ColorInfo
         Write-Host "   Path: $targetPath"
-        Write-Host "   Size: ${fileSize} MB"
+        Write-Host ("   Size: {0} MB" -f $fileSize)
         Write-Host "   SHA256: $hashShort..."
         Write-Host ""
-        Write-Host "🚀 Ready for use!" -ForegroundColor $ColorSuccess
+        Write-Host "Ready for use!" -ForegroundColor $ColorSuccess
         Write-Host "   • No dependencies required"
         Write-Host "   • Runs on Windows 10/11"
         Write-Host "   • Self-contained .NET runtime"
@@ -391,7 +391,7 @@ function Launch-Application {
 
 function Show-Usage {
     Write-Host ""
-    Write-Host "💡 Usage Examples:" -ForegroundColor $ColorInfo
+    Write-Host "Usage Examples:" -ForegroundColor $ColorInfo
     Write-Host "   $ExeName                    # GUI mode (default)"
     Write-Host "   $ExeName --help             # Show help"
     Write-Host "   $ExeName --fps 144          # Set target FPS"
@@ -460,7 +460,7 @@ try {
     Show-Usage
     
     Write-Host ""
-    Write-Success "Installation completed successfully! 🎉"
+    Write-Success "Installation completed successfully!"
     
     exit 0
 }
@@ -468,7 +468,7 @@ catch {
     Write-Host ""
     Write-Error "Installation failed: $($_.Exception.Message)"
     Write-Host ""
-    Write-Host "💡 Troubleshooting:" -ForegroundColor $ColorWarning
+    Write-Host "Troubleshooting:" -ForegroundColor $ColorWarning
     Write-Host "   • Ensure .NET 8 SDK is installed"
     Write-Host "   • Run from the repository root directory OR use install.cmd"
     Write-Host "   • Check that all project files exist"
