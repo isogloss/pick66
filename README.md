@@ -1,13 +1,13 @@
-# Pick66 - Projection Interface Application
+# Pick66 - FiveM Game Capture (OBS-Style Interface)
 
-**Modern .NET 8 WPF application providing professional projection interface capabilities with colored theme.**
+**Modern .NET 8 application providing OBS-style game capture functionality specifically designed for FiveM with DXGI/D3D11 hooks.**
 
 ## 🚀 Quick Install
 
 ### Prerequisites
 - **.NET 8 SDK** (download from https://dot.net)
 - **Windows 10/11** (target platform)
-- **PowerShell 5.1+** (Windows PowerShell 5.1 supported, PowerShell 7+ recommended)
+- **FiveM** (the game this application is designed to capture)
 
 ### Fast Installation
 
@@ -29,81 +29,37 @@ cd pick66
 
 # From PowerShell 7+ console:
 pwsh -ExecutionPolicy Bypass -File ./install.ps1 -Launch
-# OR if already in PowerShell 7+:
-./install.ps1 -Launch
 ```
-
-**Option 3: Environment Variable**
-```powershell
-# Set environment variable for automatic launch
-$env:PICK66_LAUNCH = "1"
-./install.ps1  # Will launch automatically
-```
-
-**Note:** Double-clicking the .ps1 file directly will likely open Notepad instead of executing due to Windows file associations. Use the provided `install.cmd` wrapper for double-click execution.
 
 This creates a self-contained executable in your Downloads folder - **no additional dependencies required**.
 
-### Manual Installation Options
-
-```cmd
-# Basic installation to Downloads folder
-install.cmd
-
-# Clean build with launch
-install.cmd -Clean -Launch
-
-# Custom installation path
-install.cmd -OutputPath "C:\MyApps"
-
-# Verbose build with detailed MSBuild diagnostics
-install.cmd -VerboseBuild
-```
-
-**PowerShell Direct Options:**
-```powershell
-# Basic installation to Downloads folder
-.\install.ps1
-
-# Clean build with launch
-.\install.ps1 -Clean -Launch
-
-# Custom installation path
-.\install.ps1 -OutputPath "C:\MyApps"
-
-# Verbose build with detailed MSBuild diagnostics
-.\install.ps1 -VerboseBuild
-
-# Combine options for troubleshooting
-.\install.ps1 -VerboseBuild -Clean -Launch
-```
-
 ## 📋 Features Overview
 
-### 🎯 Projection Interface
-- **Modern WPF Interface**: Professional colored theme with blue accents
-- **Start/Stop Controls**: Simple projection control with status monitoring
-- **Activity Logging**: Real-time log display with timestamps
-- **Status Indicators**: Visual status indicators with colored states
-- **System Information**: Display of projection status and system details
+### 🎮 FiveM Game Capture
+- **OBS-Style Interface**: Simple, familiar interface similar to OBS Game Capture
+- **DXGI/D3D11 Hooks**: Direct capture through DXGI.dll and D3D11.dll injection for optimal performance
+- **FiveM-Only Focus**: Specifically designed and optimized for FiveM processes
+- **Real-time Capture**: Low-latency frame capture with configurable FPS
+- **Automatic Detection**: Auto-detection of FiveM processes with enhanced monitoring
 
 ### 🖥️ Modern Interface
-- **Borderless Design**: Clean, modern window styling
-- **Colored Theme**: Professional dark theme with blue accent colors
-- **Real-time Logging**: Live activity display with color-coded messages
-- **Settings Persistence**: Configuration stored in `%AppData%/Pick66/settings.json`
-- **Non-blocking Notifications**: Error handling without modal dialog spam
+- **Clean Windows Forms UI**: Professional interface with OBS-style controls
+- **Real-time Status**: Live FiveM process detection and capture status
+- **Performance Monitoring**: Live FPS counter and capture statistics
+- **Activity Logging**: Real-time activity display with timestamped messages
+- **Simple Controls**: Start/Stop capture with automatic projection options
 
-### ⚙️ Installation & Distribution
+### ⚡ High-Performance Capture
+- **DXGI Backend**: Primary capture method using DXGI.dll hooks for best performance
+- **D3D11 Integration**: Direct D3D11.dll injection for frame access
+- **GDI Fallback**: Automatic fallback to GDI capture if DXGI is unavailable
+- **Shared Memory**: High-performance frame data transfer between processes
+- **Frame Pacing**: Precision frame timing with hybrid spin-wait technology
+
+### 📦 Installation & Distribution
 - **Single-File Executable**: Self-contained Windows x64 executable (~21MB)
-- **PowerShell Install Script**: Automated build, publish, and installation
-- **Cross-PowerShell Compatibility**: Works with both PowerShell 5.1 and PowerShell 7+
-- **Path-Independent Execution**: Install script works from any directory
-- **Enhanced Build Diagnostics**: Automatic retry with verbose output on build failures
-- **VerboseBuild Switch**: Optional detailed MSBuild output for troubleshooting (`-VerboseBuild`)
-- **Enhanced Error Handling**: Improved error reporting and troubleshooting
-- **SHA256 Verification**: Cryptographic integrity checking
 - **No Dependencies**: Includes .NET 8 runtime, runs on any Windows 10/11 system
+- **PowerShell Install Script**: Automated build, publish, and installation
 - **Downloads Folder Deployment**: Installs to user-accessible location
 
 ### 🔧 Installation Troubleshooting
@@ -116,17 +72,25 @@ If you encounter PowerShell parsing errors:
 
 ## 💻 Usage
 
-### WPF Application
+### FiveM Game Capture
 ```bash
-# Launch projection interface
+# Launch FiveM capture interface
 pick66.exe
 ```
 
-The application provides a modern WPF interface with:
-- Start/Stop projection controls
-- Real-time activity logging
-- Status monitoring with visual indicators
-- Professional colored theme
+The application provides an OBS-style interface with:
+- **Start Game Capture**: Begin capturing FiveM with DXGI/D3D11 hooks
+- **Stop Capture**: Clean shutdown of capture and projection
+- **Real-time Status**: Live FiveM process detection and capture monitoring
+- **Activity Logging**: Timestamped log of all capture operations
+- **Performance Display**: Live FPS counter and capture statistics
+
+### Workflow
+1. **Start FiveM**: Launch FiveM first (application will detect it automatically)
+2. **Open Pick66**: Launch the capture application
+3. **Start Capture**: Click "Start Game Capture" button
+4. **Automatic Detection**: Application finds and hooks into FiveM process
+5. **Live Monitoring**: View real-time status and performance metrics
 
 ## 🏗️ Architecture & Technical Details
 
@@ -134,11 +98,10 @@ The application provides a modern WPF interface with:
 ```
 Pick66/
 ├── src/
-│   ├── Pick6.Core/           # Game capture engine
+│   ├── Pick6.Core/           # DXGI/D3D11 capture engine
 │   ├── Pick6.Projection/     # Windows projection system  
 │   ├── Pick6.Loader/         # Main application entry point
-│   ├── Pick6.ModGui/         # ImGui-style interface
-│   └── Pick66.App/           # Projection interface WPF application
+│   └── Pick6.ModGui/         # OBS-style FiveM capture interface
 ├── install.ps1               # PowerShell installation script
 ├── README.md                 # This documentation
 └── UPGRADE.md               # Migration guide
@@ -146,11 +109,18 @@ Pick66/
 
 ### Core Technologies
 - **Platform**: .NET 8 with Windows-specific optimizations
-- **UI Framework**: WPF with modern colored theming
-- **Graphics**: Projection interface with visual status indicators
-- **Architecture**: MVVM pattern with async/await operations
+- **UI Framework**: Windows Forms with OBS-style theming
+- **Capture Backend**: DXGI.dll and D3D11.dll injection hooks
+- **Graphics Pipeline**: Direct FiveM graphics API interception
+- **Architecture**: Modular backend system with fallback support
 - **Packaging**: Single-file self-contained deployment
-- **Testing**: Professional colored theme with high contrast
+
+### Capture System
+- **Primary**: DXGI/D3D11 injection hooks for FiveM processes
+- **Fallback**: GDI window capture when injection is unavailable
+- **Target**: FiveM processes only (CitizenFX, GTAProcess variants)
+- **Performance**: Shared memory communication for high-speed frame transfer
+- **Frame Pacing**: Hybrid spin-wait with configurable FPS (15-120 FPS)
 
 ### Build Configuration
 - **Target Framework**: .NET 8 (LTS)

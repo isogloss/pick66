@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Diagnostics;
 using Pick6.Core.Timing;
 using Pick6.Core.Diagnostics;
 
