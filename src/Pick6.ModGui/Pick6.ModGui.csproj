@@ -32,11 +32,6 @@
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
-  <!-- ImGui.NET dependency with simpler backend -->
-  <ItemGroup>
-    <PackageReference Include="ImGui.NET" Version="1.89.7.1" />
-  </ItemGroup>
-
   <!-- Project references -->
   <ItemGroup>
     <ProjectReference Include="..\Pick6.Core\Pick6.Core.csproj" />
