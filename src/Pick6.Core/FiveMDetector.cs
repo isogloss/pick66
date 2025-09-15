@@ -130,59 +130,34 @@ public static class FiveMDetector
     }
 
     /// <summary>
-    /// Find FiveM processes using Vulkan (enhanced method)
-    /// </summary>
-    public static List<VulkanProcessInfo> FindVulkanFiveMProcesses()
-    {
-        return VulkanInjector.FindVulkanProcesses();
-    }
-
-    /// <summary>
     /// Check if any FiveM process is currently running
-    /// Checks both traditional and Vulkan processes
     /// </summary>
     public static bool IsFiveMRunning()
     {
-        return FindFiveMProcesses().Any() || FindVulkanFiveMProcesses().Any();
+        return FindFiveMProcesses().Any();
     }
 
     /// <summary>
-    /// Get the primary FiveM process (prioritizes Vulkan processes)
+    /// Get the primary FiveM process (first available)
     /// </summary>
     public static ProcessInfo? GetPrimaryFiveMProcess()
     {
-        // First check for Vulkan processes
-        var vulkanProcesses = FindVulkanFiveMProcesses();
-        if (vulkanProcesses.Any())
-        {
-            var vulkanProcess = vulkanProcesses.First();
-            return new ProcessInfo
-            {
-                ProcessId = vulkanProcess.ProcessId,
-                ProcessName = vulkanProcess.ProcessName,
-                WindowTitle = vulkanProcess.WindowTitle,
-                WindowHandle = vulkanProcess.WindowHandle
-            };
-        }
-
-        // Fall back to traditional process detection
+        // Return the first FiveM process found
         return FindFiveMProcesses().FirstOrDefault();
     }
 
     /// <summary>
-    /// Get comprehensive process information including Vulkan support
+    /// Get comprehensive process information for FiveM
     /// </summary>
     public static FiveMProcessSummary GetProcessSummary()
     {
         var traditionalProcesses = FindFiveMProcesses();
-        var vulkanProcesses = FindVulkanFiveMProcesses();
 
         return new FiveMProcessSummary
         {
             TraditionalProcesses = traditionalProcesses,
-            VulkanProcesses = vulkanProcesses,
-            TotalProcessCount = traditionalProcesses.Count + vulkanProcesses.Count,
-            HasVulkanSupport = vulkanProcesses.Any()
+            TotalProcessCount = traditionalProcesses.Count,
+            HasDxgiSupport = traditionalProcesses.Any() && OperatingSystem.IsWindows()
         };
     }
 
@@ -223,12 +198,11 @@ public class ProcessInfo
 public class FiveMProcessSummary
 {
     public List<ProcessInfo> TraditionalProcesses { get; set; } = new();
-    public List<VulkanProcessInfo> VulkanProcesses { get; set; } = new();
     public int TotalProcessCount { get; set; }
-    public bool HasVulkanSupport { get; set; }
+    public bool HasDxgiSupport { get; set; }
 
     public override string ToString()
     {
-        return $"FiveM Processes: {TotalProcessCount} (Vulkan: {VulkanProcesses.Count}, Traditional: {TraditionalProcesses.Count})";
+        return $"FiveM Processes: {TotalProcessCount} (DXGI Support: {HasDxgiSupport})";
     }
 }

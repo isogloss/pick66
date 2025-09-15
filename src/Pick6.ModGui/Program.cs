@@ -1,13 +1,12 @@
 using Pick6.Core;
 using Pick6.Projection;
-using ImGuiNET;
-using System.Numerics;
-using System.Runtime.InteropServices;
+using System.Drawing;
+using System.Windows.Forms;
 
 namespace Pick6.ModGui;
 
 /// <summary>
-/// Main entry point for Pick6 ImGui mod menu
+/// Main entry point for Pick6 OBS-style game capture UI
 /// </summary>
 public class Program
 {
@@ -17,7 +16,7 @@ public class Program
         // Handle CLI arguments that should skip GUI
         if (args.Any(arg => arg.ToLower() == "--check-updates-only" || arg.ToLower() == "--help"))
         {
-            // Don't start GUI for these arguments
+            // Don't start GUI for these arguments - delegate to console handler
             Environment.Exit(0);
         }
 
@@ -28,16 +27,16 @@ public class Program
             Application.SetCompatibleTextRenderingDefault(false);
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
 
-            var app = new ModMenuApplication();
+            var app = new FiveMCaptureApplication();
             Application.Run(app);
 #else
-            Console.WriteLine("ImGui mod menu is only available on Windows");
+            Console.WriteLine("FiveM capture GUI is only available on Windows");
             Environment.Exit(1);
 #endif
         }
         catch (Exception ex)
         {
-            Log.Error($"ImGui mod menu error: {ex.Message}");
+            Log.Error($"FiveM capture GUI error: {ex.Message}");
             Environment.Exit(1);
         }
     }
@@ -45,9 +44,403 @@ public class Program
 
 #if WINDOWS
 /// <summary>
-/// Windows Forms host for ImGui-style mod menu with tabs
+/// Simple OBS-style game capture application for FiveM
 /// </summary>
-public class ModMenuApplication : Form
+public class FiveMCaptureApplication : Form
+{
+    // Core capture components
+    private GameCaptureEngine? _captureEngine;
+    private BorderlessProjectionWindow? _projectionWindow;
+    private System.Windows.Forms.Timer? _statusTimer;
+    
+    // UI Controls
+    private Button? _startButton;
+    private Button? _stopButton;
+    private Label? _statusLabel;
+    private Label? _processStatusLabel;
+    private ListBox? _logListBox;
+    private NumericUpDown? _fpsControl;
+    private CheckBox? _autoProjectionCheckbox;
+    
+    // Status tracking
+    private bool _isRunning = false;
+    private readonly Queue<string> _recentLogs = new();
+    private const int MAX_LOG_ENTRIES = 50;
+
+    public FiveMCaptureApplication()
+    {
+        InitializeForm();
+        InitializeControls();
+        SetupStatusTimer();
+        
+        // Setup logging to show in UI
+        Log.AddSink(new UiLogSink(this));
+        Log.Info("FiveM Game Capture started - OBS-style interface");
+    }
+
+    private void InitializeForm()
+    {
+        Text = "FiveM Game Capture - Pick6";
+        Size = new Size(600, 450);
+        FormBorderStyle = FormBorderStyle.FixedSingle;
+        StartPosition = FormStartPosition.CenterScreen;
+        MaximizeBox = false;
+        BackColor = Color.FromArgb(25, 25, 25);
+        ForeColor = Color.White;
+        Font = new Font("Segoe UI", 9F);
+        
+        // Handle form closing
+        FormClosing += OnFormClosing;
+    }
+
+    private void InitializeControls()
+    {
+        SuspendLayout();
+        
+        // Title label
+        var titleLabel = new Label
+        {
+            Text = "FiveM Game Capture",
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(100, 149, 237), // Cornflower blue
+            Location = new Point(20, 15),
+            Size = new Size(200, 25)
+        };
+        Controls.Add(titleLabel);
+
+        // Status section
+        var statusGroupBox = new GroupBox
+        {
+            Text = "Status",
+            ForeColor = Color.White,
+            Location = new Point(20, 50),
+            Size = new Size(550, 80),
+            Font = new Font("Segoe UI", 9F)
+        };
+        Controls.Add(statusGroupBox);
+
+        _statusLabel = new Label
+        {
+            Text = "Ready - Waiting for FiveM",
+            ForeColor = Color.FromArgb(100, 149, 237),
+            Location = new Point(10, 25),
+            Size = new Size(300, 20),
+            Font = new Font("Segoe UI", 9F)
+        };
+        statusGroupBox.Controls.Add(_statusLabel);
+
+        _processStatusLabel = new Label
+        {
+            Text = "No FiveM processes detected",
+            ForeColor = Color.Gray,
+            Location = new Point(10, 45),
+            Size = new Size(300, 20),
+            Font = new Font("Segoe UI", 8.25F)
+        };
+        statusGroupBox.Controls.Add(_processStatusLabel);
+
+        // Controls section
+        var controlsGroupBox = new GroupBox
+        {
+            Text = "Capture Controls",
+            ForeColor = Color.White,
+            Location = new Point(20, 140),
+            Size = new Size(550, 80),
+            Font = new Font("Segoe UI", 9F)
+        };
+        Controls.Add(controlsGroupBox);
+
+        _startButton = new Button
+        {
+            Text = "Start Game Capture",
+            BackColor = Color.FromArgb(0, 120, 70),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Location = new Point(10, 25),
+            Size = new Size(140, 35),
+            Font = new Font("Segoe UI", 9F),
+            Enabled = true
+        };
+        _startButton.FlatAppearance.BorderSize = 0;
+        _startButton.Click += StartCapture_Click;
+        controlsGroupBox.Controls.Add(_startButton);
+
+        _stopButton = new Button
+        {
+            Text = "Stop Capture",
+            BackColor = Color.FromArgb(120, 30, 30),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Location = new Point(160, 25),
+            Size = new Size(120, 35),
+            Font = new Font("Segoe UI", 9F),
+            Enabled = false
+        };
+        _stopButton.FlatAppearance.BorderSize = 0;
+        _stopButton.Click += StopCapture_Click;
+        controlsGroupBox.Controls.Add(_stopButton);
+
+        // Settings
+        var fpsLabel = new Label
+        {
+            Text = "FPS:",
+            ForeColor = Color.White,
+            Location = new Point(300, 28),
+            Size = new Size(35, 20),
+            Font = new Font("Segoe UI", 9F)
+        };
+        controlsGroupBox.Controls.Add(fpsLabel);
+
+        _fpsControl = new NumericUpDown
+        {
+            Minimum = 15,
+            Maximum = 120,
+            Value = 60,
+            Location = new Point(340, 25),
+            Size = new Size(60, 23),
+            BackColor = Color.FromArgb(45, 45, 45),
+            ForeColor = Color.White
+        };
+        controlsGroupBox.Controls.Add(_fpsControl);
+
+        _autoProjectionCheckbox = new CheckBox
+        {
+            Text = "Auto-start projection",
+            ForeColor = Color.White,
+            Location = new Point(420, 28),
+            Size = new Size(120, 20),
+            Font = new Font("Segoe UI", 8.25F),
+            Checked = true
+        };
+        controlsGroupBox.Controls.Add(_autoProjectionCheckbox);
+
+        // Log section
+        var logLabel = new Label
+        {
+            Text = "Activity Log:",
+            ForeColor = Color.White,
+            Location = new Point(20, 230),
+            Size = new Size(100, 20),
+            Font = new Font("Segoe UI", 9F)
+        };
+        Controls.Add(logLabel);
+
+        _logListBox = new ListBox
+        {
+            Location = new Point(20, 255),
+            Size = new Size(550, 150),
+            BackColor = Color.FromArgb(35, 35, 35),
+            ForeColor = Color.LightGray,
+            BorderStyle = BorderStyle.FixedSingle,
+            Font = new Font("Consolas", 8.25F),
+            SelectionMode = SelectionMode.None
+        };
+        Controls.Add(_logListBox);
+
+        ResumeLayout(false);
+    }
+
+    private void SetupStatusTimer()
+    {
+        _statusTimer = new System.Windows.Forms.Timer { Interval = 2000 }; // Every 2 seconds
+        _statusTimer.Tick += UpdateStatus;
+        _statusTimer.Start();
+    }
+
+    private void UpdateStatus(object? sender, EventArgs e)
+    {
+        try
+        {
+            // Check for FiveM processes
+            var fiveMProcesses = FiveMDetector.FindFiveMProcesses();
+            var processCount = fiveMProcesses.Count;
+
+            if (_processStatusLabel != null)
+            {
+                if (processCount > 0)
+                {
+                    _processStatusLabel.Text = $"FiveM detected: {processCount} process(es)";
+                    _processStatusLabel.ForeColor = Color.FromArgb(144, 238, 144); // Light green
+                }
+                else
+                {
+                    _processStatusLabel.Text = "No FiveM processes detected";
+                    _processStatusLabel.ForeColor = Color.Gray;
+                }
+            }
+
+            // Update capture status
+            if (_statusLabel != null)
+            {
+                if (_isRunning)
+                {
+                    var stats = _captureEngine?.Statistics;
+                    if (stats != null && stats.TotalFrames > 0)
+                    {
+                        _statusLabel.Text = $"Capturing - {stats.AverageFPS:F1} FPS";
+                        _statusLabel.ForeColor = Color.FromArgb(144, 238, 144); // Light green
+                    }
+                    else
+                    {
+                        _statusLabel.Text = "Starting capture...";
+                        _statusLabel.ForeColor = Color.Orange;
+                    }
+                }
+                else
+                {
+                    _statusLabel.Text = processCount > 0 ? "Ready - FiveM detected" : "Ready - Waiting for FiveM";
+                    _statusLabel.ForeColor = Color.FromArgb(100, 149, 237);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Status update error: {ex.Message}");
+        }
+    }
+
+    private async void StartCapture_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_startButton != null) _startButton.Enabled = false;
+            if (_statusLabel != null) _statusLabel.Text = "Starting capture...";
+
+            await Task.Run(() =>
+            {
+                // Find FiveM process
+                var fiveMProcesses = FiveMDetector.FindFiveMProcesses();
+                if (fiveMProcesses.Count == 0)
+                {
+                    throw new InvalidOperationException("No FiveM processes found. Please start FiveM first.");
+                }
+
+                var targetProcess = fiveMProcesses.First();
+                Log.Info($"Starting capture for FiveM process: {targetProcess.ProcessName}");
+
+                // Create capture engine
+                _captureEngine = new GameCaptureEngine();
+                _captureEngine.Settings.TargetFPS = (int)(_fpsControl?.Value ?? 60);
+                _captureEngine.ErrorOccurred += (s, msg) => Log.Error($"Capture error: {msg}");
+                
+                // Start capture
+                if (!_captureEngine.StartCapture(targetProcess.ProcessName))
+                {
+                    throw new InvalidOperationException("Failed to start game capture. Try running as administrator.");
+                }
+
+                // Start projection if requested
+                if (_autoProjectionCheckbox?.Checked == true)
+                {
+                    _projectionWindow = new BorderlessProjectionWindow();
+                    _captureEngine.FrameCaptured += (s, e) => _projectionWindow?.UpdateFrame(e.Frame);
+                    _projectionWindow.Show();
+                }
+
+                _isRunning = true;
+                Log.Info("Game capture started successfully");
+            });
+
+            if (_stopButton != null) _stopButton.Enabled = true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Failed to start capture: {ex.Message}");
+            if (_startButton != null) _startButton.Enabled = true;
+            if (_statusLabel != null) 
+            {
+                _statusLabel.Text = "Error - Check log";
+                _statusLabel.ForeColor = Color.Red;
+            }
+        }
+    }
+
+    private void StopCapture_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_stopButton != null) _stopButton.Enabled = false;
+            
+            _captureEngine?.StopCapture();
+            _projectionWindow?.Close();
+            
+            _captureEngine = null;
+            _projectionWindow = null;
+            _isRunning = false;
+            
+            if (_startButton != null) _startButton.Enabled = true;
+            Log.Info("Game capture stopped");
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Error stopping capture: {ex.Message}");
+        }
+    }
+
+    public void AddLogEntry(string message)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(new Action<string>(AddLogEntry), message);
+            return;
+        }
+
+        if (_logListBox == null) return;
+
+        _recentLogs.Enqueue($"{DateTime.Now:HH:mm:ss} {message}");
+        if (_recentLogs.Count > MAX_LOG_ENTRIES)
+        {
+            _recentLogs.Dequeue();
+        }
+
+        _logListBox.Items.Clear();
+        foreach (var log in _recentLogs)
+        {
+            _logListBox.Items.Add(log);
+        }
+
+        // Auto-scroll to bottom
+        if (_logListBox.Items.Count > 0)
+        {
+            _logListBox.TopIndex = _logListBox.Items.Count - 1;
+        }
+    }
+
+    private void OnFormClosing(object? sender, FormClosingEventArgs e)
+    {
+        _statusTimer?.Stop();
+        _captureEngine?.StopCapture();
+        _projectionWindow?.Close();
+    }
+
+    /// <summary>
+    /// Log sink that forwards messages to the UI
+    /// </summary>
+    private class UiLogSink : ILogSink
+    {
+        private readonly FiveMCaptureApplication _app;
+
+        public UiLogSink(FiveMCaptureApplication app)
+        {
+            _app = app;
+        }
+
+        public void WriteLog(LogLevel level, string message)
+        {
+            var prefix = level switch
+            {
+                LogLevel.Error => "[ERROR]",
+                LogLevel.Warning => "[WARN]",
+                LogLevel.Info => "[INFO]",
+                LogLevel.Debug => "[DEBUG]",
+                _ => "[LOG]"
+            };
+            
+            _app.AddLogEntry($"{prefix} {message}");
+        }
+    }
+}
+#endif
 {
     // Core references
     private GameCaptureEngine? _captureEngine;

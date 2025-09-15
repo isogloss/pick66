@@ -5,6 +5,7 @@ using Pick6.ModGui;
 
 #if WINDOWS
 using System.ComponentModel;
+using System.Windows.Forms;
 #endif
 
 namespace Pick6.Loader;
@@ -61,8 +62,8 @@ public class Program
             }
         }
 
-        // Always run GUI mode
-        RunGuiMode();
+        // Always run FiveM capture GUI mode
+        RunFiveMCaptureGui();
     }
 
     private static async Task ExecuteUpdateSequence()
@@ -119,7 +120,7 @@ public class Program
     }
 
 #if WINDOWS
-    private static void RunGuiMode()
+    private static void RunFiveMCaptureGui()
     {
         try
         {
@@ -127,30 +128,30 @@ public class Program
             Application.SetCompatibleTextRenderingDefault(false);
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
 
-            // Use new ImGui mod menu instead of WinForms MainForm
-            Log.Info("Starting Pick6 Mod Menu interface");
-            var modMenuApp = new ModMenuApplication();
-            Application.Run(modMenuApp);
+            // Use new FiveM capture interface
+            Log.Info("Starting FiveM Game Capture interface");
+            var fiveMCaptureApp = new FiveMCaptureApplication();
+            Application.Run(fiveMCaptureApp);
         }
         catch (Exception ex)
         {
             Log.Error($"Application error: {ex.Message}");
-            MessageBox.Show($"Application error: {ex.Message}", "Pick6 Loader Error", 
+            MessageBox.Show($"Application error: {ex.Message}", "Pick6 FiveM Capture Error", 
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 #else
-    private static void RunGuiMode()
+    private static void RunFiveMCaptureGui()
     {
         // This should never be called on non-Windows, but just in case
-        Log.Error("GUI mode is only available on Windows.");
+        Log.Error("FiveM capture GUI is only available on Windows.");
         Environment.Exit(1);
     }
 #endif
 
     private static void ShowHelp()
     {
-        Log.Info("Pick6 - High-Performance OBS Game Capture Clone for FiveM");
+        Log.Info("Pick6 - FiveM Game Capture (OBS-Style Interface)");
         Log.Info("");
         Log.Info("Usage: pick6.exe [options]");
         Log.Info("");
@@ -160,11 +161,18 @@ public class Program
         Log.Info("  --help, -h                Show this help message");
         Log.Info("");
         Log.Info("Default Behavior:");
-        Log.Info("  Opens GUI mode with minimal black & white interface");
+        Log.Info("  Opens FiveM game capture interface with OBS-style controls");
+        Log.Info("  Hooks into FiveM using DXGI/D3D11 injection for optimal performance");
+        Log.Info("");
+        Log.Info("Features:");
+        Log.Info("  - DXGI/D3D11 capture hooks for FiveM");
+        Log.Info("  - Simple OBS-style interface");
+        Log.Info("  - Real-time game capture and projection");
+        Log.Info("  - Automatic FiveM process detection");
         Log.Info("");
         Log.Info("Examples:");
-        Log.Info("  pick6.exe                             # GUI mode");
-        Log.Info("  pick6.exe --check-updates             # GUI mode with update check");
+        Log.Info("  pick6.exe                             # FiveM capture GUI");
+        Log.Info("  pick6.exe --check-updates             # GUI with update check");
         Log.Info("  pick6.exe --check-updates-only        # Check for updates and exit");
     }
 }
