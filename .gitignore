@@ -59,3 +59,7 @@ payload-staging/
 
 # Test artifacts
 test-dist/
+
+# Release packages
+release/
+Pick66-v*.zip

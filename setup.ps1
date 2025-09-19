@@ -4,9 +4,8 @@
     Pick66 - Simple PowerShell Installer (Windows Only)
 
 .DESCRIPTION
-    Alternative to setup.bat for PowerShell users. 
-    Builds Pick66 as a single-file Windows executable and installs to Downloads folder.
-
+    Legacy installer that requires .NET SDK. For better experience, use install-standalone.ps1
+    
 .PARAMETER Launch
     Launch Pick66 after successful installation
 
@@ -34,6 +33,25 @@ Write-Host "===============================================" -ForegroundColor Cy
 Write-Host "         Pick66 - Simple PowerShell Installer" -ForegroundColor Cyan  
 Write-Host "          Windows x64 Self-Contained Build" -ForegroundColor Cyan
 Write-Host "===============================================" -ForegroundColor Cyan
+Write-Host ""
+
+Write-Host "NOTICE: This installer now works without requiring .NET SDK!" -ForegroundColor Yellow
+Write-Host "For the best experience, use install-standalone.ps1 instead." -ForegroundColor Yellow
+Write-Host ""
+
+# Check if enhanced installer exists
+$enhancedInstaller = Join-Path (Split-Path $MyInvocation.MyCommand.Path) "install-standalone.ps1"
+if (Test-Path $enhancedInstaller) {
+    Write-Host "Found enhanced installer, redirecting..." -ForegroundColor Green
+    $args = @()
+    if ($Launch) { $args += "-Launch" }
+    if ($OutputPath) { $args += "-OutputPath", $OutputPath }
+    
+    & $enhancedInstaller @args
+    exit $LASTEXITCODE
+}
+
+Write-Host "Using legacy installer (requires .NET 8 SDK)..." -ForegroundColor Yellow
 Write-Host ""
 
 # Check .NET 8 SDK

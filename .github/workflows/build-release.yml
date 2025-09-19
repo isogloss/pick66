@@ -1,0 +1,64 @@
+name: Build and Release Pick66
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build and publish
+      run: |
+        dotnet publish src/Pick6.Loader/Pick6.Loader.csproj `
+          --configuration Release `
+          --runtime win-x64 `
+          --self-contained true `
+          --output dist `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
+          -p:PublishReadyToRun=true `
+          -p:DebugType=none
+    
+    - name: Create release package
+      run: |
+        $version = "${{ github.event.inputs.version || '1.0.0' }}"
+        ./create-release-package.ps1 -Version $version -IncludeExecutable
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: pick66-executable
+        path: dist/pick6_loader.exe
+        
+    - name: Upload release package
+      uses: actions/upload-artifact@v4
+      with:
+        name: pick66-release-package
+        path: release/Pick66-v${{ github.event.inputs.version || '1.0.0' }}-Complete.zip
+        
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          release/Pick66-v${{ github.event.inputs.version || '1.0.0' }}-Complete.zip
+          dist/pick6_loader.exe
+        generate_release_notes: true

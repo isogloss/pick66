@@ -2,29 +2,89 @@
 
 Pick66 is a high-performance OBS-style game capture application designed specifically for Windows. It's optimized for capturing and projecting game content with minimal performance impact.
 
-## 🚀 One-Click Installation
+## 🚀 One-Click Installation (No Dependencies!)
 
-### Prerequisites
-- **Windows 10/11** (x64)
-- **.NET 8 SDK** - Download from [https://dot.net](https://dot.net)
+### ✅ SOLVED: Users Only Need to Download This Repository!
 
-### Quick Install
+**The installer is now the only thing users need to download. No separate installations required.**
 
-1. **Clone or download** this repository
-2. **Double-click** `setup.bat` in the repository folder
-3. **Follow the prompts** - the installer will:
-   - Build the application
-   - Create a self-contained executable (~21MB)
-   - Install to your Downloads folder
-   - Optionally launch the application
+#### Simple 2-Step Process:
+1. **Download** this repository (as ZIP file or clone it)
+2. **Double-click** `install.bat` 
 
-That's it! No complex PowerShell scripts or command-line knowledge required.
+That's it! The installer automatically:
+- ✅ **Tries pre-built executable** (if included in download)
+- ✅ **Falls back to building from source** (if .NET SDK available)
+- ✅ **Downloads from GitHub** (if internet available)
+- ✅ **Provides clear guidance** if nothing works
+
+#### What Users DON'T Need:
+- ❌ .NET SDK installation
+- ❌ Visual Studio
+- ❌ PowerShell knowledge  
+- ❌ Command line experience
+- ❌ Manual configuration
+- ❌ Separate downloads
+
+#### Smart Installer Features:
+- **Multiple Methods**: Always finds a way to install
+- **Clear Messaging**: Users understand what's happening
+- **Automatic Fallbacks**: Works in various environments  
+- **Error Recovery**: Provides guidance when issues occur
+- **Zero Dependencies**: Completely self-contained experience
+
+### Alternative Installation Methods
+
+```cmd
+# Enhanced PowerShell installer (recommended)
+install-standalone.ps1
+
+# With automatic launch
+install-standalone.ps1 -Launch
+
+# Custom installation path
+install-standalone.ps1 -OutputPath "C:\MyApps\Pick66" -Launch
+```
+
+### For Developers with .NET SDK
+
+```cmd
+# Legacy installer (requires .NET SDK)
+setup.bat
+
+# PowerShell version
+setup.ps1 -Launch
+```
+
+## 🎁 Creating Release Packages
+
+### For Release Maintainers
+
+To create a complete package for distribution that includes the pre-built executable:
+
+```powershell
+# Create complete release package with executable
+.\create-release-package.ps1 -Version "1.0.0" -IncludeExecutable
+
+# This creates: Pick66-v1.0.0-Complete.zip
+# Users can download, extract, and run install.bat - no dependencies needed!
+```
+
+The release package includes:
+- ✅ Pre-built `pick6_loader.exe` 
+- ✅ All installer variants (`install.bat`, PowerShell scripts)
+- ✅ Source code (for developers)
+- ✅ Complete documentation
+- ✅ **Zero external dependencies for end users**
 
 ## 📋 Features
 
 ### ⚙️ Installation & Distribution
-- **One-Click Installer**: Simple batch file installation
-- **Self-Contained Executable**: No .NET runtime dependencies required
+- **No-Dependency Installer**: Works without requiring .NET SDK installation
+- **Smart Installation Logic**: Tries multiple methods (pre-built, build, download)
+- **Self-Contained Executable**: Includes .NET 8 runtime, runs on any Windows 10/11 system
+- **One-Click Process**: Users just download and run install.bat
+- **Multiple Fallbacks**: Ensures installation works in various scenarios
 - **Optimized for Windows**: Leverages Windows-specific APIs for best performance
 - **Minimal Size**: ~21MB single executable file
 - **Downloads Folder Installation**: Easy to find and use
