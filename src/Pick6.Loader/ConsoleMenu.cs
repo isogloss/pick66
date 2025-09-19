@@ -483,7 +483,7 @@ public class ConsoleMenu
             
             if (summary.TraditionalProcesses.Any())
             {
-                Console.WriteLine("\n🖥️ Traditional Processes (Window capture fallback):");
+                Console.WriteLine("\n🖥️ Traditional Processes (Not supported for DLL injection):");
                 for (int i = 0; i < summary.TraditionalProcesses.Count; i++)
                 {
                     Console.WriteLine($"   {i + 1}. {summary.TraditionalProcesses[i]}");
@@ -491,7 +491,7 @@ public class ConsoleMenu
             }
 
             Console.WriteLine($"\n📊 Vulkan Support: {(summary.HasVulkanSupport ? "✅ Available" : "❌ Not detected")}");
-            Console.WriteLine("   💡 Vulkan injection provides better performance than window capture");
+            Console.WriteLine("   💡 DLL injection requires Vulkan support");
         }
     }
 
@@ -765,9 +765,8 @@ public class ConsoleMenu
         Console.WriteLine($"Target Monitor: {_selectedMonitor}");
         Console.WriteLine();
         Console.WriteLine("💡 Tips:");
-        Console.WriteLine("  - Vulkan injection provides better performance");
+        Console.WriteLine("  - DLL injection requires Vulkan support");
         Console.WriteLine("  - Run as administrator for injection privileges");
-        Console.WriteLine("  - Traditional window capture works as fallback");
         Console.WriteLine("  - Use Ctrl+L/Ctrl+P hotkeys in GUI mode for quick control");
         Console.WriteLine("  - Stealth mode hides windows from Alt+Tab and taskbar");
     }
@@ -1538,7 +1537,7 @@ public class ConsoleMenu
         Console.WriteLine("   • Run as administrator for better injection support");
         Console.WriteLine("   • Close other applications to free up CPU/memory");
         Console.WriteLine("   • Lower FPS or resolution if performance is poor");
-        Console.WriteLine("   • Use Vulkan injection when available (better than window capture)");
+        Console.WriteLine("   • DLL injection requires Vulkan support");
     }
 
     /// <summary>
@@ -1669,7 +1668,7 @@ public class ConsoleMenu
         
         if (summary.TraditionalProcesses.Any())
         {
-            Console.WriteLine("🖥️ Traditional processes (fallback):");
+            Console.WriteLine("🖥️ Traditional processes (Not supported for DLL injection):");
             foreach (var proc in summary.TraditionalProcesses)
             {
                 Console.WriteLine($"   • {proc}");
@@ -1700,7 +1699,7 @@ public class ConsoleMenu
         Console.WriteLine();
         Console.WriteLine("Performance Tips:");
         Console.WriteLine("• For best results, run as administrator");
-        Console.WriteLine("• Vulkan injection provides better performance than window capture");
+        Console.WriteLine("• DLL injection requires Vulkan support");
         Console.WriteLine("• Set PICK6_DIAG=1 environment variable for detailed frame timing logs");
         Console.WriteLine("• Use option '14' to check for performance warnings");
         Console.WriteLine("• Lower FPS (option '4') if you experience frame drops");

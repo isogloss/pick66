@@ -255,7 +255,7 @@ public class Program
             
             if (summary.TraditionalProcesses.Any())
             {
-                Console.WriteLine("\n🖥️ Traditional Processes (Window capture fallback):");
+                Console.WriteLine("\n🖥️ Traditional Processes (Not supported for DLL injection):");
                 for (int i = 0; i < summary.TraditionalProcesses.Count; i++)
                 {
                     Console.WriteLine($"   {i + 1}. {summary.TraditionalProcesses[i]}");
@@ -263,7 +263,7 @@ public class Program
             }
 
             Console.WriteLine($"\n📊 Vulkan Support: {(summary.HasVulkanSupport ? "✅ Available" : "❌ Not detected")}");
-            Console.WriteLine("   💡 Vulkan injection provides better performance than window capture");
+            Console.WriteLine("   💡 DLL injection requires Vulkan support");
         }
     }
 
@@ -461,9 +461,8 @@ public class Program
         Console.WriteLine($"Resolution Setting: {(captureEngine.Settings.ScaleWidth > 0 ? $"{captureEngine.Settings.ScaleWidth}x{captureEngine.Settings.ScaleHeight}" : "Original")}");
         Console.WriteLine();
         Console.WriteLine("💡 Tips:");
-        Console.WriteLine("  - Vulkan injection provides better performance");
+        Console.WriteLine("  - DLL injection requires Vulkan support");
         Console.WriteLine("  - Run as administrator for injection privileges");
-        Console.WriteLine("  - Traditional window capture works as fallback");
     }
 
     private static void AutoStartCapture(GameCaptureEngine captureEngine, BorderlessProjectionWindow projectionWindow)
