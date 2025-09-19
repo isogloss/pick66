@@ -260,9 +260,9 @@ public class ProjectionController : IDisposable
     private void AttemptInjection(FiveMProcessSummary summary)
     {
         ProcessInfo? targetProcess = null;
-        string method = "";
+        string method = "Vulkan injection";
 
-        // Prioritize Vulkan processes
+        // Only attempt Vulkan processes - no fallback
         if (summary.VulkanProcesses.Any())
         {
             var vulkanProcess = summary.VulkanProcesses.First();
@@ -273,12 +273,11 @@ public class ProjectionController : IDisposable
                 WindowTitle = vulkanProcess.WindowTitle,
                 WindowHandle = vulkanProcess.WindowHandle
             };
-            method = "Vulkan injection";
         }
-        else if (summary.TraditionalProcesses.Any())
+        else
         {
-            targetProcess = summary.TraditionalProcesses.First();
-            method = "Window capture";
+            EmitLog("Error", "No Vulkan processes found. DLL injection requires Vulkan support.");
+            return;
         }
 
         if (targetProcess == null) return;
@@ -294,7 +293,7 @@ public class ProjectionController : IDisposable
         }
         else
         {
-            EmitLog("Warn", $"Failed to start capture on {targetProcess.ProcessName}");
+            EmitLog("Error", $"DLL injection failed on {targetProcess.ProcessName}. Try running as administrator or ensure Vulkan support is available.");
         }
     }
 

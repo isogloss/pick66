@@ -147,11 +147,11 @@ public static class FiveMDetector
     }
 
     /// <summary>
-    /// Get the primary FiveM process (prioritizes Vulkan processes)
+    /// Get the primary FiveM process (only returns Vulkan processes)
     /// </summary>
     public static ProcessInfo? GetPrimaryFiveMProcess()
     {
-        // First check for Vulkan processes
+        // Only check for Vulkan processes - no fallback
         var vulkanProcesses = FindVulkanFiveMProcesses();
         if (vulkanProcesses.Any())
         {
@@ -165,8 +165,8 @@ public static class FiveMDetector
             };
         }
 
-        // Fall back to traditional process detection
-        return FindFiveMProcesses().FirstOrDefault();
+        // No fallback - return null if no Vulkan processes found
+        return null;
     }
 
     /// <summary>
