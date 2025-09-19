@@ -17,6 +17,49 @@ echo.
 echo No manual repository download required!
 echo.
 
+REM Clean up any existing directories from previous installations
+echo [0/5] Cleaning up previous installations...
+echo.
+echo    🧹 Cleaning up existing directories...
+
+REM Remove existing dist directory if it exists
+if exist "dist" (
+    echo    🗑 Removing existing dist directory...
+    rmdir /s /q "dist" 2>nul
+    if %ERRORLEVEL% equ 0 (
+        echo    ✅ Existing dist directory removed
+    ) else (
+        echo    ❌ Warning: Could not remove existing dist directory
+        echo    This may cause conflicts. Please manually delete the 'dist' folder and try again.
+        echo    Or try running this script as Administrator.
+        echo.
+        echo Press any key to acknowledge this warning and continue anyway...
+        pause >nul
+    )
+)
+
+REM Clean up any temp directories from previous runs
+echo    🧹 Cleaning up temporary directories...
+set "TEMP_CLEANED=0"
+for /d %%D in ("%TEMP%\Pick66_*") do (
+    if exist "%%D" (
+        echo    🗑 Removing temp directory: %%D
+        rmdir /s /q "%%D" 2>nul
+        if %ERRORLEVEL% equ 0 (
+            set "TEMP_CLEANED=1"
+        )
+    )
+)
+
+if !TEMP_CLEANED!==1 (
+    echo    ✅ Temporary directories cleaned
+) else (
+    echo    ✅ No temporary directories to clean
+)
+
+echo    ✅ Cleanup completed
+echo.
+
 REM Check dependencies and auto-install if needed
 echo [1/5] Checking dependencies...
 set "DOTNET_EXE=dotnet"
@@ -51,6 +94,9 @@ if %ERRORLEVEL% neq 0 (
     
     if !ERRORLEVEL! neq 0 (
         echo    ❌ Failed to install .NET 8 SDK
+        echo    This could be due to internet connectivity, antivirus interference, or insufficient permissions.
+        echo    Please check the error messages above for more details.
+        echo.
         pause
         call :cleanup_and_exit
     )
@@ -61,6 +107,7 @@ if %ERRORLEVEL% neq 0 (
     if !ERRORLEVEL! neq 0 (
         echo    ⚠ Desktop Runtime installation returned code !ERRORLEVEL!
         echo    This may be normal if already installed - continuing...
+        timeout /t 3 /nobreak >nul
     ) else (
         echo    ✅ Desktop Runtime installed successfully
     )
@@ -71,6 +118,8 @@ if %ERRORLEVEL% neq 0 (
     set "DOTNET_EXE=!TEMP_DOTNET_DIR!\dotnet"
     
     echo    ✅ .NET 8 SDK installed successfully
+    echo    Please wait while we continue with the installation...
+    timeout /t 2 /nobreak >nul
 ) else (
     for /f "tokens=*" %%i in ('dotnet --version') do set "DOTNET_VERSION=%%i"
     echo    ✅ Found .NET SDK version: !DOTNET_VERSION!
@@ -123,6 +172,9 @@ if !VCREDIST_NEEDED!==1 (
         echo    ⚠ Failed to download VC++ Redistributable
         echo    This may cause issues with native components
         echo    You can manually download from: https://aka.ms/vs/17/release/vc_redist.x64.exe
+        echo    Please review the error and consider manually installing if needed.
+        echo.
+        timeout /t 3 /nobreak >nul
     ) else (
         echo    ⚙ Installing VC++ Redistributable...
         "!VCREDIST_DIR!\vc_redist.x64.exe" /quiet /norestart
@@ -132,6 +184,7 @@ if !VCREDIST_NEEDED!==1 (
         ) else (
             echo    ⚠ VC++ Redistributable installation returned code !ERRORLEVEL!
             echo    This is usually normal - continuing installation...
+            timeout /t 2 /nobreak >nul
         )
     )
     
@@ -169,7 +222,10 @@ if !BUILDTOOLS_NEEDED!==1 (
     echo Visual Studio Build Tools not found. Installing...
     echo    📦 This will download and install ~4GB of build tools
     echo    ⏱ Installation may take 10-20 minutes depending on internet speed
+    echo    Please be patient during this process...
     echo.
+    echo Press any key to continue with Build Tools installation...
+    pause >nul
     
     set "BUILDTOOLS_DIR=%TEMP%\Pick66_BuildTools_!RANDOM!"
     if not exist "!BUILDTOOLS_DIR!" mkdir "!BUILDTOOLS_DIR!"
@@ -182,22 +238,30 @@ if !BUILDTOOLS_NEEDED!==1 (
         echo    Manual installation required from: https://aka.ms/vs/17/release/vs_buildtools.exe
         echo.
         echo    After installing Build Tools, re-run this installer
-        pause
+        echo    Press any key to acknowledge this error...
+        pause >nul
         call :cleanup_and_exit
     )
     
     echo    ⚙ Installing Build Tools (this will take several minutes)...
     echo    Installing: MSVC v143, Windows 10/11 SDK, .NET Desktop development workload
+    echo    Please wait - the installer may appear unresponsive during this process...
+    echo.
     "!BUILDTOOLS_DIR!\vs_buildtools.exe" --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.NetCoreTools
     
     if !ERRORLEVEL! neq 0 (
         echo    ❌ Build Tools installation failed with code !ERRORLEVEL!
+        echo    This could be due to insufficient disk space, antivirus interference, 
+        echo    or system requirements not being met.
         echo    Manual installation may be required
-        pause
+        echo    Press any key to acknowledge this error...
+        pause >nul
         call :cleanup_and_exit
     )
     
     echo    ✅ Build Tools installed successfully
+    echo    Installation complete - continuing with source code download...
+    timeout /t 3 /nobreak >nul
     
     REM Cleanup build tools temp files
     if exist "!BUILDTOOLS_DIR!" rmdir /s /q "!BUILDTOOLS_DIR!" 2>nul
@@ -318,6 +382,8 @@ popd
 
 REM Build .NET application with detailed output for user feedback
 echo    🔧 Building .NET application...
+echo    This may take a few minutes depending on your system performance...
+echo.
 "!DOTNET_EXE!" publish "!SRC_DIR!\src\Pick6.Loader\Pick6.Loader.csproj" --configuration Release --runtime win-x64 --self-contained true --output "dist" --verbosity normal --nologo
 
 if %ERRORLEVEL% neq 0 (
@@ -328,10 +394,11 @@ if %ERRORLEVEL% neq 0 (
     echo  • Missing build tools or SDK components
     echo  • Corrupted source files
     echo  • Insufficient disk space
+    echo  • Network issues during package restoration
     echo.
     echo Please check the error messages above for more details.
-    echo.
-    pause
+    echo Press any key to acknowledge this error...
+    pause >nul
     call :cleanup_and_exit
 )
 
@@ -353,6 +420,8 @@ if exist "!SRC_DIR!\dist\Pick6VulkanHook.dll" (
 
 echo.
 echo    ✅ Build successful!
+echo    Please wait while we finalize the installation...
+timeout /t 2 /nobreak >nul
 
 echo.
 echo Cleaning up temporary files...
