@@ -77,7 +77,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 REM Check PowerShell
-echo [2/4] Checking PowerShell...
+echo [2/5] Checking PowerShell...
 powershell -Command "Write-Host 'PowerShell check'" >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo.
