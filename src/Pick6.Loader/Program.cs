@@ -24,7 +24,7 @@ public class Program
         if (args.Any(arg => arg.ToLower() == "--help" || arg.ToLower() == "-h"))
         {
             ShowHelp();
-            return;
+            // Continue to GUI mode after showing help instead of exiting
         }
 
         // Handle check-updates-only mode 
@@ -137,21 +137,24 @@ public class Program
 
     private static void ShowHelp()
     {
-        Log.Info("Pick6 - High-Performance OBS Game Capture Clone for FiveM (Windows Only)");
-        Log.Info("");
-        Log.Info("Usage: pick6.exe [options]");
-        Log.Info("");
-        Log.Info("Options:");
-        Log.Info("  --check-updates           Check for updates at startup");
-        Log.Info("  --check-updates-only      Check for updates and exit");
-        Log.Info("  --help, -h                Show this help message");
-        Log.Info("");
-        Log.Info("Default Behavior:");
-        Log.Info("  Opens GUI mode with minimal black & white interface");
-        Log.Info("");
-        Log.Info("Examples:");
-        Log.Info("  pick6.exe                             # GUI mode");
-        Log.Info("  pick6.exe --check-updates             # GUI mode with update check");
-        Log.Info("  pick6.exe --check-updates-only        # Check for updates and exit");
+        var helpText = @"Pick6 - High-Performance OBS Game Capture Clone for FiveM (Windows Only)
+
+Usage: pick6.exe [options]
+
+Options:
+  --check-updates           Check for updates at startup
+  --check-updates-only      Check for updates and exit
+  --help, -h                Show this help message
+
+Default Behavior:
+  Opens GUI mode with minimal black & white interface
+
+Examples:
+  pick6.exe                             # GUI mode
+  pick6.exe --check-updates             # GUI mode with update check
+  pick6.exe --check-updates-only        # Check for updates and exit";
+
+        // Show help in a MessageBox for GUI applications
+        MessageBox.Show(helpText, "Pick6 Help", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 }
