@@ -17,24 +17,54 @@ echo.
 echo No manual repository download required!
 echo.
 
-REM Check .NET SDK
+REM Check .NET SDK and auto-install if needed
 echo [1/4] Checking .NET SDK...
+set "DOTNET_EXE=dotnet"
+set "DOTNET_ROOT="
+set "TEMP_DOTNET_DIR="
+
 dotnet --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo.
-    echo ❌ ERROR: .NET 8 SDK is required but not found
+    echo .NET 8 SDK not found. Installing automatically...
     echo.
-    echo Please download and install .NET 8 SDK from:
-    echo https://dotnet.microsoft.com/en-us/download/dotnet/8.0
-    echo.
-    echo After installation, restart your command prompt and try again.
-    echo.
-    pause
-    exit /b 1
+    
+    REM Setup temporary dotnet installation directory
+    for /f "tokens=2 delims=." %%i in ('ping -n 1 127.0.0.1 ^| findstr "TTL"') do set "INSTALL_SEED=%%i"
+    set "TEMP_DOTNET_DIR=%TEMP%\Pick66_Dotnet_!RANDOM!!INSTALL_SEED!"
+    
+    echo    📁 Installing to: !TEMP_DOTNET_DIR!
+    if not exist "!TEMP_DOTNET_DIR!" mkdir "!TEMP_DOTNET_DIR!"
+    
+    echo    🌐 Downloading dotnet-install.ps1...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "& { try { $ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://dot.net/v1/dotnet-install.ps1' -OutFile '!TEMP_DOTNET_DIR!\dotnet-install.ps1' -UserAgent 'Pick66-Installer/1.0' -TimeoutSec 30; Write-Host 'Download completed!' } catch { Write-Error $_.Exception.Message; exit 1 } }"
+    
+    if !ERRORLEVEL! neq 0 (
+        echo    ❌ Failed to download dotnet-install.ps1
+        echo    Please check your internet connection and try again.
+        pause
+        call :cleanup_and_exit
+    )
+    
+    echo    ⚙ Installing .NET 8 SDK (this may take a few minutes)...
+    powershell -NoProfile -ExecutionPolicy Bypass -File "!TEMP_DOTNET_DIR!\dotnet-install.ps1" -Channel 8.0 -Quality GA -InstallDir "!TEMP_DOTNET_DIR!" -NoPath
+    
+    if !ERRORLEVEL! neq 0 (
+        echo    ❌ Failed to install .NET 8 SDK
+        pause
+        call :cleanup_and_exit
+    )
+    
+    REM Setup environment for current process
+    set "DOTNET_ROOT=!TEMP_DOTNET_DIR!"
+    set "PATH=!TEMP_DOTNET_DIR!;%PATH%"
+    set "DOTNET_EXE=!TEMP_DOTNET_DIR!\dotnet"
+    
+    echo    ✅ .NET 8 SDK installed successfully
+) else (
+    for /f "tokens=*" %%i in ('dotnet --version') do set "DOTNET_VERSION=%%i"
+    echo    ✅ Found .NET SDK version: !DOTNET_VERSION!
 )
-
-for /f "tokens=*" %%i in ('dotnet --version') do set "DOTNET_VERSION=%%i"
-echo    ✅ Found .NET SDK version: !DOTNET_VERSION!
 
 REM Check PowerShell
 echo [2/4] Checking PowerShell...
@@ -89,16 +119,14 @@ if %ERRORLEVEL% neq 0 (
     echo https://github.com/isogloss/pick66
     echo.
     pause
-    if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!" 2>nul
-    exit /b 1
+    call :cleanup_and_exit
 )
 
 REM Verify download
 if not exist "!ZIP_FILE!" (
     echo ❌ ZIP file was not created
     pause
-    if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!" 2>nul
-    exit /b 1
+    call :cleanup_and_exit
 )
 
 echo    ✅ Download successful
@@ -110,8 +138,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Expand-Archive -Pa
 if %ERRORLEVEL% neq 0 (
     echo ❌ Failed to extract ZIP file
     pause
-    if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!" 2>nul
-    exit /b 1
+    call :cleanup_and_exit
 )
 
 REM Verify extraction
@@ -119,8 +146,7 @@ if not exist "!SRC_DIR!\src\Pick6.Loader\Pick6.Loader.csproj" (
     echo ❌ Project files not found after extraction
     echo Expected: !SRC_DIR!\src\Pick6.Loader\Pick6.Loader.csproj
     pause
-    if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!" 2>nul
-    exit /b 1
+    call :cleanup_and_exit
 )
 
 echo    ✅ Extraction successful
@@ -138,7 +164,7 @@ REM Create dist directory if it doesn't exist
 if not exist "dist" mkdir "dist"
 
 REM Build with detailed output for user feedback
-dotnet publish "!SRC_DIR!\src\Pick6.Loader\Pick6.Loader.csproj" --configuration Release --runtime win-x64 --self-contained true --output "dist" --verbosity normal --nologo
+"!DOTNET_EXE!" publish "!SRC_DIR!\src\Pick6.Loader\Pick6.Loader.csproj" --configuration Release --runtime win-x64 --self-contained true --output "dist" --verbosity normal --nologo
 
 if %ERRORLEVEL% neq 0 (
     echo.
@@ -152,8 +178,7 @@ if %ERRORLEVEL% neq 0 (
     echo Please check the error messages above for more details.
     echo.
     pause
-    if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!" 2>nul
-    exit /b 1
+    call :cleanup_and_exit
 )
 
 REM Verify build output
@@ -161,8 +186,7 @@ if not exist "dist\loader.exe" (
     echo ❌ loader.exe was not created
     echo Build completed but executable is missing
     pause
-    if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!" 2>nul
-    exit /b 1
+    call :cleanup_and_exit
 )
 
 echo.
@@ -173,10 +197,24 @@ echo Cleaning up temporary files...
 if exist "!TEMP_DIR!" (
     rmdir /s /q "!TEMP_DIR!" 2>nul
     if %ERRORLEVEL% equ 0 (
-        echo    ✅ Cleanup completed
+        echo    ✅ Source cleanup completed
     ) else (
         echo    ⚠ Note: Some temporary files may remain in !TEMP_DIR!
         echo      You can manually delete this folder if needed
+    )
+)
+
+REM Clean up temporary dotnet installation if we installed it
+if defined TEMP_DOTNET_DIR (
+    if exist "!TEMP_DOTNET_DIR!" (
+        echo    🧹 Cleaning up temporary .NET installation...
+        rmdir /s /q "!TEMP_DOTNET_DIR!" 2>nul
+        if %ERRORLEVEL% equ 0 (
+            echo    ✅ .NET cleanup completed
+        ) else (
+            echo    ⚠ Note: Temporary .NET files may remain in !TEMP_DOTNET_DIR!
+            echo      You can manually delete this folder if needed
+        )
     )
 )
 
@@ -199,3 +237,12 @@ echo 📖 For usage instructions and help:
 echo    https://github.com/isogloss/pick66
 echo.
 pause
+goto :EOF
+
+:cleanup_and_exit
+REM Cleanup subroutine for error paths
+if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!" 2>nul
+if defined TEMP_DOTNET_DIR (
+    if exist "!TEMP_DOTNET_DIR!" rmdir /s /q "!TEMP_DOTNET_DIR!" 2>nul
+)
+exit /b 1
