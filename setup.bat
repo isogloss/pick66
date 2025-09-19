@@ -6,12 +6,28 @@ echo            Pick66 - One-Click Installer
 echo          Windows x64 Self-Contained Build
 echo ===============================================
 echo.
+echo NOTICE: This installer now works without requiring .NET SDK!
+echo For the best experience, use install.bat instead.
+echo.
+
+REM Check if the new standalone installer exists
+if exist "%~dp0install.bat" (
+    echo Found enhanced installer, redirecting...
+    call "%~dp0install.bat" %*
+    exit /b %ERRORLEVEL%
+)
+
+REM Fallback to original behavior if new installer is not available
+echo Using legacy installer (requires .NET 8 SDK)...
+echo.
 
 REM Check if .NET 8 SDK is installed
 dotnet --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo ERROR: .NET 8 SDK is required but not found.
-    echo Please install .NET 8 SDK from: https://dot.net
+    echo.
+    echo For a no-dependency installation, please use install.bat instead.
+    echo Otherwise, install .NET 8 SDK from: https://dot.net
     echo.
     pause
     exit /b 1

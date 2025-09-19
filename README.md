@@ -2,29 +2,52 @@
 
 Pick66 is a high-performance OBS-style game capture application designed specifically for Windows. It's optimized for capturing and projecting game content with minimal performance impact.
 
-## 🚀 One-Click Installation
+## 🚀 One-Click Installation (No Dependencies!)
 
-### Prerequisites
-- **Windows 10/11** (x64)
-- **.NET 8 SDK** - Download from [https://dot.net](https://dot.net)
+### Quick Install - Users Only Need to Download This!
 
-### Quick Install
-
-1. **Clone or download** this repository
-2. **Double-click** `setup.bat` in the repository folder
-3. **Follow the prompts** - the installer will:
-   - Build the application
-   - Create a self-contained executable (~21MB)
-   - Install to your Downloads folder
+1. **Download** this repository (ZIP file) or clone it
+2. **Double-click** `install.bat` in the repository folder
+3. **That's it!** The installer will:
+   - Try to use a pre-built executable (if available)
+   - Fall back to building from source (if .NET SDK is installed)
+   - Download from GitHub releases (if internet is available)
+   - Install to your Downloads folder automatically
    - Optionally launch the application
 
-That's it! No complex PowerShell scripts or command-line knowledge required.
+**No .NET SDK installation required!** The installer is smart enough to work in multiple ways.
+
+### Alternative Installation Methods
+
+```cmd
+# Enhanced PowerShell installer (recommended)
+install-standalone.ps1
+
+# With automatic launch
+install-standalone.ps1 -Launch
+
+# Custom installation path
+install-standalone.ps1 -OutputPath "C:\MyApps\Pick66" -Launch
+```
+
+### For Developers with .NET SDK
+
+```cmd
+# Legacy installer (requires .NET SDK)
+setup.bat
+
+# PowerShell version
+setup.ps1 -Launch
+```
 
 ## 📋 Features
 
 ### ⚙️ Installation & Distribution
-- **One-Click Installer**: Simple batch file installation
-- **Self-Contained Executable**: No .NET runtime dependencies required
+- **No-Dependency Installer**: Works without requiring .NET SDK installation
+- **Smart Installation Logic**: Tries multiple methods (pre-built, build, download)
+- **Self-Contained Executable**: Includes .NET 8 runtime, runs on any Windows 10/11 system
+- **One-Click Process**: Users just download and run install.bat
+- **Multiple Fallbacks**: Ensures installation works in various scenarios
 - **Optimized for Windows**: Leverages Windows-specific APIs for best performance
 - **Minimal Size**: ~21MB single executable file
 - **Downloads Folder Installation**: Easy to find and use
