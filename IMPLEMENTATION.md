@@ -7,7 +7,7 @@ Pick6 is a complete OBS Game Capture clone specifically designed for FiveM with 
 ### ✅ Core Requirements Met
 
 1. **Enhanced Game Capture**: Vulkan DLL injection for direct frame capture + GDI fallback
-2. **UI with Projection Control**: Interactive console-based UI with enhanced process detection
+2. **UI with Projection Control**: Modern ImGui interface with enhanced process detection
 3. **Borderless Fullscreen Projection**: Native Win32 borderless window implementation
 4. **Resolution & Settings Configuration**: Configurable FPS (up to 120), resolution scaling, hardware acceleration
 5. **Real-time Frame Projection**: No recording - pure real-time projection like OBS
@@ -17,17 +17,17 @@ Pick6 is a complete OBS Game Capture clone specifically designed for FiveM with 
 ### 🏗️ Architecture
 
 ```
-Pick6.Launcher.exe (Main executable - 87MB self-contained)
+pick6_loader.exe (Main executable - ~21MB self-contained Windows-only)
 ├── Pick6.Core (Capture engine & FiveM detection)
-├── Pick6.UI (Interactive console interface)
+├── Pick6.ModGui (Modern ImGui interface)
 └── Pick6.Projection (Borderless fullscreen window)
 ```
 
 ### 🚀 Usage Modes
 
-**Interactive Mode:**
-```bash
-Pick6.Launcher.exe
+**GUI Mode (Default):**
+```cmd
+pick6_loader.exe
 # Shows full menu with 8 options including scan, capture, project, configure
 ```
 

@@ -1,29 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Windows-specific settings -->
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+  <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>pick6_loader</AssemblyName>
-    <DefineConstants>WINDOWS</DefineConstants>
-  </PropertyGroup>
-
-  <!-- Non-Windows settings -->
-  <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <AssemblyName>pick6_loader</AssemblyName>
-  </PropertyGroup>
-
-  <!-- Common settings -->
-  <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <SupportedOSPlatformVersion>10.0.17763</SupportedOSPlatformVersion>
   </PropertyGroup>
   
-  <!-- Single-file publishing settings for win-x64 target -->
-  <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('win'))">
+  <!-- Single-file publishing settings for Windows x64 -->
+  <PropertyGroup>
     <PublishSingleFile>true</PublishSingleFile>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -40,21 +28,6 @@
     <ProjectReference Include="..\Pick6.Core\Pick6.Core.csproj" />
     <ProjectReference Include="..\Pick6.Projection\Pick6.Projection.csproj" />
     <ProjectReference Include="..\Pick6.ModGui\Pick6.ModGui.csproj" />
-  </ItemGroup>
-
-  <!-- Exclude Windows Forms files from non-Windows builds -->
-  <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
-    <Compile Remove="MainForm.cs" />
-    <Compile Remove="MainForm.Designer.cs" />
-    <Compile Remove="UI\**\*.cs" />
-    <Compile Remove="Controllers\**\*.cs" />
-    <Compile Remove="Settings\**\*.cs" />
-    <Compile Remove="Logging\**\*.cs" />
-  </ItemGroup>
-
-  <!-- Exclude console menu from all builds -->
-  <ItemGroup>
-    <Compile Remove="ConsoleMenu.cs" />
   </ItemGroup>
 
 </Project>

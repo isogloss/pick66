@@ -1,38 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Windows-specific settings -->
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-    <OutputType>WinExe</OutputType>
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
-    <DefineConstants>WINDOWS</DefineConstants>
-  </PropertyGroup>
-
-  <!-- Non-Windows settings -->
-  <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-  </PropertyGroup>
-
-  <!-- Common settings -->
-  <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>Pick6.ModGui</AssemblyName>
+    <SupportedOSPlatformVersion>10.0.17763</SupportedOSPlatformVersion>
   </PropertyGroup>
 
-  <!-- Single-file publishing settings for win-x64 target -->
-  <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('win'))">
-    <PublishSingleFile>true</PublishSingleFile>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <PublishReadyToRun>true</PublishReadyToRun>
-    <PublishTrimmed>false</PublishTrimmed>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-  </PropertyGroup>
-
-  <!-- ImGui.NET dependency with simpler backend -->
+  <!-- ImGui.NET dependency -->
   <ItemGroup>
     <PackageReference Include="ImGui.NET" Version="1.89.7.1" />
   </ItemGroup>

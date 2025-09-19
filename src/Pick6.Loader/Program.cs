@@ -2,15 +2,12 @@ using Pick6.Core;
 using Pick6.Projection;
 using Pick6.Loader.Update;
 using Pick6.ModGui;
-
-#if WINDOWS
 using System.ComponentModel;
-#endif
 
 namespace Pick6.Loader;
 
 /// <summary>
-/// Unified entry point for Pick6 - GUI-only application with minimal black & white interface
+/// Unified entry point for Pick6 - Windows-only GUI application with minimal black & white interface
 /// </summary>
 public class Program
 {
@@ -118,7 +115,6 @@ public class Program
         }
     }
 
-#if WINDOWS
     private static void RunGuiMode()
     {
         try
@@ -139,18 +135,10 @@ public class Program
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
-#else
-    private static void RunGuiMode()
-    {
-        // This should never be called on non-Windows, but just in case
-        Log.Error("GUI mode is only available on Windows.");
-        Environment.Exit(1);
-    }
-#endif
 
     private static void ShowHelp()
     {
-        Log.Info("Pick6 - High-Performance OBS Game Capture Clone for FiveM");
+        Log.Info("Pick6 - High-Performance OBS Game Capture Clone for FiveM (Windows Only)");
         Log.Info("");
         Log.Info("Usage: pick6.exe [options]");
         Log.Info("");
