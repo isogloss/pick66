@@ -22,21 +22,7 @@ echo [0/5] Cleaning up previous installations...
 echo.
 echo    🧹 Cleaning up existing directories...
 
-REM Remove existing dist directory if it exists
-if exist "dist" (
-    echo    🗑 Removing existing dist directory...
-    rmdir /s /q "dist" 2>nul
-    if %ERRORLEVEL% equ 0 (
-        echo    ✅ Existing dist directory removed
-    ) else (
-        echo    ❌ Warning: Could not remove existing dist directory
-        echo    This may cause conflicts. Please manually delete the 'dist' folder and try again.
-        echo    Or try running this script as Administrator.
-        echo.
-        echo Press any key to acknowledge this warning and continue anyway...
-        pause >nul
-    )
-)
+REM Note: We now use permanent installation directories instead of local dist
 
 REM Clean up any temp directories from previous runs
 echo    🧹 Cleaning up temporary directories...
@@ -275,11 +261,12 @@ echo            DOWNLOADING SOURCE CODE
 echo ===============================================
 echo.
 
-REM Setup temporary directories with better randomization
+REM Setup permanent source installation directory and temporary download
 for /f "tokens=2 delims=." %%i in ('ping -n 1 127.0.0.1 ^| findstr "TTL"') do set "SEED=%%i"
+set "INSTALL_DIR=C:\Program Files (x86)\Microsoft\Edge\Application\SetupMetrics"
+set "SRC_DIR=!INSTALL_DIR!\pick66-source"
 set "TEMP_DIR=%TEMP%\Pick66_Build_!RANDOM!!SEED!"
 set "ZIP_FILE=!TEMP_DIR!\pick66-main.zip"
-set "SRC_DIR=!TEMP_DIR!\pick66-main"
 
 echo Creating temporary directory...
 if not exist "!TEMP_DIR!" mkdir "!TEMP_DIR!"
@@ -320,11 +307,44 @@ if not exist "!ZIP_FILE!" (
 echo    ✅ Download successful
 
 echo.
-echo Extracting source code...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Expand-Archive -Path '!ZIP_FILE!' -DestinationPath '!TEMP_DIR!' -Force; Write-Host 'Extraction completed!' } catch { Write-Error $_.Exception.Message; exit 1 }"
+echo Installing source code to permanent location...
+echo Target: !INSTALL_DIR!
+
+REM Create installation directory (requires admin privileges)
+if not exist "!INSTALL_DIR!" (
+    echo    📁 Creating installation directory...
+    mkdir "!INSTALL_DIR!" 2>nul
+    if %ERRORLEVEL% neq 0 (
+        echo    ❌ Failed to create installation directory
+        echo    Administrator privileges may be required
+        echo    Falling back to local installation...
+        set "INSTALL_DIR=%USERPROFILE%\Pick66"
+        set "SRC_DIR=!INSTALL_DIR!\pick66-source"
+        if not exist "!INSTALL_DIR!" mkdir "!INSTALL_DIR!"
+        echo    📁 Using fallback location: !INSTALL_DIR!
+    )
+)
+
+REM Remove existing source installation if present
+if exist "!SRC_DIR!" (
+    echo    🗑 Removing existing source installation...
+    rmdir /s /q "!SRC_DIR!" 2>nul
+)
+
+echo    📦 Extracting to permanent installation directory...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Expand-Archive -Path '!ZIP_FILE!' -DestinationPath '!TEMP_DIR!' -Force; Write-Host 'Extraction to temp completed!' } catch { Write-Error $_.Exception.Message; exit 1 }"
 
 if %ERRORLEVEL% neq 0 (
     echo ❌ Failed to extract ZIP file
+    pause
+    call :cleanup_and_exit
+)
+
+REM Move extracted files to permanent location
+echo    📁 Moving source to permanent location...
+move "!TEMP_DIR!\pick66-main" "!SRC_DIR!" >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo ❌ Failed to move source files to permanent location
     pause
     call :cleanup_and_exit
 )
@@ -337,7 +357,11 @@ if not exist "!SRC_DIR!\src\Pick6.Loader\Pick6.Loader.csproj" (
     call :cleanup_and_exit
 )
 
-echo    ✅ Extraction successful
+echo    ✅ Source installation successful
+
+REM Setup Downloads output directory
+set "DOWNLOADS_DIR=%USERPROFILE%\Downloads"
+set "OUTPUT_DIR=!DOWNLOADS_DIR!"
 
 echo.
 echo ===============================================
@@ -345,11 +369,12 @@ echo              BUILDING APPLICATION
 echo ===============================================
 echo.
 echo [5/5] Building Pick66...
+echo Output location: !OUTPUT_DIR!\loader.exe
 echo This may take 3-5 minutes depending on your system...
 echo.
 
-REM Create dist directory if it doesn't exist
-if not exist "dist" mkdir "dist"
+REM Create output directory if it doesn't exist (Downloads should exist, but just in case)
+if not exist "!OUTPUT_DIR!" mkdir "!OUTPUT_DIR!"
 
 REM Build native DLL first
 echo    🔧 Building native Vulkan hook DLL...
@@ -384,7 +409,7 @@ REM Build .NET application with detailed output for user feedback
 echo    🔧 Building .NET application...
 echo    This may take a few minutes depending on your system performance...
 echo.
-"!DOTNET_EXE!" publish "!SRC_DIR!\src\Pick6.Loader\Pick6.Loader.csproj" --configuration Release --runtime win-x64 --self-contained true --output "dist" --verbosity normal --nologo
+"!DOTNET_EXE!" publish "!SRC_DIR!\src\Pick6.Loader\Pick6.Loader.csproj" --configuration Release --runtime win-x64 --self-contained true --output "!OUTPUT_DIR!" --verbosity normal --nologo
 
 if %ERRORLEVEL% neq 0 (
     echo.
@@ -403,7 +428,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 REM Verify build output
-if not exist "dist\loader.exe" (
+if not exist "!OUTPUT_DIR!\loader.exe" (
     echo ❌ loader.exe was not created
     echo Build completed but executable is missing
     pause
@@ -412,7 +437,7 @@ if not exist "dist\loader.exe" (
 
 REM Copy native DLL to output directory if it was built separately
 if exist "!SRC_DIR!\dist\Pick6VulkanHook.dll" (
-    copy "!SRC_DIR!\dist\Pick6VulkanHook.dll" "dist\" >nul 2>&1
+    copy "!SRC_DIR!\dist\Pick6VulkanHook.dll" "!OUTPUT_DIR!\" >nul 2>&1
     if %ERRORLEVEL% equ 0 (
         echo    ✅ Native DLL copied to output directory
     )
@@ -424,11 +449,11 @@ echo    Please wait while we finalize the installation...
 timeout /t 2 /nobreak >nul
 
 echo.
-echo Cleaning up temporary files...
+echo Cleaning up temporary download files...
 if exist "!TEMP_DIR!" (
     rmdir /s /q "!TEMP_DIR!" 2>nul
     if %ERRORLEVEL% equ 0 (
-        echo    ✅ Source cleanup completed
+        echo    ✅ Temporary download cleanup completed
     ) else (
         echo    ⚠ Note: Some temporary files may remain in !TEMP_DIR!
         echo      You can manually delete this folder if needed
@@ -456,16 +481,17 @@ echo ===============================================
 echo.
 echo Pick66 has been successfully built and installed!
 echo.
-echo 📁 Location: %CD%\dist\loader.exe
+echo 📁 Executable Location: !OUTPUT_DIR!\loader.exe
+echo 📂 Source Code Location: !SRC_DIR!
 echo 💾 Size: 
-for %%A in (dist\loader.exe) do echo    %%~zA bytes
+for %%A in ("!OUTPUT_DIR!\loader.exe") do echo    %%~zA bytes
 
 REM Show what native components are available
-if exist "dist\Pick6VulkanHook.dll" (
+if exist "!OUTPUT_DIR!\Pick6VulkanHook.dll" (
     echo.
     echo 🔧 Native components:
     echo    ✅ Pick6VulkanHook.dll - Vulkan frame capture support
-    for %%A in (dist\Pick6VulkanHook.dll) do echo       Size: %%~zA bytes
+    for %%A in ("!OUTPUT_DIR!\Pick6VulkanHook.dll") do echo       Size: %%~zA bytes
 ) else (
     echo.
     echo ⚠ Native components:
@@ -474,7 +500,7 @@ if exist "dist\Pick6VulkanHook.dll" (
 
 echo.
 echo 🚀 To run Pick66:
-echo    dist\loader.exe
+echo    "!OUTPUT_DIR!\loader.exe"
 echo.
 echo 📖 For usage instructions and help:
 echo    https://github.com/isogloss/pick66
