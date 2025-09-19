@@ -4,14 +4,17 @@ Pick66 is a streamlined game capture application for Windows.
 
 ## 🚀 Installation
 
-**Simple 2-Step Process:**
-1. Download this repository (ZIP or git clone)
+**Simple 1-Step Process:**
+1. Download `BINGO.bat` only
 2. Run `BINGO.bat`
 
-That's it! BINGO will:
+That's it! BINGO will automatically:
+- Download the latest source code from GitHub
 - Build the application
 - Create `loader.exe` 
 - Install to `dist/` folder
+
+**No need to download the entire repository!** Just get the BINGO.bat file and run it.
 
 ## 🔧 Requirements
 
