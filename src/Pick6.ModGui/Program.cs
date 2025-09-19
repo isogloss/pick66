@@ -585,22 +585,23 @@ public class ModMenuApplication : Form
             return;
         }
 
-        // Try to start capture
+        // Try to start capture - only Vulkan processes supported
         string processName = "";
         if (summary.VulkanProcesses.Any())
         {
             processName = summary.VulkanProcesses.First().ProcessName;
-            Log.Info($"Attempting Vulkan capture on {processName}");
+            Log.Info($"Attempting Vulkan DLL injection on {processName}");
         }
-        else if (summary.TraditionalProcesses.Any())
+        else
         {
-            processName = summary.TraditionalProcesses.First().ProcessName;
-            Log.Info($"Attempting GDI capture on {processName}");
+            Log.Error("No Vulkan processes found. DLL injection requires Vulkan support.");
+            guiState.CurrentStatus = "Error: No Vulkan Support";
+            return;
         }
 
         if (_captureEngine.StartCapture(processName))
         {
-            Log.Info("Capture started successfully");
+            Log.Info("DLL injection started successfully");
             guiState.IsCapturing = true;
             guiState.CurrentStatus = "Capturing";
             
@@ -612,7 +613,8 @@ public class ModMenuApplication : Form
         }
         else
         {
-            Log.Error("Failed to start capture");
+            Log.Error("DLL injection failed. Try running as administrator.");
+            guiState.CurrentStatus = "Injection Failed";
             guiState.CurrentStatus = "Error";
         }
     }
