@@ -55,6 +55,16 @@ if %ERRORLEVEL% neq 0 (
         call :cleanup_and_exit
     )
     
+    echo    ⚙ Installing .NET 8 Desktop Runtime for Windows Forms support...
+    powershell -NoProfile -ExecutionPolicy Bypass -File "!TEMP_DOTNET_DIR!\dotnet-install.ps1" -Channel 8.0 -Quality GA -Runtime windowsdesktop -InstallDir "!TEMP_DOTNET_DIR!" -NoPath
+    
+    if !ERRORLEVEL! neq 0 (
+        echo    ⚠ Desktop Runtime installation returned code !ERRORLEVEL!
+        echo    This may be normal if already installed - continuing...
+    ) else (
+        echo    ✅ Desktop Runtime installed successfully
+    )
+    
     REM Setup environment for current process
     set "DOTNET_ROOT=!TEMP_DOTNET_DIR!"
     set "PATH=!TEMP_DOTNET_DIR!;%PATH%"
@@ -177,8 +187,8 @@ if !BUILDTOOLS_NEEDED!==1 (
     )
     
     echo    ⚙ Installing Build Tools (this will take several minutes)...
-    echo    Installing: MSVC v143, Windows 10/11 SDK, CMake tools
-    "!BUILDTOOLS_DIR!\vs_buildtools.exe" --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621
+    echo    Installing: MSVC v143, Windows 10/11 SDK, .NET Desktop development workload
+    "!BUILDTOOLS_DIR!\vs_buildtools.exe" --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.NetCoreTools
     
     if !ERRORLEVEL! neq 0 (
         echo    ❌ Build Tools installation failed with code !ERRORLEVEL!
@@ -279,8 +289,9 @@ if not exist "dist" mkdir "dist"
 
 REM Build native DLL first
 echo    🔧 Building native Vulkan hook DLL...
-pushd "!SRC_DIR!\native"
-if exist "build_native.bat" (
+pushd "!SRC_DIR!"
+if exist "native\build_native.bat" (
+    cd native
     call build_native.bat
     if !ERRORLEVEL! neq 0 (
         echo    ⚠ Native DLL build failed - creating stub DLL
@@ -292,10 +303,13 @@ if exist "build_native.bat" (
     ) else (
         echo    ✅ Native DLL built successfully
     )
+    cd ..
 ) else (
     echo    ⚠ Native build script not found - creating stub DLL
-    if exist "create_stub.bat" (
+    if exist "native\create_stub.bat" (
+        cd native
         call create_stub.bat
+        cd ..
     ) else (
         echo    ⚠ No native components available - application may have limited functionality
     )
@@ -327,6 +341,14 @@ if not exist "dist\loader.exe" (
     echo Build completed but executable is missing
     pause
     call :cleanup_and_exit
+)
+
+REM Copy native DLL to output directory if it was built separately
+if exist "!SRC_DIR!\dist\Pick6VulkanHook.dll" (
+    copy "!SRC_DIR!\dist\Pick6VulkanHook.dll" "dist\" >nul 2>&1
+    if %ERRORLEVEL% equ 0 (
+        echo    ✅ Native DLL copied to output directory
+    )
 )
 
 echo.
@@ -368,6 +390,18 @@ echo.
 echo 📁 Location: %CD%\dist\loader.exe
 echo 💾 Size: 
 for %%A in (dist\loader.exe) do echo    %%~zA bytes
+
+REM Show what native components are available
+if exist "dist\Pick6VulkanHook.dll" (
+    echo.
+    echo 🔧 Native components:
+    echo    ✅ Pick6VulkanHook.dll - Vulkan frame capture support
+    for %%A in (dist\Pick6VulkanHook.dll) do echo       Size: %%~zA bytes
+) else (
+    echo.
+    echo ⚠ Native components:
+    echo    ❌ Pick6VulkanHook.dll not found - limited Vulkan functionality
+)
 
 echo.
 echo 🚀 To run Pick66:

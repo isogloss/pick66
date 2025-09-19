@@ -44,7 +44,7 @@ echo Using compiler at: !VSTOOLS_PATH!
 REM Setup build environment
 call "!VSTOOLS_PATH!" >nul 2>&1
 
-REM Create output directory
+REM Create output directory (relative to the main directory, not native)
 if not exist "..\..\dist" mkdir "..\..\dist"
 
 REM Compile the DLL

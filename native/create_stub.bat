@@ -18,7 +18,7 @@ echo __declspec(dllexport) int CaptureFrame(void* frameData) { return 0; } >> "!
 echo __declspec(dllexport) void ShutdownVulkanHook() { } >> "!TEMP_C_FILE!"
 
 REM Try to compile with GCC (if available via MinGW or similar)
-gcc -shared -o "dist\Pick6VulkanHook.dll" "!TEMP_C_FILE!" 2>nul
+gcc -shared -o "..\..\dist\Pick6VulkanHook.dll" "!TEMP_C_FILE!" 2>nul
 if %ERRORLEVEL% equ 0 (
     echo ✅ Stub DLL created with GCC
     del "!TEMP_C_FILE!" 2>nul
@@ -26,7 +26,7 @@ if %ERRORLEVEL% equ 0 (
 )
 
 REM Try TinyCC if available
-tcc -shared -o "dist\Pick6VulkanHook.dll" "!TEMP_C_FILE!" 2>nul
+tcc -shared -o "..\..\dist\Pick6VulkanHook.dll" "!TEMP_C_FILE!" 2>nul
 if %ERRORLEVEL% equ 0 (
     echo ✅ Stub DLL created with TCC
     del "!TEMP_C_FILE!" 2>nul
