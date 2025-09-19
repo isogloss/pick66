@@ -285,9 +285,9 @@ public partial class MainForm : Form
         if (_captureEngine == null) return;
 
         ProcessInfo? targetProcess = null;
-        string method = "";
+        string method = "Vulkan injection";
 
-        // Prioritize Vulkan processes like OBS would
+        // Only attempt Vulkan processes - no fallback to window capture
         if (summary.VulkanProcesses.Any())
         {
             var vulkanProcess = summary.VulkanProcesses.First();
@@ -298,12 +298,15 @@ public partial class MainForm : Form
                 WindowTitle = vulkanProcess.WindowTitle,
                 WindowHandle = vulkanProcess.WindowHandle
             };
-            method = "Vulkan injection";
         }
-        else if (summary.TraditionalProcesses.Any())
+        else
         {
-            targetProcess = summary.TraditionalProcesses.First();
-            method = "Window capture";
+            StopSpinner();
+            _statusLabel.Text = $"{TextGlyphs.Fail} No Vulkan processes found - DLL injection requires Vulkan support";
+            _statusLabel.ForeColor = Color.Red;
+            _captureStatusLabel.Text = "Capture Status: Failed - No Vulkan support";
+            _captureStatusLabel.ForeColor = Color.Red;
+            return;
         }
 
         if (targetProcess == null) return;
@@ -332,9 +335,9 @@ public partial class MainForm : Form
         else
         {
             StopSpinner();
-            _statusLabel.Text = $"{TextGlyphs.Fail} Injection failed - try running as administrator";
+            _statusLabel.Text = $"{TextGlyphs.Fail} DLL injection failed - try running as administrator";
             _statusLabel.ForeColor = Color.Red;
-            _captureStatusLabel.Text = "Capture Status: Failed";
+            _captureStatusLabel.Text = "Capture Status: Injection Failed";
             _captureStatusLabel.ForeColor = Color.Red;
         }
     }

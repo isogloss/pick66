@@ -36,7 +36,7 @@ public class GameCaptureEngine
 
     /// <summary>
     /// Start capturing frames from the target process
-    /// Tries Vulkan injection first, falls back to GDI capture
+    /// Either injects DLL or returns false with error message
     /// </summary>
     public bool StartCapture(string processName)
     {
@@ -44,14 +44,15 @@ public class GameCaptureEngine
         {
             if (_isCapturing) return false;
 
-            // First try Vulkan injection approach
+            // Attempt Vulkan injection only - no fallback
             if (_useVulkanCapture && TryStartVulkanCapture(processName))
             {
                 return true;
             }
 
-            // Fall back to GDI window capture
-            return StartGdiCapture(processName);
+            // No fallback - either inject DLL or fail
+            ErrorOccurred?.Invoke(this, "DLL injection failed. Vulkan injection is required but not available or failed.");
+            return false;
         }
     }
 

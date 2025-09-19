@@ -512,9 +512,9 @@ public class ConsoleMenu
         
         scanSpinner.Success($"Found {summary.TotalProcessCount} process(es)");
 
-        // Prioritize Vulkan processes for injection
+        // Only attempt Vulkan processes for injection - no fallback
         ProcessInfo? targetProcess = null;
-        string captureMethod = "";
+        string captureMethod = "Vulkan Injection";
 
         if (summary.VulkanProcesses.Any())
         {
@@ -526,17 +526,18 @@ public class ConsoleMenu
                 WindowTitle = vulkanProcess.WindowTitle,
                 WindowHandle = vulkanProcess.WindowHandle
             };
-            captureMethod = "Vulkan Injection";
         }
-        else if (summary.TraditionalProcesses.Any())
+        else
         {
-            targetProcess = summary.TraditionalProcesses.First();
-            captureMethod = "GDI Window Capture (fallback)";
+            Console.WriteLine("❌ No Vulkan processes found for DLL injection.");
+            Console.WriteLine("   💡 DLL injection requires FiveM processes with Vulkan support");
+            Console.WriteLine("   💡 Try running as administrator or ensure your FiveM installation supports Vulkan");
+            return;
         }
 
         if (targetProcess == null)
         {
-            Console.WriteLine("❌ No suitable processes found for capture.");
+            Console.WriteLine("❌ No suitable Vulkan processes found for injection.");
             return;
         }
 
@@ -554,8 +555,9 @@ public class ConsoleMenu
         }
         else
         {
-            injectionSpinner.Fail("Failed to start capture");
-            Console.WriteLine("   💡 Try running as administrator for injection support");
+            injectionSpinner.Fail("DLL injection failed");
+            Console.WriteLine("   💡 Try running as administrator for injection privileges");
+            Console.WriteLine("   💡 Ensure the target process supports Vulkan DLL injection");
         }
     }
 
@@ -683,9 +685,9 @@ public class ConsoleMenu
             return;
         }
 
-        // Prioritize Vulkan processes
+        // Only attempt Vulkan processes - no fallback
         ProcessInfo? targetProcess = null;
-        string method = "";
+        string method = "Vulkan injection";
 
         if (summary.VulkanProcesses.Any())
         {
@@ -697,12 +699,13 @@ public class ConsoleMenu
                 WindowTitle = vulkanProcess.WindowTitle,
                 WindowHandle = vulkanProcess.WindowHandle
             };
-            method = "Vulkan injection";
         }
         else
         {
-            targetProcess = summary.TraditionalProcesses.First();
-            method = "window capture";
+            Console.WriteLine("❌ No Vulkan processes found for DLL injection.");
+            Console.WriteLine("   💡 DLL injection requires FiveM processes with Vulkan support");
+            Console.WriteLine("   💡 Try running as administrator or ensure your FiveM installation supports Vulkan");
+            return;
         }
 
         Console.WriteLine($"🎯 Found: {targetProcess} ({method})");
@@ -719,8 +722,9 @@ public class ConsoleMenu
         }
         else
         {
-            Console.WriteLine("❌ Failed to start capture.");
-            Console.WriteLine("   💡 For Vulkan injection, try running as administrator");
+            Console.WriteLine("❌ DLL injection failed.");
+            Console.WriteLine("   💡 Try running as administrator for injection privileges");
+        }
         }
     }
 
@@ -788,7 +792,8 @@ public class ConsoleMenu
             }
             else
             {
-                targetProcess = summary.TraditionalProcesses.First();
+                Log("No Vulkan processes found for auto-start. DLL injection requires Vulkan support.", LogLevel.Error);
+                return;
             }
 
             if (targetProcess != null && _captureEngine.StartCapture(targetProcess.ProcessName))
@@ -804,6 +809,10 @@ public class ConsoleMenu
                 {
                     Log("Projection disabled by --no-projection flag", LogLevel.Info);
                 }
+            }
+            else
+            {
+                Log("DLL injection failed during auto-start. Try running as administrator.", LogLevel.Error);
             }
         }
         else
