@@ -175,3 +175,32 @@ public class FileLogSink : ILogSink
         }
     }
 }
+
+/// <summary>
+/// Console log sink that writes to standard console output
+/// </summary>
+public class ConsoleLogSink : ILogSink
+{
+    public void WriteLog(LogLevel level, DateTime timestamp, string message)
+    {
+        var color = level switch
+        {
+            LogLevel.Error => ConsoleColor.Red,
+            LogLevel.Warning => ConsoleColor.Yellow,
+            LogLevel.Info => ConsoleColor.White,
+            LogLevel.Debug => ConsoleColor.Gray,
+            _ => ConsoleColor.White
+        };
+
+        var originalColor = Console.ForegroundColor;
+        try
+        {
+            Console.ForegroundColor = color;
+            Console.WriteLine($"[{level}] {message}");
+        }
+        finally
+        {
+            Console.ForegroundColor = originalColor;
+        }
+    }
+}
