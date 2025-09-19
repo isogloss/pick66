@@ -1,7 +1,6 @@
 using Pick6.Core;
 using Pick6.Projection;
 using Pick6.Loader.Update;
-using Pick6.ModGui;
 using System.ComponentModel;
 
 namespace Pick6.Loader;
@@ -110,8 +109,7 @@ public class Program
         }
         catch (Exception ex)
         {
-            Log.Warn($"Update sequence failed: {ex.Message}");
-            Log.Info("Continuing with built-in functionality");
+            Log.Warn($"Update failed: {ex.Message}");
         }
     }
 
@@ -123,15 +121,15 @@ public class Program
             Application.SetCompatibleTextRenderingDefault(false);
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
 
-            // Use new ImGui mod menu instead of WinForms MainForm
-            Log.Info("Starting Pick6 Mod Menu interface");
-            var modMenuApp = new ModMenuApplication();
-            Application.Run(modMenuApp);
+            // Use the existing MainForm instead of ModGui
+            Log.Info("Starting Pick6 interface");
+            var mainForm = new MainForm();
+            Application.Run(mainForm);
         }
         catch (Exception ex)
         {
-            Log.Error($"Application error: {ex.Message}");
-            MessageBox.Show($"Application error: {ex.Message}", "Pick6 Loader Error", 
+            Log.Error($"Error: {ex.Message}");
+            MessageBox.Show($"Error: {ex.Message}", "Pick6 Error", 
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
