@@ -1,0 +1,4 @@
+EXPORTS
+InitializeVulkanHook
+CaptureFrame
+ShutdownVulkanHook

@@ -55,8 +55,13 @@ public class VulkanInjector
             var dllPath = GetInjectionDllPath();
             if (!File.Exists(dllPath))
             {
-                // DLL not found - in a real implementation, this would be built as part of the solution
-                throw new FileNotFoundException($"Vulkan hook DLL not found: {dllPath}");
+                // DLL not found - log this but don't fail silently
+                // This allows the application to continue running with limited functionality
+                System.Diagnostics.Debug.WriteLine($"Vulkan hook DLL not found: {dllPath}");
+                System.Diagnostics.Debug.WriteLine("Application will continue with limited Vulkan functionality.");
+                
+                // Return false to indicate injection failed, but don't throw
+                return false;
             }
 
             return PerformDllInjection(dllPath);
