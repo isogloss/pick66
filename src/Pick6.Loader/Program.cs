@@ -2,6 +2,7 @@ using Pick6.Core;
 using Pick6.Projection;
 using Pick6.Loader.Update;
 using System.ComponentModel;
+using System.Windows.Forms;
 
 namespace Pick6.Loader;
 
