@@ -17,8 +17,8 @@ echo.
 echo No manual repository download required!
 echo.
 
-REM Check .NET SDK and auto-install if needed
-echo [1/4] Checking .NET SDK...
+REM Check dependencies and auto-install if needed
+echo [1/5] Checking dependencies...
 set "DOTNET_EXE=dotnet"
 set "DOTNET_ROOT="
 set "TEMP_DOTNET_DIR="
@@ -55,6 +55,16 @@ if %ERRORLEVEL% neq 0 (
         call :cleanup_and_exit
     )
     
+    echo    ⚙ Installing .NET 8 Desktop Runtime for Windows Forms support...
+    powershell -NoProfile -ExecutionPolicy Bypass -File "!TEMP_DOTNET_DIR!\dotnet-install.ps1" -Channel 8.0 -Quality GA -Runtime windowsdesktop -InstallDir "!TEMP_DOTNET_DIR!" -NoPath
+    
+    if !ERRORLEVEL! neq 0 (
+        echo    ⚠ Desktop Runtime installation returned code !ERRORLEVEL!
+        echo    This may be normal if already installed - continuing...
+    ) else (
+        echo    ✅ Desktop Runtime installed successfully
+    )
+    
     REM Setup environment for current process
     set "DOTNET_ROOT=!TEMP_DOTNET_DIR!"
     set "PATH=!TEMP_DOTNET_DIR!;%PATH%"
@@ -67,7 +77,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 REM Check PowerShell
-echo [2/4] Checking PowerShell...
+echo [2/5] Checking PowerShell...
 powershell -Command "Write-Host 'PowerShell check'" >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo.
@@ -80,6 +90,120 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 echo    ✅ PowerShell available
+
+REM Check and install Visual C++ Redistributables
+echo [2/5] Checking Visual C++ Redistributables...
+set "VCREDIST_NEEDED=0"
+
+REM Check for VC++ 2015-2022 Redistributable (x64)
+reg query "HKLM\SOFTWARE\Microsoft\DevDiv\VC\Servicing\14.0\RuntimeMinimum" /v "Version" >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    set "VCREDIST_NEEDED=1"
+) else (
+    REM Also check WOW64 registry for 32-bit on 64-bit systems
+    reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" /v "Installed" >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        set "VCREDIST_NEEDED=1"
+    )
+)
+
+if !VCREDIST_NEEDED!==1 (
+    echo.
+    echo Visual C++ Redistributable not found. Installing...
+    echo.
+    
+    REM Create temp directory for vcredist download
+    set "VCREDIST_DIR=%TEMP%\Pick66_VCRedist_!RANDOM!"
+    if not exist "!VCREDIST_DIR!" mkdir "!VCREDIST_DIR!"
+    
+    echo    🌐 Downloading VC++ Redistributable...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "& { try { $ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '!VCREDIST_DIR!\vc_redist.x64.exe' -UserAgent 'Pick66-Installer/1.0' -TimeoutSec 60; Write-Host 'Download completed!' } catch { Write-Error $_.Exception.Message; exit 1 } }"
+    
+    if !ERRORLEVEL! neq 0 (
+        echo    ⚠ Failed to download VC++ Redistributable
+        echo    This may cause issues with native components
+        echo    You can manually download from: https://aka.ms/vs/17/release/vc_redist.x64.exe
+    ) else (
+        echo    ⚙ Installing VC++ Redistributable...
+        "!VCREDIST_DIR!\vc_redist.x64.exe" /quiet /norestart
+        
+        if !ERRORLEVEL! equ 0 (
+            echo    ✅ VC++ Redistributable installed successfully
+        ) else (
+            echo    ⚠ VC++ Redistributable installation returned code !ERRORLEVEL!
+            echo    This is usually normal - continuing installation...
+        )
+    )
+    
+    REM Cleanup vcredist temp files
+    if exist "!VCREDIST_DIR!" rmdir /s /q "!VCREDIST_DIR!" 2>nul
+) else (
+    echo    ✅ Visual C++ Redistributable found
+)
+
+REM Check and install Build Tools for native compilation
+echo [3/5] Checking Build Tools for native components...
+set "BUILDTOOLS_NEEDED=1"
+
+REM Check for VS2022 Build Tools
+if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (
+    set "BUILDTOOLS_NEEDED=0"
+)
+
+REM Check for VS2022 Community/Professional
+if !BUILDTOOLS_NEEDED!==1 (
+    if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" (
+        set "BUILDTOOLS_NEEDED=0"
+    )
+)
+
+REM Check for VS2019 Build Tools
+if !BUILDTOOLS_NEEDED!==1 (
+    if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (
+        set "BUILDTOOLS_NEEDED=0"
+    )
+)
+
+if !BUILDTOOLS_NEEDED!==1 (
+    echo.
+    echo Visual Studio Build Tools not found. Installing...
+    echo    📦 This will download and install ~4GB of build tools
+    echo    ⏱ Installation may take 10-20 minutes depending on internet speed
+    echo.
+    
+    set "BUILDTOOLS_DIR=%TEMP%\Pick66_BuildTools_!RANDOM!"
+    if not exist "!BUILDTOOLS_DIR!" mkdir "!BUILDTOOLS_DIR!"
+    
+    echo    🌐 Downloading Build Tools bootstrapper...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "& { try { $ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vs_buildtools.exe' -OutFile '!BUILDTOOLS_DIR!\vs_buildtools.exe' -UserAgent 'Pick66-Installer/1.0' -TimeoutSec 60; Write-Host 'Download completed!' } catch { Write-Error $_.Exception.Message; exit 1 } }"
+    
+    if !ERRORLEVEL! neq 0 (
+        echo    ❌ Failed to download Build Tools
+        echo    Manual installation required from: https://aka.ms/vs/17/release/vs_buildtools.exe
+        echo.
+        echo    After installing Build Tools, re-run this installer
+        pause
+        call :cleanup_and_exit
+    )
+    
+    echo    ⚙ Installing Build Tools (this will take several minutes)...
+    echo    Installing: MSVC v143, Windows 10/11 SDK, .NET Desktop development workload
+    "!BUILDTOOLS_DIR!\vs_buildtools.exe" --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.NetCoreTools
+    
+    if !ERRORLEVEL! neq 0 (
+        echo    ❌ Build Tools installation failed with code !ERRORLEVEL!
+        echo    Manual installation may be required
+        pause
+        call :cleanup_and_exit
+    )
+    
+    echo    ✅ Build Tools installed successfully
+    
+    REM Cleanup build tools temp files
+    if exist "!BUILDTOOLS_DIR!" rmdir /s /q "!BUILDTOOLS_DIR!" 2>nul
+) else (
+    echo    ✅ Visual Studio Build Tools found
+)
 
 echo.
 echo ===============================================
@@ -98,7 +222,7 @@ if not exist "!TEMP_DIR!" mkdir "!TEMP_DIR!"
 echo    📁 Temp dir: !TEMP_DIR!
 
 echo.
-echo [3/4] Downloading from GitHub...
+echo [4/5] Downloading from GitHub...
 echo    🌐 URL: https://github.com/isogloss/pick66/archive/refs/heads/main.zip
 echo    📦 Size: ~70KB
 echo.
@@ -156,14 +280,44 @@ echo ===============================================
 echo              BUILDING APPLICATION  
 echo ===============================================
 echo.
-echo [4/4] Building Pick66...
-echo This may take 2-3 minutes depending on your system...
+echo [5/5] Building Pick66...
+echo This may take 3-5 minutes depending on your system...
 echo.
 
 REM Create dist directory if it doesn't exist
 if not exist "dist" mkdir "dist"
 
-REM Build with detailed output for user feedback
+REM Build native DLL first
+echo    🔧 Building native Vulkan hook DLL...
+pushd "!SRC_DIR!"
+if exist "native\build_native.bat" (
+    cd native
+    call build_native.bat
+    if !ERRORLEVEL! neq 0 (
+        echo    ⚠ Native DLL build failed - creating stub DLL
+        if exist "create_stub.bat" (
+            call create_stub.bat
+        ) else (
+            echo    ⚠ Stub creation script not found - application may have limited functionality
+        )
+    ) else (
+        echo    ✅ Native DLL built successfully
+    )
+    cd ..
+) else (
+    echo    ⚠ Native build script not found - creating stub DLL
+    if exist "native\create_stub.bat" (
+        cd native
+        call create_stub.bat
+        cd ..
+    ) else (
+        echo    ⚠ No native components available - application may have limited functionality
+    )
+)
+popd
+
+REM Build .NET application with detailed output for user feedback
+echo    🔧 Building .NET application...
 "!DOTNET_EXE!" publish "!SRC_DIR!\src\Pick6.Loader\Pick6.Loader.csproj" --configuration Release --runtime win-x64 --self-contained true --output "dist" --verbosity normal --nologo
 
 if %ERRORLEVEL% neq 0 (
@@ -187,6 +341,14 @@ if not exist "dist\loader.exe" (
     echo Build completed but executable is missing
     pause
     call :cleanup_and_exit
+)
+
+REM Copy native DLL to output directory if it was built separately
+if exist "!SRC_DIR!\dist\Pick6VulkanHook.dll" (
+    copy "!SRC_DIR!\dist\Pick6VulkanHook.dll" "dist\" >nul 2>&1
+    if %ERRORLEVEL% equ 0 (
+        echo    ✅ Native DLL copied to output directory
+    )
 )
 
 echo.
@@ -228,6 +390,18 @@ echo.
 echo 📁 Location: %CD%\dist\loader.exe
 echo 💾 Size: 
 for %%A in (dist\loader.exe) do echo    %%~zA bytes
+
+REM Show what native components are available
+if exist "dist\Pick6VulkanHook.dll" (
+    echo.
+    echo 🔧 Native components:
+    echo    ✅ Pick6VulkanHook.dll - Vulkan frame capture support
+    for %%A in (dist\Pick6VulkanHook.dll) do echo       Size: %%~zA bytes
+) else (
+    echo.
+    echo ⚠ Native components:
+    echo    ❌ Pick6VulkanHook.dll not found - limited Vulkan functionality
+)
 
 echo.
 echo 🚀 To run Pick66:

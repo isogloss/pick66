@@ -10,16 +10,22 @@ Pick66 is a streamlined game capture application for Windows.
 
 That's it! BINGO will automatically:
 - Download the latest source code from GitHub
-- Build the application
+- Install .NET 8 SDK if not present
+- Install Visual C++ Redistributables if needed
+- Install Visual Studio Build Tools if required for native components
+- Build the complete application including native components
 - Create `loader.exe` 
 - Install to `dist/` folder
 
-**No need to download the entire repository!** Just get the BINGO.bat file and run it.
+**No manual setup required!** Just get the BINGO.bat file and run it.
 
 ## 🔧 Requirements
 
-- Windows 10/11 (x64)
-- .NET 8 SDK
+**None!** BINGO.bat will install everything automatically:
+- Windows 10/11 (x64) - *System requirement only*
+- All other dependencies installed automatically
+
+*Note: Initial installation may take 15-30 minutes on first run due to downloading and installing development tools. Subsequent builds will be much faster.*
 
 ## 🎮 Usage
 
