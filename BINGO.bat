@@ -122,7 +122,7 @@ if %ERRORLEVEL% neq 0 (
     echo Please ensure PowerShell is installed and accessible from PATH.
     echo.
     pause
-    exit /b 1
+    call :cleanup_and_exit
 )
 echo    ✅ PowerShell available
 
