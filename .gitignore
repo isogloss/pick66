@@ -6,23 +6,12 @@ dist/
 *.dll
 *.pdb
 
-# C++ build outputs
-cpp/build/
-cpp/bin/
-*.o
-*.so
-*.a
-cmake_install.cmake
-CMakeCache.txt
-CMakeFiles/
-Makefile
-
 # Visual Studio
 .vs/
 *.user
 *.suo
 *.cache
-*.vscode/
+.vscode/
 
 # NuGet
 packages/
@@ -51,11 +40,6 @@ Thumbs.db
 
 # Configuration files (but not default ones)
 keybinds.cfg
-
-# Auto-update payload artifacts
-pick6-payload-*.zip
-manifest-*.json
-payload-staging/
 
 # Test artifacts
 test-dist/
