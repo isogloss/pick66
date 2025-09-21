@@ -5,35 +5,30 @@ Pick66 is a streamlined game capture application for Windows.
 ## 🚀 Installation
 
 **Simple 1-Step Process:**
-1. Download `BINGO.bat` only
-2. Run `BINGO.bat`
+1. Clone or download this repository
+2. Run `install.bat`
 
-That's it! BINGO will automatically:
-- Download the latest source code from GitHub
-- Install .NET 8 SDK if not present
-- Install Visual C++ Redistributables if needed
-- Install Visual Studio Build Tools if required for native components
-- Build the complete application including native components
-- Create `loader.exe` in your Downloads folder
-- Install source code to `C:\Program Files (x86)\Microsoft\Edge\Application\SetupMetrics\pick66-source`
-
-**No manual setup required!** Just get the BINGO.bat file and run it.
+That's it! The installer will automatically:
+- Build the application using .NET 8
+- Create a ready-to-run executable on your Desktop
+- Set up all necessary components
 
 ## 🔧 Requirements
 
-**None!** BINGO.bat will install everything automatically:
-- Windows 10/11 (x64) - *System requirement only*
-- All other dependencies installed automatically
+**Minimal requirements:**
+- Windows 10/11 (x64)
+- .NET 8 SDK (download from [Microsoft](https://dotnet.microsoft.com/download/dotnet/8.0) if not installed)
 
-*Note: Initial installation may take 15-30 minutes on first run due to downloading and installing development tools. Subsequent builds will be much faster.*
+*Installation takes 1-3 minutes.*
 
 ## 🎮 Usage
 
-After installation, the executable will be in your Downloads folder:
-```cmd
-%USERPROFILE%\Downloads\loader.exe
+After installation, the executable will be on your Desktop:
 ```
-Or simply navigate to your Downloads folder and run `loader.exe`.
+%USERPROFILE%\Desktop\Pick66\loader.exe
+```
+
+Simply double-click `loader.exe` to launch Pick66.
 
 ## 🏗️ Manual Build
 
@@ -42,22 +37,15 @@ dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
     --configuration Release ^
     --runtime win-x64 ^
     --self-contained true ^
-    --output %USERPROFILE%\Downloads
+    --output %USERPROFILE%\Desktop\Pick66
 ```
 
 ## 📋 Project Structure
 
-- `BINGO.bat` - Installer script
-- `loader.exe` - Single executable (built to Downloads folder from src/Pick6.Loader)
+- `install.bat` - Simple installer script
 - `src/Pick6.Core/` - Core capture engine
+- `src/Pick6.Loader/` - Main application
 - `src/Pick6.Projection/` - Display projection
-
-## 📁 Installation Locations
-
-After running BINGO.bat:
-- **Executable**: `%USERPROFILE%\Downloads\loader.exe`
-- **Source Code**: `C:\Program Files (x86)\Microsoft\Edge\Application\SetupMetrics\pick66-source`
-  - Fallback (if admin access fails): `%USERPROFILE%\Pick66\pick66-source`
 
 ---
 

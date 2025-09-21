@@ -1,4 +1,0 @@
-EXPORTS
-InitializeVulkanHook
-CaptureFrame
-ShutdownVulkanHook
