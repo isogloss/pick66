@@ -56,11 +56,12 @@ echo )
 REM Build the application
 echo.
 echo [2/3] Building application...
+set "OUTPUT_DIR=%USERPROFILE%\Desktop\Pick66"
 dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
     --configuration Release ^
     --runtime win-x64 ^
     --self-contained true ^
-    --output "%USERPROFILE%\Desktop\Pick66"
+    --output "!OUTPUT_DIR!"
 
 if %ERRORLEVEL% neq 0 (
     echo.
@@ -90,7 +91,7 @@ echo         Installation Complete!
 echo ========================================
 echo.
 echo Pick66 has been installed to:
-echo %USERPROFILE%\Desktop\Pick66\
+echo !OUTPUT_DIR!\
 echo.
 echo To run Pick66:
 echo 1. Navigate to your Desktop\Pick66 folder
@@ -98,6 +99,6 @@ echo 2. Run loader.exe
 echo.
 echo Press any key to open the installation folder...
 pause >nul
-explorer "%USERPROFILE%\Desktop\Pick66"
+explorer "!OUTPUT_DIR!"
 
 exit /b 0
