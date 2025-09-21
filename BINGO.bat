@@ -514,4 +514,7 @@ if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!" 2>nul
 if defined TEMP_DOTNET_DIR (
     if exist "!TEMP_DOTNET_DIR!" rmdir /s /q "!TEMP_DOTNET_DIR!" 2>nul
 )
+echo.
+echo Press any key to exit...
+pause >nul
 exit /b 1
