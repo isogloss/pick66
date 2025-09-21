@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetPlatformVersion>10.0.22621.0</TargetPlatformVersion>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>loader</AssemblyName>
     <ImplicitUsings>enable</ImplicitUsings>
