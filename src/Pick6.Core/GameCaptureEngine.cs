@@ -10,7 +10,7 @@ namespace Pick6.Core;
 /// Core capture engine for game window capture
 /// Now supports both Vulkan injection and GDI capture methods
 /// </summary>
-public class GameCaptureEngine
+public class GameCaptureEngine : IDisposable
 {
     private IntPtr _targetWindow = IntPtr.Zero;
     private bool _isCapturing = false;
@@ -69,6 +69,14 @@ public class GameCaptureEngine
             _vulkanCapture?.StopCapture();
             _vulkanCapture = null;
         }
+    }
+
+    /// <summary>
+    /// Disposes resources used by the capture engine
+    /// </summary>
+    public void Dispose()
+    {
+        StopCapture();
     }
 
     private bool TryStartVulkanCapture(string processName)

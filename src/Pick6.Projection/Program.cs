@@ -7,7 +7,7 @@ namespace Pick6.Projection;
 /// <summary>
 /// Borderless fullscreen projection window implementation
 /// </summary>
-public class BorderlessProjectionWindow
+public class BorderlessProjectionWindow : IDisposable
 {
     private bool _isProjecting = false;
     private Bitmap? _currentFrame;
@@ -129,6 +129,20 @@ public class BorderlessProjectionWindow
         {
             Console.WriteLine($"❌ Failed to start Windows projection: {ex.Message}");
             _isProjecting = false;
+        }
+    }
+
+    /// <summary>
+    /// Disposes resources used by the projection window
+    /// </summary>
+    public void Dispose()
+    {
+        StopProjection();
+        
+        lock (_frameLock)
+        {
+            _currentFrame?.Dispose();
+            _currentFrame = null;
         }
     }
 }
