@@ -20,6 +20,7 @@ public class GameCaptureEngine : IDisposable
     private bool _useVulkanCapture = true;
     private readonly FramePacer _framePacer = new();
     private readonly FrameStatistics _statistics = new();
+    private bool _disposed = false;
 
     public event EventHandler<FrameCapturedEventArgs>? FrameCaptured;
     public event EventHandler<string>? ErrorOccurred;
@@ -76,6 +77,9 @@ public class GameCaptureEngine : IDisposable
     /// </summary>
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+        
         StopCapture();
     }
 

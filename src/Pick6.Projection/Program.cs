@@ -14,6 +14,7 @@ public class BorderlessProjectionWindow : IDisposable
     private readonly object _frameLock = new();
     private WindowsProjectionForm? _windowsProjection;
     private int _targetFPS = 60;
+    private bool _disposed = false;
 
     public event EventHandler? ProjectionStarted;
     public event EventHandler? ProjectionStopped;
@@ -137,6 +138,9 @@ public class BorderlessProjectionWindow : IDisposable
     /// </summary>
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+        
         StopProjection();
         
         lock (_frameLock)
