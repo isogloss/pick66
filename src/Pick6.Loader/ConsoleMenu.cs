@@ -725,7 +725,6 @@ public class ConsoleMenu
             Console.WriteLine("❌ DLL injection failed.");
             Console.WriteLine("   💡 Try running as administrator for injection privileges");
         }
-        }
     }
 
     private void ShowStatus()

@@ -451,4 +451,3 @@ public partial class MainForm : Form
     private const uint SWP_FRAMECHANGED = 0x0020;
     #endregion
 }
-}
