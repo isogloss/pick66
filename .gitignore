@@ -15,6 +15,7 @@ dist/
 
 # NuGet
 packages/
+.nuget/
 *.nupkg
 
 # Temporary files
