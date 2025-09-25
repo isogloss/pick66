@@ -282,10 +282,48 @@ public class EnhancedInjector : IDisposable
 
     private string GetProxyDllPath(string proxyDllName)
     {
-        // For now, assume proxy DLLs are in the same directory as the main executable
-        // In a real implementation, this would be configured or built into a known location
+        // Check for proxy DLLs in multiple locations
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        return Path.Combine(baseDir, $"Pick6{Path.GetFileNameWithoutExtension(proxyDllName)}Proxy.dll");
+        
+        // Try exact filename first (pre-built)
+        var exactPath = Path.Combine(baseDir, proxyDllName);
+        if (File.Exists(exactPath))
+        {
+            return exactPath;
+        }
+        
+        // Try with Pick6 prefix naming convention
+        var prefixedName = $"Pick6{Path.GetFileNameWithoutExtension(proxyDllName)}Proxy.dll";
+        var prefixedPath = Path.Combine(baseDir, prefixedName);
+        if (File.Exists(prefixedPath))
+        {
+            return prefixedPath;
+        }
+        
+        // Try in proxy subdirectory
+        var proxyDir = Path.Combine(baseDir, "proxies");
+        if (Directory.Exists(proxyDir))
+        {
+            var proxySubPath = Path.Combine(proxyDir, proxyDllName);
+            if (File.Exists(proxySubPath))
+            {
+                return proxySubPath;
+            }
+        }
+        
+        // Try the template from ProxyDLL project (if built)
+        var templateDir = Path.Combine(baseDir, "..", "src", "Pick6.ProxyDLL", "bin");
+        if (Directory.Exists(templateDir))
+        {
+            var templatePath = Path.Combine(templateDir, proxyDllName);
+            if (File.Exists(templatePath))
+            {
+                return templatePath;
+            }
+        }
+        
+        // Return the preferred path even if it doesn't exist (for logging)
+        return exactPath;
     }
 
     private InjectionStrategy GetStrategyForProxyDll(string proxyDllName)

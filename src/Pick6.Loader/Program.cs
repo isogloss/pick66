@@ -6,7 +6,27 @@ using System.ComponentModel;
 namespace Pick6.Loader;
 
 /// <summary>
-/// Unified entry point for Pick6 - Windows-only GUI application with minimal black & white interface
+/// Pick6 - FiveM Game Capture & Projection Tool with Enhanced Multi-Strategy Injection
+/// 
+/// USAGE:
+///   loader.exe                  - Start with GUI interface
+///   loader.exe --help           - Show help information
+///   loader.exe --check-updates-only - Check for updates only
+/// 
+/// FEATURES:
+///   - Enhanced FiveM process detection with pattern matching
+///   - Multi-strategy injection: Direct + Proxy DLL fallbacks (dxgi, d3d11, vulkan)  
+///   - Automatic privilege elevation (SeDebugPrivilege)
+///   - Rolling file logging to logs/injector.log
+///   - Real-time game capture and borderless projection
+/// 
+/// REQUIREMENTS:
+///   - Windows 10/11 x64
+///   - .NET 8 Runtime  
+///   - Administrator privileges recommended for injection
+///   - FiveM or compatible game process
+/// 
+/// Build from source: Run install.bat from repository root
 /// </summary>
 public class Program
 {
