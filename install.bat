@@ -6,7 +6,7 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ========================================
-echo         Pick66 Installer v2.0
+echo         Pick66 Installer v2.1
 echo ========================================
 echo.
 echo Building Pick66 from local sources...
@@ -22,7 +22,7 @@ if not exist "src\Pick6.Loader\Pick6.Loader.csproj" (
 )
 
 REM Check if .NET is available
-echo [1/3] Checking .NET availability...
+echo [1/4] Checking .NET availability...
 dotnet --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo ERROR: .NET 8 SDK is required but not found.
@@ -53,15 +53,34 @@ echo     ✓ .NET SDK found (version:
 dotnet --version
 echo )
 
-REM Build the application
+REM Restore dependencies first (faster incremental builds)
 echo.
-echo [2/3] Building application...
+echo [2/4] Restoring dependencies...
+dotnet restore --verbosity quiet
+if %ERRORLEVEL% neq 0 (
+    echo.
+    echo ERROR: Failed to restore dependencies!
+    echo Please check your internet connection and try again.
+    echo.
+    pause
+    exit /b 1
+)
+echo     ✓ Dependencies restored
+
+REM Build the application with optimized settings
+echo.
+echo [3/4] Building application...
 set "OUTPUT_DIR=%USERPROFILE%\Desktop\Pick66"
 dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
     --configuration Release ^
     --runtime win-x64 ^
     --self-contained true ^
-    --output "!OUTPUT_DIR!"
+    --no-restore ^
+    --verbosity quiet ^
+    --output "!OUTPUT_DIR!" ^
+    -p:PublishSingleFile=true ^
+    -p:IncludeNativeLibrariesForSelfExtract=true ^
+    -p:IncludeAllContentForSelfExtract=true
 
 if %ERRORLEVEL% neq 0 (
     echo.
@@ -74,7 +93,7 @@ if %ERRORLEVEL% neq 0 (
 
 REM Installation successful
 echo.
-echo [3/3] Installation complete!
+echo [4/4] Installation complete!
 echo     ✓ Application built successfully
 
 REM Verify installation

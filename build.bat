@@ -2,7 +2,14 @@
 REM Quick build script for development
 
 echo Building Pick66...
-dotnet build --configuration Release
+dotnet restore --verbosity quiet
+if %ERRORLEVEL% neq 0 (
+    echo Restore failed!
+    pause
+    exit /b 1
+)
+
+dotnet build --configuration Release --no-restore --verbosity quiet
 
 if %ERRORLEVEL% neq 0 (
     echo Build failed!

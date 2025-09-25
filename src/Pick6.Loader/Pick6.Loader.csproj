@@ -2,13 +2,8 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
-    <TargetPlatformVersion>10.0.22621.0</TargetPlatformVersion>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>loader</AssemblyName>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
   </PropertyGroup>
   
   <!-- Single-file publishing settings for Windows x64 -->
@@ -21,6 +16,10 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
+    <!-- Optimize for self-contained deployment -->
+    <SelfContained>true</SelfContained>
+    <UseAppHost>true</UseAppHost>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
   </PropertyGroup>
 
   <!-- Project references -->
