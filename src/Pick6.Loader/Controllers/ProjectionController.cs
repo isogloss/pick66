@@ -1,6 +1,8 @@
 using Pick6.Core;
 using Pick6.Projection;
 using Pick6.Loader.Settings;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Pick6.Loader.Controllers;
 
@@ -50,12 +52,15 @@ public enum ProjectionStatus
 
 /// <summary>
 /// Controller that encapsulates the projection/injection lifecycle
+/// Enhanced with multi-strategy injection support
 /// </summary>
 public class ProjectionController : IDisposable
 {
     private readonly GameCaptureEngine _captureEngine;
     private readonly BorderlessProjectionWindow _projectionWindow;
-    private System.Timers.Timer? _processMonitorTimer;
+    private EnhancedInjector? _enhancedInjector;
+    private CancellationTokenSource? _injectionCancellation;
+    private Task? _injectionTask;
     private volatile bool _isRunning = false;
     private volatile bool _isDisposed = false;
     private ProjectionStatus _currentStatus = ProjectionStatus.Idle;
@@ -97,6 +102,9 @@ public class ProjectionController : IDisposable
         _captureEngine = new GameCaptureEngine();
         _projectionWindow = new BorderlessProjectionWindow();
         SetupEventHandlers();
+        
+        // Initialize file logging
+        LoggingSetup.InitializeFileLogging();
     }
 
     /// <summary>
@@ -132,8 +140,8 @@ public class ProjectionController : IDisposable
                 EmitLog("Info", $"Using refresh interval: {settings.ProjectionRefreshIntervalMs}ms");
             }
 
-            // Start monitoring for processes
-            StartProcessMonitoring();
+            // Start enhanced injection process
+            StartEnhancedInjection();
 
             SetStatus(ProjectionStatus.Running, "Monitoring for FiveM processes...");
             return true;
@@ -171,8 +179,8 @@ public class ProjectionController : IDisposable
         {
             EmitLog("Info", "Stopping projection/injection system");
 
-            // Stop process monitoring
-            StopProcessMonitoring();
+            // Stop enhanced injection
+            StopEnhancedInjection();
 
             // Stop projection
             _projectionWindow?.StopProjection();
@@ -217,83 +225,97 @@ public class ProjectionController : IDisposable
         };
     }
 
-    private void StartProcessMonitoring()
-    {
-        _processMonitorTimer = new System.Timers.Timer(1000); // Check every second
-        _processMonitorTimer.Elapsed += ProcessMonitorTimer_Elapsed;
-        _processMonitorTimer.Start();
-
-        // Check immediately if FiveM is already running
-        CheckForFiveMAndInject();
-    }
-
-    private void StopProcessMonitoring()
-    {
-        _processMonitorTimer?.Stop();
-        _processMonitorTimer?.Dispose();
-        _processMonitorTimer = null;
-    }
-
-    private void ProcessMonitorTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
-    {
-        if (!IsRunning) return;
-        CheckForFiveMAndInject();
-    }
-
-    private void CheckForFiveMAndInject()
+    private void StartEnhancedInjection()
     {
         try
         {
-            var summary = FiveMDetector.GetProcessSummary();
+            EmitLog("Info", "Starting enhanced injection with multi-strategy fallback");
             
-            if (summary.TotalProcessCount > 0)
+            // Cancel any existing injection task
+            StopEnhancedInjection();
+            
+            // Create new injector and cancellation token
+            _enhancedInjector = new EnhancedInjector();
+            _injectionCancellation = new CancellationTokenSource();
+            
+            // Start injection task
+            _injectionTask = Task.Run(async () =>
             {
-                AttemptInjection(summary);
-            }
+                try
+                {
+                    var result = await _enhancedInjector.FindAndInjectAsync(_injectionCancellation.Token);
+                    
+                    if (!_injectionCancellation.Token.IsCancellationRequested)
+                    {
+                        await HandleInjectionResult(result);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    EmitLog("Info", "Injection process cancelled");
+                }
+                catch (Exception ex)
+                {
+                    EmitLog("Error", $"Enhanced injection failed: {ex.Message}");
+                }
+            }, _injectionCancellation.Token);
         }
         catch (Exception ex)
         {
-            EmitLog("Error", $"Error checking for FiveM processes: {ex.Message}");
+            EmitLog("Error", $"Failed to start enhanced injection: {ex.Message}");
         }
     }
 
-    private void AttemptInjection(FiveMProcessSummary summary)
+    private void StopEnhancedInjection()
     {
-        ProcessInfo? targetProcess = null;
-        string method = "Vulkan injection";
-
-        // Only attempt Vulkan processes - no fallback
-        if (summary.VulkanProcesses.Any())
+        try
         {
-            var vulkanProcess = summary.VulkanProcesses.First();
-            targetProcess = new ProcessInfo
-            {
-                ProcessId = vulkanProcess.ProcessId,
-                ProcessName = vulkanProcess.ProcessName,
-                WindowTitle = vulkanProcess.WindowTitle,
-                WindowHandle = vulkanProcess.WindowHandle
-            };
+            _injectionCancellation?.Cancel();
+            _injectionTask?.Wait(TimeSpan.FromSeconds(5));
         }
-        else
+        catch (Exception ex)
         {
-            EmitLog("Error", "No Vulkan processes found. DLL injection requires Vulkan support.");
-            return;
+            EmitLog("Warn", $"Error stopping injection task: {ex.Message}");
         }
-
-        if (targetProcess == null) return;
-
-        EmitLog("Info", $"Attempting {method} on {targetProcess.ProcessName}");
-
-        if (_captureEngine.StartCapture(targetProcess.ProcessName))
+        finally
         {
-            EmitLog("Info", $"Successfully started capture - {method}");
+            _injectionCancellation?.Dispose();
+            _injectionCancellation = null;
+            _injectionTask = null;
             
-            // Auto-start projection
-            _projectionWindow.StartProjection(0); // Use primary monitor
+            _enhancedInjector?.Dispose();
+            _enhancedInjector = null;
+        }
+    }
+
+    private async Task HandleInjectionResult(InjectionResult result)
+    {
+        if (result.Success)
+        {
+            EmitLog("Info", $"✅ Injection successful using {result.Strategy}: {result.Message}");
+            
+            // Start capture - for now we'll use the existing logic
+            // In a full implementation, we might extract process info from the result
+            var processes = FiveMDetector.FindFiveMProcesses();
+            if (processes.Any())
+            {
+                var targetProcess = processes.First();
+                if (_captureEngine.StartCapture(targetProcess.ProcessName))
+                {
+                    EmitLog("Info", "Successfully started capture");
+                    // Auto-start projection
+                    _projectionWindow.StartProjection(0); // Use primary monitor
+                }
+                else
+                {
+                    EmitLog("Error", "Injection succeeded but capture failed to start");
+                }
+            }
         }
         else
         {
-            EmitLog("Error", $"DLL injection failed on {targetProcess.ProcessName}. Try running as administrator or ensure Vulkan support is available.");
+            EmitLog("Error", $"❌ All injection strategies failed: {result.Message}");
+            SetStatus(ProjectionStatus.Error, $"Injection failed: {result.Message}");
         }
     }
 
@@ -321,5 +343,8 @@ public class ProjectionController : IDisposable
         
         _projectionWindow?.Dispose();
         _captureEngine?.Dispose();
+        
+        // Cleanup file logging
+        LoggingSetup.ShutdownFileLogging();
     }
 }

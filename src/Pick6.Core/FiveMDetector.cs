@@ -25,52 +25,17 @@ public static class FiveMDetector
     };
 
     /// <summary>
-    /// Find all running FiveM processes (EXTREMELY broad):
-    /// - Matches explicit known names
-    /// - Wildcard-like scan of all processes by name/title tokens
-    /// - Returns only processes with a visible main window
+    /// Find all running FiveM processes using enhanced detection:
+    /// - Pattern matching for FiveM* processes 
+    /// - Window title scanning for "FiveM", "CitizenFX"
+    /// - Command line scanning for "FiveM.app", "CitizenFX"
+    /// - Architecture verification
     /// </summary>
     public static List<ProcessInfo> FindFiveMProcesses()
     {
-        var results = new List<ProcessInfo>();
-        var seen = new HashSet<int>();
-
-        // 1) Explicit name matches (existing behavior + expanded list)
-        foreach (var name in FIVEM_PROCESS_NAMES)
-        {
-            TryAddByProcessName(name, results, seen);
-        }
-
-        // 2) Wildcard-like scan: extremely broad matching by name/title tokens
-        foreach (var p in Process.GetProcesses())
-        {
-            try
-            {
-                if (p.HasExited) continue;
-                if (p.MainWindowHandle == IntPtr.Zero) continue; // keep capture semantics
-
-                if (MatchesFiveM(p) && seen.Add(p.Id))
-                {
-                    results.Add(new ProcessInfo
-                    {
-                        ProcessId = p.Id,
-                        ProcessName = p.ProcessName,
-                        WindowTitle = p.MainWindowTitle,
-                        WindowHandle = p.MainWindowHandle
-                    });
-                }
-            }
-            catch
-            {
-                // Process inaccessible or exited; ignore
-            }
-            finally
-            {
-                try { p.Dispose(); } catch { }
-            }
-        }
-
-        return results;
+        // Use the enhanced ProcessWatcher for consistent detection logic
+        using var watcher = new ProcessWatcher();
+        return watcher.FindFiveMProcesses();
     }
 
     private static void TryAddByProcessName(string processName, List<ProcessInfo> results, HashSet<int> seen)
