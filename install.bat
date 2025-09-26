@@ -36,12 +36,22 @@ set PRIVATE_DOTNET_DIR=
 dotnet --version >nul 2>&1
 if %ERRORLEVEL% equ 0 (
     for /f "tokens=*" %%i in ('dotnet --version 2^>nul') do set DOTNET_VERSION=%%i
-    for /f "tokens=1 delims=." %%a in ("!DOTNET_VERSION!") do set MAJOR_VERSION=%%a
-    if !MAJOR_VERSION! geq 8 (
-        set DOTNET_SUFFICIENT=1
-        echo     ✓ .NET SDK OK (version: !DOTNET_VERSION!)
+    REM Trim any whitespace from version string
+    for /f "tokens=* delims= " %%j in ("!DOTNET_VERSION!") do set DOTNET_VERSION=%%j
+    if defined DOTNET_VERSION (
+        for /f "tokens=1 delims=." %%a in ("!DOTNET_VERSION!") do set MAJOR_VERSION=%%a
+        if defined MAJOR_VERSION (
+            if !MAJOR_VERSION! geq 8 (
+                set DOTNET_SUFFICIENT=1
+                echo     ✓ .NET SDK OK (version: !DOTNET_VERSION!)
+            ) else (
+                echo     Found .NET SDK version !DOTNET_VERSION!, but need version 8 or higher
+            )
+        ) else (
+            echo     Could not parse .NET SDK version: !DOTNET_VERSION!
+        )
     ) else (
-        echo     Found .NET SDK version !DOTNET_VERSION!, but need version 8 or higher
+        echo     Could not determine .NET SDK version
     )
 )
 
@@ -60,6 +70,10 @@ if %DOTNET_SUFFICIENT% equ 0 (
     powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://dot.net/v1/dotnet-install.ps1' -OutFile '!DOTNET_INSTALL_SCRIPT!' -UseBasicParsing; exit 0 } catch { Write-Host 'Error downloading install script:' $_.Exception.Message; exit 1 }" 2>&1
     if %ERRORLEVEL% neq 0 (
         echo ERROR: Failed to download .NET installation script.
+        echo This could be due to:
+        echo  - No internet connection
+        echo  - Firewall blocking PowerShell web requests
+        echo  - Corporate proxy settings
         echo Please check your internet connection and try again.
         echo Alternatively, manually install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
         pause
