@@ -1,206 +1,155 @@
 @echo off
-REM Pick66 Unified Installer / Builder (Windows Version)
-REM 
-REM For cross-platform support, use install.ps1 instead:
-REM   pwsh install.ps1              -> Full clean publish install (cross-platform)
-REM   pwsh install.ps1 -Mode fast   -> Fast incremental publish (cross-platform)
-REM   pwsh install.ps1 -Mode build  -> Restore + build only (cross-platform)
-REM
-REM Windows-only Usage:
-REM   install.bat              -> Full clean publish install
-REM   install.bat fast         -> Fast incremental publish (falls back to full on failure)
-REM   install.bat build        -> Restore + build only (no publish/install)
-REM
-REM Optional environment overrides:
-REM   PICK66_OUTPUT   -> Absolute path for installation output (default: %USERPROFILE%\Desktop\Pick66)
+REM Pick66 Self-Contained Installer
+REM Downloads source, compiles, and installs to Downloads folder
 
 setlocal enabledelayedexpansion
 
-REM Check if we're running in a non-Windows environment
+echo.
+echo =========================================
+echo          Pick66 Installer v4.0
+echo        Self-Contained Edition
+echo =========================================
+echo.
+
+REM Check if we're on Windows
 if not "%OS%"=="Windows_NT" (
-    echo.
-    echo =========================================
-    echo    PLATFORM COMPATIBILITY NOTICE
-    echo =========================================
-    echo.
-    echo This Windows batch script is not supported on this platform.
-    echo Please use the cross-platform PowerShell installer instead:
-    echo.
-    echo   pwsh install.ps1
-    echo   pwsh install.ps1 -Mode fast
-    echo   pwsh install.ps1 -Mode build
-    echo.
-    echo The PowerShell installer supports Windows, Linux, and macOS.
+    echo ERROR: This installer only works on Windows.
     echo.
     pause
     exit /b 1
 )
 
-set "MODE=%~1"
-if "%MODE%"=="" set "MODE=full"
-
-echo.
-echo =========================================
-echo          Pick66 Installer v3.0
-echo          Windows Edition
-echo            Mode: %MODE%
-echo =========================================
-echo.
-echo TIP: For cross-platform support, use: pwsh install.ps1
-echo.
-
-REM Validate project location
-if not exist "src\Pick6.Loader\Pick6.Loader.csproj" (
-    echo ERROR: src\Pick6.Loader\Pick6.Loader.csproj not found.
-    echo Run this from the repository root.
-    echo.
-    pause
-    exit /b 1
-)
-
-REM .NET availability
-echo [1/5] Checking .NET SDK...
+REM Check for .NET SDK
+echo [1/4] Checking .NET SDK...
 dotnet --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: .NET 8 SDK required but not found.
-    echo Install from: https://dotnet.microsoft.com/download/dotnet/8.0
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: .NET SDK not found.
+    echo Please install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
+    echo.
     pause
     exit /b 1
 )
 
-for /f "tokens=1 delims=." %%v in ('dotnet --version') do set DOTNET_MAJOR=%%v
-if %DOTNET_MAJOR% LSS 8 (
-    echo ERROR: .NET 8 or higher required. Found:
-    dotnet --version
+REM Get .NET version and validate
+for /f "tokens=*" %%i in ('dotnet --version 2^>nul') do set DOTNET_VERSION=%%i
+for /f "tokens=1 delims=." %%a in ("%DOTNET_VERSION%") do set MAJOR_VERSION=%%a
+if %MAJOR_VERSION% lss 8 (
+    echo ERROR: .NET 8 or higher required. Found: %DOTNET_VERSION%
+    echo Please install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
+    echo.
     pause
     exit /b 1
 )
-for /f %%v in ('dotnet --version') do echo     ✓ .NET SDK OK (version: %%v)
+echo     ✓ .NET SDK OK (version: %DOTNET_VERSION%)
 
-REM Determine output directory
-if not defined PICK66_OUTPUT set "PICK66_OUTPUT=%USERPROFILE%\Desktop\Pick66"
-set "OUTPUT_DIR=%PICK66_OUTPUT%"
+REM Create temporary directory for source download
+set TEMP_DIR=%TEMP%\Pick66_Build_%RANDOM%
+if exist "%TEMP_DIR%" rmdir /s /q "%TEMP_DIR%" >nul 2>&1
+mkdir "%TEMP_DIR%"
 
-REM Step 2: Restore (only for full or build)
-if /i "%MODE%"=="full" (
-    echo.
-    echo [2/5] Restoring dependencies (full)...
-    dotnet restore --verbosity quiet
-    if errorlevel 1 (
-        echo ERROR: Dependency restore failed.
+REM Check for git or download tools
+echo.
+echo [2/4] Downloading source code...
+git --version >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo     Using git to download source...
+    git clone https://github.com/isogloss/pick66.git "%TEMP_DIR%\pick66" >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo ERROR: Failed to clone repository.
+        echo Make sure you have internet access and git is installed.
         pause
         exit /b 1
     )
-) else if /i "%MODE%"=="build" (
-    echo.
-    echo [2/5] Restoring dependencies (build)...
-    dotnet restore --verbosity quiet
-    if errorlevel 1 (
-        echo ERROR: Dependency restore failed.
-        pause
-        exit /b 1
-    )
+    set SOURCE_DIR=%TEMP_DIR%\pick66
 ) else (
-    echo.
-    echo [2/5] Quick dependency verification (fast)...
-    dotnet restore --verbosity minimal --no-dependencies 2>nul
-    if errorlevel 1 (
-        echo Dependency verification failed, performing full restore...
-        dotnet restore --verbosity quiet
-        if errorlevel 1 (
-            echo ERROR: Dependency restore failed.
-            pause
-            exit /b 1
-        )
-    )
-)
-
-echo     ✓ Dependencies ready
-
-REM Step 3: Build or Publish
-if /i "%MODE%"=="build" (
-    echo.
-    echo [3/5] Building (no publish)...
-    dotnet build src\Pick6.Loader\Pick6.Loader.csproj --configuration Release --no-restore --verbosity quiet
-    if errorlevel 1 (
-        echo ERROR: Build failed.
+    REM Try PowerShell for download if git not available
+    echo     Using PowerShell to download source...
+    powershell -Command "try { Invoke-WebRequest -Uri 'https://github.com/isogloss/pick66/archive/refs/heads/main.zip' -OutFile '%TEMP_DIR%\source.zip'; Expand-Archive -Path '%TEMP_DIR%\source.zip' -DestinationPath '%TEMP_DIR%'; exit 0 } catch { exit 1 }" >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo ERROR: Failed to download source code.
+        echo Please ensure you have internet access.
+        echo Consider installing git for more reliable downloads.
         pause
         exit /b 1
     )
-    echo     ✓ Build successful
-    goto finish
+    set SOURCE_DIR=%TEMP_DIR%\pick66-main
 )
+
+if not exist "%SOURCE_DIR%\src\Pick6.Loader\Pick6.Loader.csproj" (
+    echo ERROR: Downloaded source appears to be incomplete.
+    echo Expected project file not found.
+    pause
+    exit /b 1
+)
+echo     ✓ Source code downloaded
+
+REM Set output directory to user's Downloads folder
+set OUTPUT_DIR=%USERPROFILE%\Downloads\Pick66
+if exist "%OUTPUT_DIR%" (
+    echo     Cleaning existing installation...
+    rmdir /s /q "%OUTPUT_DIR%" >nul 2>&1
+)
+mkdir "%OUTPUT_DIR%" >nul 2>&1
 
 echo.
-echo [3/5] Publishing application (mode=%MODE%)...
+echo [3/4] Building Pick66 Loader...
+echo     Output directory: %OUTPUT_DIR%
+cd /d "%SOURCE_DIR%"
 
-if /i "%MODE%"=="fast" (
-    REM Fast incremental publish
-    dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
-        --configuration Release ^
-        --runtime win-x64 ^
-        --self-contained true ^
-        --no-restore ^
-        --verbosity minimal ^
-        --output "%OUTPUT_DIR%" ^
-        -p:PublishSingleFile=true ^
-        -p:PublishReadyToRun=false ^
-        -p:IncludeNativeLibrariesForSelfExtract=true ^
-        -p:IncludeAllContentForSelfExtract=true ^
-        /p:UseSharedCompilation=true
-    if errorlevel 1 (
-        echo Fast publish failed, falling back to full publish...
-        set "MODE=full"
-    ) else (
-        goto verify
-    )
+REM Restore dependencies
+dotnet restore --verbosity quiet >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: Failed to restore dependencies.
+    pause
+    exit /b 1
 )
 
-if /i "%MODE%"=="full" (
-    dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
-        --configuration Release ^
-        --runtime win-x64 ^
-        --self-contained true ^
-        --no-restore ^
-        --verbosity quiet ^
-        --output "%OUTPUT_DIR%" ^
-        -p:PublishSingleFile=true ^
-        -p:IncludeNativeLibrariesForSelfExtract=true ^
-        -p:IncludeAllContentForSelfExtract=true
-    if errorlevel 1 (
-        echo ERROR: Publish failed.
-        pause
-        exit /b 1
-    )
+REM Build and publish
+dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
+    --configuration Release ^
+    --runtime win-x64 ^
+    --self-contained true ^
+    --verbosity quiet ^
+    --output "%OUTPUT_DIR%" ^
+    -p:PublishSingleFile=true ^
+    -p:IncludeNativeLibrariesForSelfExtract=true ^
+    -p:IncludeAllContentForSelfExtract=true >nul 2>&1
+
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: Build failed.
+    echo.
+    pause
+    exit /b 1
 )
+echo     ✓ Build successful
 
-echo     ✓ Publish succeeded
-
-:verify
+REM Verify installation
 echo.
-echo [4/5] Verifying installation...
+echo [4/4] Verifying installation...
 if not exist "%OUTPUT_DIR%\loader.exe" (
-    echo ERROR: Installation incomplete - loader.exe not found.
+    echo ERROR: Installation failed - loader.exe not found.
     pause
     exit /b 1
 )
+echo     ✓ Installation verified
 
-echo     ✓ Verification passed
+REM Clean up temporary files
+cd /d "%USERPROFILE%"
+rmdir /s /q "%TEMP_DIR%" >nul 2>&1
 
-:finish
+REM Success
 echo.
-echo [5/5] Done!
-echo Output directory: %OUTPUT_DIR%\
-if /i not "%MODE%"=="build" (
-    echo Run loader.exe to start Pick66.
-)
-
+echo =========================================
+echo           Installation Complete!
+echo =========================================
 echo.
-if /i not "%MODE%"=="build" (
-    echo Press any key to open the output folder...
-    pause >nul
-    explorer "%OUTPUT_DIR%"
-) else (
-    pause
-)
+echo Pick66 Loader has been installed to:
+echo %OUTPUT_DIR%\loader.exe
+echo.
+echo Run loader.exe to start Pick66.
+echo.
+echo Press any key to open the Downloads folder...
+pause >nul
+explorer "%OUTPUT_DIR%"
+
 exit /b 0
