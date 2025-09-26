@@ -1,14 +1,21 @@
 @echo off
 REM Pick66 Self-Contained Installer
 REM Downloads source, compiles, and installs to Downloads folder
+REM Automatically installs .NET 8 SDK if not present or insufficient version found
 
 setlocal enabledelayedexpansion
 
 echo.
 echo =========================================
-echo          Pick66 Installer v4.0
-echo        Self-Contained Edition
+echo          Pick66 Installer v4.1
+echo        Self-Bootstrapping Edition
 echo =========================================
+echo.
+echo Features:
+echo  • Automatic .NET 8 SDK installation
+echo  • Source download from GitHub
+echo  • Complete build and deployment
+echo  • No manual prerequisites required
 echo.
 
 REM Check if we're on Windows
@@ -19,28 +26,95 @@ if not "%OS%"=="Windows_NT" (
     exit /b 1
 )
 
-REM Check for .NET SDK
+REM Check for .NET SDK and bootstrap if needed
 echo [1/4] Checking .NET SDK...
+
+REM First check if dotnet is already available and sufficient
+set DOTNET_SUFFICIENT=0
+set DOTNET_VERSION=
+set PRIVATE_DOTNET_DIR=
 dotnet --version >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo ERROR: .NET SDK not found.
-    echo Please install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
-    echo.
-    pause
-    exit /b 1
+if %ERRORLEVEL% equ 0 (
+    for /f "tokens=*" %%i in ('dotnet --version 2^>nul') do set DOTNET_VERSION=%%i
+    REM Trim any whitespace from version string
+    for /f "tokens=* delims= " %%j in ("!DOTNET_VERSION!") do set DOTNET_VERSION=%%j
+    if defined DOTNET_VERSION (
+        for /f "tokens=1 delims=." %%a in ("!DOTNET_VERSION!") do set MAJOR_VERSION=%%a
+        if defined MAJOR_VERSION (
+            if !MAJOR_VERSION! geq 8 (
+                set DOTNET_SUFFICIENT=1
+                echo     ✓ .NET SDK OK (version: !DOTNET_VERSION!)
+            ) else (
+                echo     Found .NET SDK version !DOTNET_VERSION!, but need version 8 or higher
+            )
+        ) else (
+            echo     Could not parse .NET SDK version: !DOTNET_VERSION!
+        )
+    ) else (
+        echo     Could not determine .NET SDK version
+    )
 )
 
-REM Get .NET version and validate
-for /f "tokens=*" %%i in ('dotnet --version 2^>nul') do set DOTNET_VERSION=%%i
-for /f "tokens=1 delims=." %%a in ("%DOTNET_VERSION%") do set MAJOR_VERSION=%%a
-if %MAJOR_VERSION% lss 8 (
-    echo ERROR: .NET 8 or higher required. Found: %DOTNET_VERSION%
-    echo Please install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
-    echo.
-    pause
-    exit /b 1
+if %DOTNET_SUFFICIENT% equ 0 (
+    echo     .NET 8 SDK not found or insufficient version detected
+    echo     Bootstrapping .NET 8 SDK installation...
+    
+    REM Create private .NET installation directory
+    set PRIVATE_DOTNET_DIR=%TEMP%\Pick66_Build_DotNet_%RANDOM%
+    if exist "!PRIVATE_DOTNET_DIR!" rmdir /s /q "!PRIVATE_DOTNET_DIR!" >nul 2>&1
+    mkdir "!PRIVATE_DOTNET_DIR!"
+    
+    REM Download dotnet-install.ps1
+    echo     Downloading .NET installation script...
+    set DOTNET_INSTALL_SCRIPT=!PRIVATE_DOTNET_DIR!\dotnet-install.ps1
+    powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://dot.net/v1/dotnet-install.ps1' -OutFile '!DOTNET_INSTALL_SCRIPT!' -UseBasicParsing; exit 0 } catch { Write-Host 'Error downloading install script:' $_.Exception.Message; exit 1 }" 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo ERROR: Failed to download .NET installation script.
+        echo This could be due to:
+        echo  - No internet connection
+        echo  - Firewall blocking PowerShell web requests
+        echo  - Corporate proxy settings
+        echo Please check your internet connection and try again.
+        echo Alternatively, manually install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
+        pause
+        exit /b 1
+    )
+    
+    REM Install .NET 8 SDK to private directory
+    echo     Installing .NET 8 SDK (this may take a few minutes)...
+    echo     Please wait while the SDK is downloaded and installed...
+    powershell -ExecutionPolicy Bypass -Command "& '!DOTNET_INSTALL_SCRIPT!' -Channel 8.0 -Quality GA -InstallDir '!PRIVATE_DOTNET_DIR!' -NoPath; if ($LASTEXITCODE -eq 0) { Write-Host 'Installation successful' } else { exit $LASTEXITCODE }" >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo ERROR: Failed to install .NET 8 SDK.
+        echo Please check your internet connection and try again.
+        echo Alternatively, manually install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
+        pause
+        exit /b 1
+    )
+    
+    REM Update PATH to use private .NET installation
+    set PATH=!PRIVATE_DOTNET_DIR!;!PATH!
+    
+    REM Verify private installation
+    "!PRIVATE_DOTNET_DIR!\dotnet.exe" --version >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo ERROR: .NET SDK installation verification failed.
+        echo The SDK was downloaded but may not be functioning correctly.
+        pause
+        exit /b 1
+    )
+    
+    for /f "tokens=*" %%i in ('"!PRIVATE_DOTNET_DIR!\dotnet.exe" --version 2^>nul') do set DOTNET_VERSION=%%i
+    echo     ✓ .NET 8 SDK installed successfully (version: !DOTNET_VERSION!)
+    echo     Using private installation: !PRIVATE_DOTNET_DIR!
 )
-echo     ✓ .NET SDK OK (version: %DOTNET_VERSION%)
+
+REM Set the dotnet command to use (private installation takes precedence)
+if defined PRIVATE_DOTNET_DIR (
+    set DOTNET_CMD="!PRIVATE_DOTNET_DIR!\dotnet.exe"
+) else (
+    set DOTNET_CMD=dotnet
+)
 
 REM Create temporary directory for source download
 set TEMP_DIR=%TEMP%\Pick66_Build_%RANDOM%
@@ -98,7 +172,7 @@ cd /d "%SOURCE_DIR%"
 
 REM Restore dependencies
 echo     Restoring .NET dependencies...
-dotnet restore src\Pick6.Loader\Pick6.Loader.csproj --verbosity quiet >nul 2>&1
+%DOTNET_CMD% restore src\Pick6.Loader\Pick6.Loader.csproj --verbosity quiet >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Failed to restore dependencies.
     echo Make sure you have internet access for NuGet packages.
@@ -108,7 +182,7 @@ if %ERRORLEVEL% neq 0 (
 
 REM Build and publish
 echo     Building and publishing...
-dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
+%DOTNET_CMD% publish src\Pick6.Loader\Pick6.Loader.csproj ^
     --configuration Release ^
     --runtime win-x64 ^
     --self-contained true ^
@@ -233,6 +307,12 @@ echo     ✓ Installation verified
 REM Clean up temporary files
 cd /d "%USERPROFILE%"
 rmdir /s /q "%TEMP_DIR%" >nul 2>&1
+if defined PRIVATE_DOTNET_DIR (
+    if exist "%PRIVATE_DOTNET_DIR%" (
+        echo     Cleaning up private .NET installation...
+        rmdir /s /q "%PRIVATE_DOTNET_DIR%" >nul 2>&1
+    )
+)
 
 REM Success
 echo.
