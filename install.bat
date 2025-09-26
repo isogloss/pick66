@@ -1,6 +1,12 @@
 @echo off
-REM Pick66 Unified Installer / Builder
-REM Usage:
+REM Pick66 Unified Installer / Builder (Windows Version)
+REM 
+REM For cross-platform support, use install.ps1 instead:
+REM   pwsh install.ps1              -> Full clean publish install (cross-platform)
+REM   pwsh install.ps1 -Mode fast   -> Fast incremental publish (cross-platform)
+REM   pwsh install.ps1 -Mode build  -> Restore + build only (cross-platform)
+REM
+REM Windows-only Usage:
 REM   install.bat              -> Full clean publish install
 REM   install.bat fast         -> Fast incremental publish (falls back to full on failure)
 REM   install.bat build        -> Restore + build only (no publish/install)
@@ -10,14 +16,37 @@ REM   PICK66_OUTPUT   -> Absolute path for installation output (default: %USERPR
 
 setlocal enabledelayedexpansion
 
+REM Check if we're running in a non-Windows environment
+if not "%OS%"=="Windows_NT" (
+    echo.
+    echo =========================================
+    echo    PLATFORM COMPATIBILITY NOTICE
+    echo =========================================
+    echo.
+    echo This Windows batch script is not supported on this platform.
+    echo Please use the cross-platform PowerShell installer instead:
+    echo.
+    echo   pwsh install.ps1
+    echo   pwsh install.ps1 -Mode fast
+    echo   pwsh install.ps1 -Mode build
+    echo.
+    echo The PowerShell installer supports Windows, Linux, and macOS.
+    echo.
+    pause
+    exit /b 1
+)
+
 set "MODE=%~1"
 if "%MODE%"=="" set "MODE=full"
 
 echo.
 echo =========================================
 echo          Pick66 Installer v3.0
+echo          Windows Edition
 echo            Mode: %MODE%
 echo =========================================
+echo.
+echo TIP: For cross-platform support, use: pwsh install.ps1
 echo.
 
 REM Validate project location
