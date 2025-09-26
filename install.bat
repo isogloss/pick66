@@ -97,14 +97,17 @@ echo     Output directory: %OUTPUT_DIR%
 cd /d "%SOURCE_DIR%"
 
 REM Restore dependencies
-dotnet restore --verbosity quiet >nul 2>&1
+echo     Restoring .NET dependencies...
+dotnet restore src\Pick6.Loader\Pick6.Loader.csproj --verbosity quiet >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Failed to restore dependencies.
+    echo Make sure you have internet access for NuGet packages.
     pause
     exit /b 1
 )
 
 REM Build and publish
+echo     Building and publishing...
 dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
     --configuration Release ^
     --runtime win-x64 ^
@@ -113,10 +116,12 @@ dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
     --output "%OUTPUT_DIR%" ^
     -p:PublishSingleFile=true ^
     -p:IncludeNativeLibrariesForSelfExtract=true ^
-    -p:IncludeAllContentForSelfExtract=true >nul 2>&1
+    -p:IncludeAllContentForSelfExtract=true ^
+    -p:EnableWindowsTargeting=true >nul 2>&1
 
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Build failed.
+    echo Please check that .NET 8 SDK is properly installed.
     echo.
     pause
     exit /b 1
