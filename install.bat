@@ -5,10 +5,51 @@ REM Automatically installs .NET 8 SDK if not present or insufficient version fou
 
 setlocal enabledelayedexpansion
 
+REM ====================================================================
+REM                        INSTALLER HEADER
+REM ====================================================================
+call :DisplayHeader
+
+REM ====================================================================
+REM                      SYSTEM VALIDATION
+REM ====================================================================
+call :ValidateWindows
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+REM ====================================================================
+REM                    .NET SDK MANAGEMENT
+REM ====================================================================
+call :CheckAndInstallDotNet
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+REM ====================================================================
+REM                   SOURCE CODE DOWNLOAD
+REM ====================================================================
+call :DownloadSourceCode
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+REM ====================================================================
+REM                   BUILD AND DEPLOYMENT
+REM ====================================================================
+call :BuildAndDeploy
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+REM ====================================================================
+REM                  INSTALLATION COMPLETION
+REM ====================================================================
+call :CompleteInstallation
+
+exit /b 0
+
+REM ====================================================================
+REM                          FUNCTIONS
+REM ====================================================================
+
+:DisplayHeader
 echo.
 echo =========================================
-echo          Pick66 Installer v4.1
-echo        Self-Bootstrapping Edition
+echo          Pick66 Installer v5.0
+echo           Refactored Edition
 echo =========================================
 echo.
 echo Features:
@@ -17,160 +58,224 @@ echo  • Source download from GitHub
 echo  • Complete build and deployment
 echo  • No manual prerequisites required
 echo.
+goto :eof
 
-REM Check if we're on Windows
+:ValidateWindows
+echo [1/4] Validating system requirements...
 if not "%OS%"=="Windows_NT" (
     echo ERROR: This installer only works on Windows.
     echo.
     pause
     exit /b 1
 )
+echo     ✓ Windows OS detected
+goto :eof
 
-REM Check for .NET SDK and bootstrap if needed
-echo [1/4] Checking .NET SDK...
+:CheckAndInstallDotNet
+echo [2/4] Checking .NET SDK...
 
-REM First check if dotnet is already available and sufficient
+REM Initialize variables
 set DOTNET_SUFFICIENT=0
 set DOTNET_VERSION=
 set PRIVATE_DOTNET_DIR=
+
+REM Check if dotnet is available and sufficient
 dotnet --version >nul 2>&1
 if %ERRORLEVEL% equ 0 (
-    for /f "tokens=*" %%i in ('dotnet --version 2^>nul') do set DOTNET_VERSION=%%i
-    REM Trim any whitespace from version string
-    for /f "tokens=* delims= " %%j in ("!DOTNET_VERSION!") do set DOTNET_VERSION=%%j
-    if defined DOTNET_VERSION (
-        for /f "tokens=1 delims=." %%a in ("!DOTNET_VERSION!") do set MAJOR_VERSION=%%a
-        if defined MAJOR_VERSION (
-            if !MAJOR_VERSION! geq 8 (
-                set DOTNET_SUFFICIENT=1
-                echo     ✓ .NET SDK OK (version: !DOTNET_VERSION!)
-            ) else (
-                echo     Found .NET SDK version !DOTNET_VERSION!, but need version 8 or higher
-            )
+    call :ValidateExistingDotNet
+) else (
+    echo     .NET SDK not found
+)
+
+REM Install .NET SDK if needed
+if %DOTNET_SUFFICIENT% equ 0 (
+    call :InstallPrivateDotNet
+    if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+)
+
+REM Set dotnet command
+call :SetDotNetCommand
+goto :eof
+
+:ValidateExistingDotNet
+for /f "tokens=*" %%i in ('dotnet --version 2^>nul') do set DOTNET_VERSION=%%i
+for /f "tokens=* delims= " %%j in ("!DOTNET_VERSION!") do set DOTNET_VERSION=%%j
+if defined DOTNET_VERSION (
+    for /f "tokens=1 delims=." %%a in ("!DOTNET_VERSION!") do set MAJOR_VERSION=%%a
+    if defined MAJOR_VERSION (
+        if !MAJOR_VERSION! geq 8 (
+            set DOTNET_SUFFICIENT=1
+            echo     ✓ .NET SDK OK (version: !DOTNET_VERSION!)
         ) else (
-            echo     Could not parse .NET SDK version: !DOTNET_VERSION!
+            echo     Found .NET SDK version !DOTNET_VERSION!, but need version 8 or higher
         )
     ) else (
-        echo     Could not determine .NET SDK version
+        echo     Could not parse .NET SDK version: !DOTNET_VERSION!
     )
+) else (
+    echo     Could not determine .NET SDK version
+)
+goto :eof
+
+:InstallPrivateDotNet
+echo     .NET 8 SDK not found or insufficient version detected
+echo     Bootstrapping .NET 8 SDK installation...
+
+REM Create private installation directory
+set PRIVATE_DOTNET_DIR=%TEMP%\Pick66_Build_DotNet_%RANDOM%
+if exist "!PRIVATE_DOTNET_DIR!" rmdir /s /q "!PRIVATE_DOTNET_DIR!" >nul 2>&1
+mkdir "!PRIVATE_DOTNET_DIR!"
+
+REM Download installation script
+echo     Downloading .NET installation script...
+set DOTNET_INSTALL_SCRIPT=!PRIVATE_DOTNET_DIR!\dotnet-install.ps1
+powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://dot.net/v1/dotnet-install.ps1' -OutFile '!DOTNET_INSTALL_SCRIPT!' -UseBasicParsing; exit 0 } catch { Write-Host 'Error downloading install script:' $_.Exception.Message; exit 1 }" 2>&1
+
+if %ERRORLEVEL% neq 0 (
+    call :DisplayDotNetError
+    exit /b 1
 )
 
-if %DOTNET_SUFFICIENT% equ 0 (
-    echo     .NET 8 SDK not found or insufficient version detected
-    echo     Bootstrapping .NET 8 SDK installation...
-    
-    REM Create private .NET installation directory
-    set PRIVATE_DOTNET_DIR=%TEMP%\Pick66_Build_DotNet_%RANDOM%
-    if exist "!PRIVATE_DOTNET_DIR!" rmdir /s /q "!PRIVATE_DOTNET_DIR!" >nul 2>&1
-    mkdir "!PRIVATE_DOTNET_DIR!"
-    
-    REM Download dotnet-install.ps1
-    echo     Downloading .NET installation script...
-    set DOTNET_INSTALL_SCRIPT=!PRIVATE_DOTNET_DIR!\dotnet-install.ps1
-    powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://dot.net/v1/dotnet-install.ps1' -OutFile '!DOTNET_INSTALL_SCRIPT!' -UseBasicParsing; exit 0 } catch { Write-Host 'Error downloading install script:' $_.Exception.Message; exit 1 }" 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo ERROR: Failed to download .NET installation script.
-        echo This could be due to:
-        echo  - No internet connection
-        echo  - Firewall blocking PowerShell web requests
-        echo  - Corporate proxy settings
-        echo Please check your internet connection and try again.
-        echo Alternatively, manually install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
-        pause
-        exit /b 1
-    )
-    
-    REM Install .NET 8 SDK to private directory
-    echo     Installing .NET 8 SDK (this may take a few minutes)...
-    echo     Please wait while the SDK is downloaded and installed...
-    powershell -ExecutionPolicy Bypass -Command "& '!DOTNET_INSTALL_SCRIPT!' -Channel 8.0 -Quality GA -InstallDir '!PRIVATE_DOTNET_DIR!' -NoPath; if ($LASTEXITCODE -eq 0) { Write-Host 'Installation successful' } else { exit $LASTEXITCODE }" >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo ERROR: Failed to install .NET 8 SDK.
-        echo Please check your internet connection and try again.
-        echo Alternatively, manually install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
-        pause
-        exit /b 1
-    )
-    
-    REM Update PATH to use private .NET installation
-    set PATH=!PRIVATE_DOTNET_DIR!;!PATH!
-    
-    REM Verify private installation
-    "!PRIVATE_DOTNET_DIR!\dotnet.exe" --version >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo ERROR: .NET SDK installation verification failed.
-        echo The SDK was downloaded but may not be functioning correctly.
-        pause
-        exit /b 1
-    )
-    
-    for /f "tokens=*" %%i in ('"!PRIVATE_DOTNET_DIR!\dotnet.exe" --version 2^>nul') do set DOTNET_VERSION=%%i
-    echo     ✓ .NET 8 SDK installed successfully (version: !DOTNET_VERSION!)
-    echo     Using private installation: !PRIVATE_DOTNET_DIR!
+REM Install .NET 8 SDK
+echo     Installing .NET 8 SDK (this may take a few minutes)...
+echo     Please wait while the SDK is downloaded and installed...
+powershell -ExecutionPolicy Bypass -Command "& '!DOTNET_INSTALL_SCRIPT!' -Channel 8.0 -Quality GA -InstallDir '!PRIVATE_DOTNET_DIR!' -NoPath; if ($LASTEXITCODE -eq 0) { Write-Host 'Installation successful' } else { exit $LASTEXITCODE }" >nul 2>&1
+
+if %ERRORLEVEL% neq 0 (
+    call :DisplayDotNetError
+    exit /b 1
 )
 
-REM Set the dotnet command to use (private installation takes precedence)
+REM Verify installation
+call :VerifyPrivateDotNet
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+goto :eof
+
+:DisplayDotNetError
+echo ERROR: Failed to install .NET 8 SDK.
+echo This could be due to:
+echo  - No internet connection
+echo  - Firewall blocking PowerShell web requests
+echo  - Corporate proxy settings
+echo Please check your internet connection and try again.
+echo Alternatively, manually install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
+pause
+goto :eof
+
+:VerifyPrivateDotNet
+set PATH=!PRIVATE_DOTNET_DIR!;!PATH!
+"!PRIVATE_DOTNET_DIR!\dotnet.exe" --version >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: .NET SDK installation verification failed.
+    echo The SDK was downloaded but may not be functioning correctly.
+    pause
+    exit /b 1
+)
+for /f "tokens=*" %%i in ('"!PRIVATE_DOTNET_DIR!\dotnet.exe" --version 2^>nul') do set DOTNET_VERSION=%%i
+echo     ✓ .NET 8 SDK installed successfully (version: !DOTNET_VERSION!)
+echo     Using private installation: !PRIVATE_DOTNET_DIR!
+goto :eof
+
+:SetDotNetCommand
 if defined PRIVATE_DOTNET_DIR (
     set DOTNET_CMD="!PRIVATE_DOTNET_DIR!\dotnet.exe"
 ) else (
     set DOTNET_CMD=dotnet
 )
+goto :eof
 
-REM Create temporary directory for source download
+:DownloadSourceCode
+echo [3/4] Downloading source code...
+
+REM Create temporary directory
 set TEMP_DIR=%TEMP%\Pick66_Build_%RANDOM%
 if exist "%TEMP_DIR%" rmdir /s /q "%TEMP_DIR%" >nul 2>&1
 mkdir "%TEMP_DIR%"
 
-REM Check for git or download tools
-echo.
-echo [2/4] Downloading source code...
+REM Try git first, then fallback to PowerShell
 git --version >nul 2>&1
 if %ERRORLEVEL% equ 0 (
-    echo     Using git to download source...
-    git clone https://github.com/isogloss/pick66.git "%TEMP_DIR%\pick66" >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo ERROR: Failed to clone repository.
-        echo Make sure you have internet access and git is installed.
-        pause
-        exit /b 1
-    )
-    set SOURCE_DIR=%TEMP_DIR%\pick66
+    call :DownloadWithGit
 ) else (
-    REM Try PowerShell for download if git not available
-    echo     Using PowerShell to download source...
-    powershell -Command "try { Invoke-WebRequest -Uri 'https://github.com/isogloss/pick66/archive/refs/heads/main.zip' -OutFile '%TEMP_DIR%\source.zip'; Expand-Archive -Path '%TEMP_DIR%\source.zip' -DestinationPath '%TEMP_DIR%'; exit 0 } catch { exit 1 }" >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo ERROR: Failed to download source code.
-        echo Please ensure you have internet access.
-        echo Consider installing git for more reliable downloads.
-        pause
-        exit /b 1
-    )
-    set SOURCE_DIR=%TEMP_DIR%\pick66-main
+    call :DownloadWithPowerShell
 )
 
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+REM Validate downloaded source
+call :ValidateSourceCode
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+echo     ✓ Source code downloaded
+goto :eof
+
+:DownloadWithGit
+echo     Using git to download source...
+git clone https://github.com/isogloss/pick66.git "%TEMP_DIR%\pick66" >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: Failed to clone repository.
+    echo Make sure you have internet access and git is installed.
+    pause
+    exit /b 1
+)
+set SOURCE_DIR=%TEMP_DIR%\pick66
+goto :eof
+
+:DownloadWithPowerShell
+echo     Using PowerShell to download source...
+powershell -Command "try { Invoke-WebRequest -Uri 'https://github.com/isogloss/pick66/archive/refs/heads/main.zip' -OutFile '%TEMP_DIR%\source.zip'; Expand-Archive -Path '%TEMP_DIR%\source.zip' -DestinationPath '%TEMP_DIR%'; exit 0 } catch { exit 1 }" >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: Failed to download source code.
+    echo Please ensure you have internet access.
+    echo Consider installing git for more reliable downloads.
+    pause
+    exit /b 1
+)
+set SOURCE_DIR=%TEMP_DIR%\pick66-main
+goto :eof
+
+:ValidateSourceCode
 if not exist "%SOURCE_DIR%\src\Pick6.Loader\Pick6.Loader.csproj" (
     echo ERROR: Downloaded source appears to be incomplete.
     echo Expected project file not found.
     pause
     exit /b 1
 )
-echo     ✓ Source code downloaded
+goto :eof
 
-REM Set output directory to user's Downloads folder
+:BuildAndDeploy
+echo [4/4] Building Pick66 Loader...
+
+REM Setup output directory
+call :SetupOutputDirectory
+
+REM Build .NET application
+call :BuildDotNetApplication
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+REM Build C++ proxy DLLs
+call :BuildProxyDlls
+
+REM Verify installation
+call :VerifyInstallation
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+echo     ✓ Build process complete
+goto :eof
+
+:SetupOutputDirectory
 set OUTPUT_DIR=%USERPROFILE%\Downloads\Pick66
+echo     Output directory: %OUTPUT_DIR%
 if exist "%OUTPUT_DIR%" (
     echo     Cleaning existing installation...
     rmdir /s /q "%OUTPUT_DIR%" >nul 2>&1
 )
 mkdir "%OUTPUT_DIR%" >nul 2>&1
+goto :eof
 
-echo.
-echo [3/4] Building Pick66 Loader...
-echo     Output directory: %OUTPUT_DIR%
+:BuildDotNetApplication
 cd /d "%SOURCE_DIR%"
 
-REM Restore dependencies
 echo     Restoring .NET dependencies...
 %DOTNET_CMD% restore src\Pick6.Loader\Pick6.Loader.csproj --verbosity quiet >nul 2>&1
 if %ERRORLEVEL% neq 0 (
@@ -180,7 +285,6 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-REM Build and publish
 echo     Building and publishing...
 %DOTNET_CMD% publish src\Pick6.Loader\Pick6.Loader.csproj ^
     --configuration Release ^
@@ -196,58 +300,83 @@ echo     Building and publishing...
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Build failed.
     echo Please check that .NET 8 SDK is properly installed.
-    echo.
     pause
     exit /b 1
 )
 echo     ✓ .NET build successful
+goto :eof
 
-REM Check for and build C++ proxy DLLs
+:BuildProxyDlls
 echo     Building C++ proxy DLLs...
 cd /d "%SOURCE_DIR%\src\Pick6.ProxyDLL"
 
-REM Check for Visual Studio Build Tools
-cl >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo     Visual C++ compiler not found, attempting to download Build Tools...
-    
-    REM Download and install Visual Studio Build Tools
-    set BUILD_TOOLS_URL=https://aka.ms/vs/17/release/vs_buildtools.exe
-    set BUILD_TOOLS_EXE=%TEMP_DIR%\vs_buildtools.exe
-    
-    echo     Downloading Visual Studio Build Tools...
-    powershell -Command "try { Invoke-WebRequest -Uri '%BUILD_TOOLS_URL%' -OutFile '%BUILD_TOOLS_EXE%'; exit 0 } catch { exit 1 }" >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo     WARNING: Failed to download Build Tools. Proxy DLLs will not be built.
-        echo     You can manually install Visual Studio Build Tools later and run:
-        echo     "%SOURCE_DIR%\src\Pick6.ProxyDLL\build_proxies.bat"
-        goto skip_proxy_build
-    )
-    
-    echo     Installing Visual Studio Build Tools (this may take several minutes)...
-    echo     Please wait for the installation to complete...
-    "%BUILD_TOOLS_EXE%" --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.20348
-    if %ERRORLEVEL% neq 0 (
-        echo     WARNING: Build Tools installation failed. Proxy DLLs will not be built.
-        goto skip_proxy_build
-    )
-    
-    REM Try to locate and add VS tools to PATH
-    for /f "usebackq delims=" %%i in (`dir /b /s "C:\Program Files*\Microsoft Visual Studio\*\BuildTools\VC\Auxiliary\Build\vcvars64.bat" 2^>nul`) do (
-        call "%%i" >nul 2>&1
-        goto found_vcvars
-    )
-    
-    :found_vcvars
-    cl >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo     WARNING: Could not configure C++ compiler. Proxy DLLs will not be built.
-        goto skip_proxy_build
-    )
+REM Check for compiler availability
+call :CheckCppCompiler
+if %ERRORLEVEL% neq 0 goto :skip_proxy_build
+
+REM Build all proxy DLLs
+call :CompileProxyDlls
+
+REM Copy DLLs to output
+if exist "bin\*.dll" (
+    copy bin\*.dll "%OUTPUT_DIR%" >nul 2>&1
+    echo     ✓ Proxy DLLs copied to output
 )
 
-REM Build proxy DLLs
-echo     Building proxy DLLs...
+REM Cleanup build artifacts
+call :CleanupBuildArtifacts
+goto :eof
+
+:skip_proxy_build
+echo     WARNING: Skipping proxy DLL build due to missing compiler
+goto :eof
+
+:CheckCppCompiler
+cl >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    call :InstallBuildTools
+    if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+)
+goto :eof
+
+:InstallBuildTools
+echo     Visual C++ compiler not found, attempting to download Build Tools...
+
+set BUILD_TOOLS_URL=https://aka.ms/vs/17/release/vs_buildtools.exe
+set BUILD_TOOLS_EXE=%TEMP_DIR%\vs_buildtools.exe
+
+echo     Downloading Visual Studio Build Tools...
+powershell -Command "try { Invoke-WebRequest -Uri '%BUILD_TOOLS_URL%' -OutFile '%BUILD_TOOLS_EXE%'; exit 0 } catch { exit 1 }" >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo     WARNING: Failed to download Build Tools. Proxy DLLs will not be built.
+    echo     You can manually install Visual Studio Build Tools later and run:
+    echo     "%SOURCE_DIR%\src\Pick6.ProxyDLL\build_proxies.bat"
+    exit /b 1
+)
+
+echo     Installing Visual Studio Build Tools (this may take several minutes)...
+echo     Please wait for the installation to complete...
+"%BUILD_TOOLS_EXE%" --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.20348
+if %ERRORLEVEL% neq 0 (
+    echo     WARNING: Build Tools installation failed. Proxy DLLs will not be built.
+    exit /b 1
+)
+
+REM Locate and configure VS tools
+for /f "usebackq delims=" %%i in (`dir /b /s "C:\Program Files*\Microsoft Visual Studio\*\BuildTools\VC\Auxiliary\Build\vcvars64.bat" 2^>nul`) do (
+    call "%%i" >nul 2>&1
+    goto :found_vcvars
+)
+
+:found_vcvars
+cl >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo     WARNING: Could not configure C++ compiler. Proxy DLLs will not be built.
+    exit /b 1
+)
+goto :eof
+
+:CompileProxyDlls
 if not exist "bin" mkdir bin
 
 REM Build dxgi.dll proxy
@@ -277,44 +406,52 @@ if %ERRORLEVEL% equ 0 (
 ) else (
     echo     WARNING: Failed to build vulkan-1.dll proxy
 )
+goto :eof
 
-REM Copy proxy DLLs to output directory
-if exist "bin\*.dll" (
-    copy bin\*.dll "%OUTPUT_DIR%" >nul 2>&1
-    echo     ✓ Proxy DLLs copied to output
-)
-
-REM Clean up temporary files
+:CleanupBuildArtifacts
 del *.obj >nul 2>&1
 del *.exp >nul 2>&1
 del *.lib >nul 2>&1
 del d3d11_proxy_template.cpp >nul 2>&1
 del vulkan_proxy_template.cpp >nul 2>&1
+goto :eof
 
-:skip_proxy_build
-echo     ✓ Build process complete
-
-REM Verify installation
-echo.
-echo [4/4] Verifying installation...
+:VerifyInstallation
 if not exist "%OUTPUT_DIR%\loader.exe" (
     echo ERROR: Installation failed - loader.exe not found.
     pause
     exit /b 1
 )
 echo     ✓ Installation verified
+goto :eof
 
-REM Clean up temporary files
+:CompleteInstallation
+REM Cleanup temporary files
+call :CleanupTempFiles
+
+REM Display success message
+call :DisplaySuccess
+
+REM Open Downloads folder
+echo Press any key to open the Downloads folder...
+pause >nul
+explorer "%OUTPUT_DIR%"
+goto :eof
+
+:CleanupTempFiles
 cd /d "%USERPROFILE%"
-rmdir /s /q "%TEMP_DIR%" >nul 2>&1
+if exist "%TEMP_DIR%" (
+    rmdir /s /q "%TEMP_DIR%" >nul 2>&1
+)
 if defined PRIVATE_DOTNET_DIR (
     if exist "%PRIVATE_DOTNET_DIR%" (
         echo     Cleaning up private .NET installation...
         rmdir /s /q "%PRIVATE_DOTNET_DIR%" >nul 2>&1
     )
 )
+goto :eof
 
-REM Success
+:DisplaySuccess
 echo.
 echo =========================================
 echo           Installation Complete!
@@ -325,8 +462,4 @@ echo %OUTPUT_DIR%\loader.exe
 echo.
 echo Run loader.exe to start Pick66.
 echo.
-echo Press any key to open the Downloads folder...
-pause >nul
-explorer "%OUTPUT_DIR%"
-
-exit /b 0
+goto :eof
