@@ -139,10 +139,20 @@ if %ERRORLEVEL% neq 0 (
 REM Install .NET 8 SDK
 echo     Installing .NET 8 SDK (this may take a few minutes)...
 echo     Please wait while the SDK is downloaded and installed...
-powershell -ExecutionPolicy Bypass -Command "& '!DOTNET_INSTALL_SCRIPT!' -Channel 8.0 -Quality GA -InstallDir '!PRIVATE_DOTNET_DIR!' -NoPath; if ($LASTEXITCODE -eq 0) { Write-Host 'Installation successful' } else { exit $LASTEXITCODE }" >nul 2>&1
+echo     NOTE: If installation appears to hang, please wait - this is normal for first-time installation.
+
+REM Use a more robust installation approach with timeout handling
+powershell -ExecutionPolicy Bypass -Command "try { & '!DOTNET_INSTALL_SCRIPT!' -Channel 8.0 -Quality GA -InstallDir '!PRIVATE_DOTNET_DIR!' -NoPath -Verbose; if ($LASTEXITCODE -eq 0) { Write-Host 'Installation successful' } else { Write-Host 'Installation failed with exit code:' $LASTEXITCODE; exit $LASTEXITCODE } } catch { Write-Host 'Installation error:' $_.Exception.Message; exit 1 }" 2>&1
 
 if %ERRORLEVEL% neq 0 (
+    echo.
+    echo Installation failed with error code: %ERRORLEVEL%
     call :DisplayDotNetError
+    REM Try to cleanup partial installation
+    if exist "!PRIVATE_DOTNET_DIR!" (
+        echo     Cleaning up partial installation...
+        rmdir /s /q "!PRIVATE_DOTNET_DIR!" >nul 2>&1
+    )
     exit /b 1
 )
 
@@ -152,13 +162,31 @@ if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 goto :eof
 
 :DisplayDotNetError
+echo.
+echo =========================================
+echo    .NET SDK Installation Failed
+echo =========================================
 echo ERROR: Failed to install .NET 8 SDK.
+echo.
 echo This could be due to:
 echo  - No internet connection
-echo  - Firewall blocking PowerShell web requests
-echo  - Corporate proxy settings
-echo Please check your internet connection and try again.
-echo Alternatively, manually install .NET 8 SDK from: https://dotnet.microsoft.com/download/dotnet/8.0
+echo  - Firewall blocking PowerShell web requests  
+echo  - Corporate proxy settings blocking downloads
+echo  - Insufficient disk space in TEMP directory
+echo  - Windows PowerShell execution policy restrictions
+echo.
+echo Troubleshooting steps:
+echo  1. Check your internet connection
+echo  2. Try running as Administrator
+echo  3. Temporarily disable antivirus/firewall  
+echo  4. Check available disk space
+echo  5. Clear temporary files in %%TEMP%% directory
+echo.
+echo Alternatively, manually install .NET 8 SDK from:
+echo https://dotnet.microsoft.com/download/dotnet/8.0
+echo.
+echo After manual installation, re-run this installer.
+echo.
 pause
 goto :eof
 
@@ -246,19 +274,30 @@ goto :eof
 :BuildAndDeploy
 echo [4/4] Building Pick66 Loader...
 
-REM Setup output directory
+REM Setup output directory with error checking
 call :SetupOutputDirectory
-
-REM Build .NET application
-call :BuildDotNetApplication
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
-REM Build C++ proxy DLLs
+REM Build .NET application with error handling
+call :BuildDotNetApplication
+if %ERRORLEVEL% neq 0 (
+    echo.
+    echo Build failed. Attempting cleanup before exit...
+    call :CleanupTempFiles
+    exit /b %ERRORLEVEL%
+)
+
+REM Build C++ proxy DLLs (non-critical, warnings only)
 call :BuildProxyDlls
 
-REM Verify installation
+REM Verify installation before declaring success
 call :VerifyInstallation
-if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+if %ERRORLEVEL% neq 0 (
+    echo.
+    echo Verification failed. Build may have completed but files are missing.
+    call :CleanupTempFiles
+    exit /b %ERRORLEVEL%
+)
 
 echo     ✓ Build process complete
 goto :eof
@@ -269,8 +308,21 @@ echo     Output directory: %OUTPUT_DIR%
 if exist "%OUTPUT_DIR%" (
     echo     Cleaning existing installation...
     rmdir /s /q "%OUTPUT_DIR%" >nul 2>&1
+    REM Give the system time to release file handles
+    timeout /t 1 /nobreak >nul 2>&1
 )
 mkdir "%OUTPUT_DIR%" >nul 2>&1
+if not exist "%OUTPUT_DIR%" (
+    echo ERROR: Failed to create output directory: %OUTPUT_DIR%
+    echo This could be due to:
+    echo  - Insufficient permissions
+    echo  - Path length limitations  
+    echo  - Disk space issues
+    echo  - Antivirus blocking directory creation
+    pause
+    exit /b 1
+)
+echo     ✓ Output directory ready
 goto :eof
 
 :BuildDotNetApplication
@@ -280,6 +332,10 @@ echo     Restoring .NET dependencies...
 %DOTNET_CMD% restore src\Pick6.Loader\Pick6.Loader.csproj --verbosity quiet >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Failed to restore dependencies.
+    echo Retrying with verbose output to show detailed error...
+    echo.
+    %DOTNET_CMD% restore src\Pick6.Loader\Pick6.Loader.csproj --verbosity normal
+    echo.
     echo Make sure you have internet access for NuGet packages.
     pause
     exit /b 1
@@ -299,7 +355,21 @@ echo     Building and publishing...
 
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Build failed.
-    echo Please check that .NET 8 SDK is properly installed.
+    echo Retrying with verbose output to show detailed error...
+    echo.
+    %DOTNET_CMD% publish src\Pick6.Loader\Pick6.Loader.csproj ^
+        --configuration Release ^
+        --runtime win-x64 ^
+        --self-contained true ^
+        --verbosity normal ^
+        --output "%OUTPUT_DIR%" ^
+        -p:PublishSingleFile=true ^
+        -p:IncludeNativeLibrariesForSelfExtract=true ^
+        -p:IncludeAllContentForSelfExtract=true ^
+        -p:EnableWindowsTargeting=true
+    echo.
+    echo Please check that .NET 8 SDK is properly installed and OutputDir is writable.
+    echo Output directory: "%OUTPUT_DIR%"
     pause
     exit /b 1
 )
@@ -417,8 +487,20 @@ del vulkan_proxy_template.cpp >nul 2>&1
 goto :eof
 
 :VerifyInstallation
+echo     Verifying installation...
 if not exist "%OUTPUT_DIR%\loader.exe" (
     echo ERROR: Installation failed - loader.exe not found.
+    echo Expected location: "%OUTPUT_DIR%\loader.exe"
+    echo.
+    echo Contents of output directory:
+    if exist "%OUTPUT_DIR%" (
+        dir "%OUTPUT_DIR%" 2>nul
+    ) else (
+        echo Output directory does not exist!
+    )
+    echo.
+    echo This usually indicates a build failure that was not detected.
+    echo Please review the build output above for any error messages.
     pause
     exit /b 1
 )
@@ -426,27 +508,48 @@ echo     ✓ Installation verified
 goto :eof
 
 :CompleteInstallation
-REM Cleanup temporary files
+REM Cleanup temporary files (don't fail if cleanup fails)
 call :CleanupTempFiles
 
 REM Display success message
 call :DisplaySuccess
 
-REM Open Downloads folder
+REM Open Downloads folder (optional, don't fail if explorer fails) 
 echo Press any key to open the Downloads folder...
 pause >nul
-explorer "%OUTPUT_DIR%"
+explorer "%OUTPUT_DIR%" >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo Note: Could not automatically open Downloads folder.
+    echo Please navigate to: %OUTPUT_DIR%
+)
 goto :eof
 
 :CleanupTempFiles
-cd /d "%USERPROFILE%"
+echo     Cleaning up temporary files...
+cd /d "%USERPROFILE%" >nul 2>&1
 if exist "%TEMP_DIR%" (
+    echo     Removing build directory: %TEMP_DIR%
+    REM Use multiple attempts to handle locked files
     rmdir /s /q "%TEMP_DIR%" >nul 2>&1
+    if exist "%TEMP_DIR%" (
+        timeout /t 2 /nobreak >nul 2>&1
+        rmdir /s /q "%TEMP_DIR%" >nul 2>&1
+    )
+    if exist "%TEMP_DIR%" (
+        echo     WARNING: Could not fully remove temp directory, some files may remain
+    )
 )
 if defined PRIVATE_DOTNET_DIR (
     if exist "%PRIVATE_DOTNET_DIR%" (
         echo     Cleaning up private .NET installation...
         rmdir /s /q "%PRIVATE_DOTNET_DIR%" >nul 2>&1
+        if exist "%PRIVATE_DOTNET_DIR%" (
+            timeout /t 2 /nobreak >nul 2>&1
+            rmdir /s /q "%PRIVATE_DOTNET_DIR%" >nul 2>&1
+        )
+        if exist "%PRIVATE_DOTNET_DIR%" (
+            echo     WARNING: Could not fully remove .NET temp directory, some files may remain
+        )
     )
 )
 goto :eof
