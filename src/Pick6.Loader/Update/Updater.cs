@@ -1,7 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.IO.Compression;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Pick6.Core;
 
 namespace Pick6.Loader.Update;

@@ -1,3 +1,4 @@
+using System;
 using Pick6.Core;
 
 namespace Pick6.Loader.Logging;

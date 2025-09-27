@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Pick6.Core;
 
 namespace Pick6.Loader.Update;

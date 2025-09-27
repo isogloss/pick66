@@ -1,3 +1,6 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
 using Pick6.Core;
 using Pick6.Core.Util;
 using Pick6.Projection;

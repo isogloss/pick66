@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Pick6.Core;
 using Pick6.Projection;
 using Pick6.Loader.Settings;
