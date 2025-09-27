@@ -191,15 +191,39 @@ pause
 goto :eof
 
 :VerifyPrivateDotNet
+echo     Verifying .NET SDK installation...
 set PATH=!PRIVATE_DOTNET_DIR!;!PATH!
+
+REM Check if dotnet.exe exists
+if not exist "!PRIVATE_DOTNET_DIR!\dotnet.exe" (
+    echo ERROR: .NET SDK installation failed - dotnet.exe not found.
+    echo Expected location: "!PRIVATE_DOTNET_DIR!\dotnet.exe"
+    echo Directory contents:
+    dir "!PRIVATE_DOTNET_DIR!" 2>nul
+    pause
+    exit /b 1
+)
+
+REM Test if dotnet.exe is functional
 "!PRIVATE_DOTNET_DIR!\dotnet.exe" --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo ERROR: .NET SDK installation verification failed.
     echo The SDK was downloaded but may not be functioning correctly.
+    echo This could be due to:
+    echo  - Corrupted download  
+    echo  - Missing dependencies
+    echo  - Antivirus interference
+    echo Try running the installer as Administrator or manually install .NET 8 SDK.
     pause
     exit /b 1
 )
+
+REM Get and display version
 for /f "tokens=*" %%i in ('"!PRIVATE_DOTNET_DIR!\dotnet.exe" --version 2^>nul') do set DOTNET_VERSION=%%i
+if not defined DOTNET_VERSION (
+    echo WARNING: Could not determine .NET SDK version, but installation appears functional.
+    set DOTNET_VERSION=Unknown
+)
 echo     ✓ .NET 8 SDK installed successfully (version: !DOTNET_VERSION!)
 echo     Using private installation: !PRIVATE_DOTNET_DIR!
 goto :eof
@@ -563,6 +587,19 @@ echo.
 echo Pick66 Loader has been installed to:
 echo %OUTPUT_DIR%\loader.exe
 echo.
-echo Run loader.exe to start Pick66.
+echo Additional files in installation directory:
+if exist "%OUTPUT_DIR%" (
+    for %%f in ("%OUTPUT_DIR%\*.exe" "%OUTPUT_DIR%\*.dll") do (
+        if exist "%%f" echo   %%~nxf
+    )
+) else (
+    echo   (Directory listing unavailable)
+)
+echo.
+echo To start Pick66:
+echo   1. Navigate to: %OUTPUT_DIR%
+echo   2. Run: loader.exe
+echo.
+echo NOTE: Administrator privileges are recommended for game injection.
 echo.
 goto :eof
