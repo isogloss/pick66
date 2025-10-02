@@ -1,6 +1,8 @@
 name: Build and Release Pick6
 
 on:
+  release:
+    types: [created]
   push:
     tags:
       - 'v*'
@@ -75,7 +77,10 @@ jobs:
       id: version
       run: |
         Write-Host "Determining version..." -ForegroundColor Cyan
-        if ("${{ github.event_name }}" -eq "push" -and "${{ github.ref_type }}" -eq "tag") {
+        if ("${{ github.event_name }}" -eq "release") {
+          $version = "${{ github.event.release.tag_name }}" -replace "^v", ""
+          Write-Host "Using release version: $version" -ForegroundColor Green
+        } elseif ("${{ github.event_name }}" -eq "push" -and "${{ github.ref_type }}" -eq "tag") {
           $version = "${{ github.ref_name }}" -replace "^v", ""
           Write-Host "Using tag version: $version" -ForegroundColor Green
         } elseif ("${{ github.event_name }}" -eq "workflow_dispatch") {
@@ -119,10 +124,11 @@ jobs:
           dist/loader.exe
         retention-days: 90
           
-    - name: Create GitHub Release
-      if: github.event_name == 'push' && github.ref_type == 'tag'
+    - name: Upload to GitHub Release
+      if: github.event_name == 'release' || (github.event_name == 'push' && github.ref_type == 'tag')
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref_name }}
         files: |
           dist/Pick6-v${{ steps.version.outputs.version }}.exe
         body: |
