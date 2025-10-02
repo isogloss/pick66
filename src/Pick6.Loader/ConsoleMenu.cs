@@ -279,11 +279,9 @@ public class ConsoleMenu
                 case "9": ToggleMatchCaptureFPS(); break;
                 case "10": ConfigureProjectionFPS(); break;
                 case "11": SelectMonitor(); break;
-                case "12": TestProjectionWithDemoFrames(); break;
                 
                 // C. Performance & Diagnostics
                 case "13": ShowLiveStatistics(); break;
-                case "14": ShowPerformanceWarnings(); break;
                 case "15": ToggleStatsLogging(); break;
                 case "16": DumpDiagnostics(); break;
                 
@@ -341,12 +339,12 @@ public class ConsoleMenu
         Console.WriteLine("┌─ B. Projection ───────────────────────────────────────────────────────────────┐");
         Console.WriteLine("│  7. Start projection             8. Stop projection                           │");
         Console.WriteLine("│  9. Toggle match capture FPS     10. Set projection FPS                      │");
-        Console.WriteLine("│  11. Select monitor              12. Test projection                          │");
+        Console.WriteLine("│  11. Select monitor                                                           │");
         Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
         Console.WriteLine();
         
         Console.WriteLine("┌─ C. Performance & Diagnostics ───────────────────────────────────────────────┐");
-        Console.WriteLine("│  13. Show live statistics       14. Performance warnings                     │");
+        Console.WriteLine("│  13. Show live statistics                                                    │");
         Console.WriteLine("│  15. Enable/disable stats log   16. Dump diagnostics                         │");
         Console.WriteLine("└───────────────────────────────────────────────────────────────────────────────┘");
         Console.WriteLine();
@@ -921,68 +919,7 @@ public class ConsoleMenu
         Console.WriteLine("✅ Pick6 has been shut down gracefully.");
     }
 
-    private async void TestProjectionWithDemoFrames()
-    {
-        Console.WriteLine("\n=== Testing Projection ===");
-        
-        // Start projection first
-        _projectionWindow.StartProjection(_selectedMonitor);
-        Console.WriteLine("✅ Projection window started");
-        
-        Console.WriteLine("🎨 Generating colorful test frames...");
-        
-        await GenerateTestFramesAsync();
-        
-        Console.WriteLine("\nPress any key when done viewing the projection window.");
-        Console.ReadKey();
-        
-        _projectionWindow.StopProjection();
-        Console.WriteLine("✅ Projection test completed");
-    }
 
-    private async Task GenerateTestFramesAsync()
-    {
-        var random = new Random();
-        for (int i = 0; i < 300; i++) // 10 seconds at ~30 FPS
-        {
-            try
-            {
-                GenerateTestFrame(random, i);
-                await Task.Delay(33); // ~30 FPS
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error generating test frame: {ex.Message}");
-                break;
-            }
-        }
-        
-        Console.WriteLine("\n🏁 Test frames generation completed.");
-    }
-
-    private void GenerateTestFrame(Random random, int frameNumber)
-    {
-        // Create a test frame with random colors
-        using var testFrame = new Bitmap(800, 600);
-        using var graphics = Graphics.FromImage(testFrame);
-        
-        // Fill with a random color
-        var color = Color.FromArgb(
-            random.Next(50, 255),
-            random.Next(50, 255), 
-            random.Next(50, 255)
-        );
-        graphics.Clear(color);
-        
-        // Add some text
-        using var font = new Font("Arial", 24, FontStyle.Bold);
-        using var brush = new SolidBrush(Color.White);
-        graphics.DrawString($"Pick6 Test Frame #{frameNumber + 1}", font, brush, 50, 50);
-        graphics.DrawString($"Color: {color}", font, brush, 50, 100);
-        graphics.DrawString("ESC to close projection", new Font("Arial", 16), brush, 50, 500);
-        
-        _projectionWindow.UpdateFrame(testFrame);
-    }
 
     private void ConfigureKeybinds()
     {
@@ -1484,66 +1421,7 @@ public class ConsoleMenu
         Console.WriteLine("Statistics monitoring stopped.");
     }
 
-    /// <summary>
-    /// Show performance warnings and recommendations
-    /// </summary>
-    private void ShowPerformanceWarnings()
-    {
-        Console.WriteLine("\n=== Performance Analysis ===");
-        
-        var captureStats = _captureEngine.Statistics;
-        var hasWarnings = false;
-        
-        // Check capture performance
-        if (captureStats.TotalFrames > 180) // At least 3 seconds of data
-        {
-            var targetFPS = _captureEngine.Settings.TargetFPS;
-            var avgFPS = captureStats.AverageFps;
-            
-            if (avgFPS < targetFPS * 0.7)
-            {
-                hasWarnings = true;
-                Console.WriteLine($"⚠️  Capture FPS Warning: Average {avgFPS:F1} FPS is significantly below target {targetFPS} FPS");
-                Console.WriteLine("   Possible causes: CPU overload, insufficient memory, game blocking capture");
-            }
-            
-            if (captureStats.P95FrameTimeMs > (1000.0 / targetFPS) * 2.0)
-            {
-                hasWarnings = true;
-                Console.WriteLine($"⚠️  Frame Time Warning: 95th percentile frame time is {captureStats.P95FrameTimeMs:F1}ms (target: {1000.0/targetFPS:F1}ms)");
-                Console.WriteLine("   This indicates inconsistent frame delivery");
-            }
-            
-            if (captureStats.DropRate > 5.0)
-            {
-                hasWarnings = true;
-                Console.WriteLine($"⚠️  Drop Rate Warning: {captureStats.DropRate:F1}% of frames are dropped");
-                Console.WriteLine("   Consider reducing FPS or resolution");
-            }
-        }
-        
-        // Check memory usage
-        var memoryMB = GC.GetTotalMemory(false) / 1024 / 1024;
-        if (memoryMB > 500)
-        {
-            hasWarnings = true;
-            Console.WriteLine($"⚠️  Memory Usage Warning: {memoryMB:F1} MB allocated");
-            Console.WriteLine("   High memory usage may indicate a memory leak or excessive frame buffering");
-        }
-        
-        if (!hasWarnings)
-        {
-            Console.WriteLine("✅ No performance issues detected");
-            Console.WriteLine($"   Capture: {captureStats.AverageFps:F1} avg FPS, {captureStats.DropRate:F1}% drop rate");
-            Console.WriteLine($"   Memory: {memoryMB:F1} MB");
-        }
-        
-        Console.WriteLine("\n💡 Performance Tips:");
-        Console.WriteLine("   • Run as administrator for better injection support");
-        Console.WriteLine("   • Close other applications to free up CPU/memory");
-        Console.WriteLine("   • Lower FPS or resolution if performance is poor");
-        Console.WriteLine("   • DLL injection requires Vulkan support");
-    }
+
 
     /// <summary>
     /// Toggle statistics logging
