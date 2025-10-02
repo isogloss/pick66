@@ -1,4 +1,4 @@
-name: Build Pick6 Loader
+name: Build and Release Pick6
 
 on:
   push:
@@ -10,29 +10,10 @@ on:
         description: 'Version to build'
         required: true
         default: '1.0.0'
-  pull_request:
-    paths:
-      - '**/*.ps1'
-      - 'install.cmd'
 
 jobs:
-  validate-powershell:
-    runs-on: windows-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Validate PowerShell Scripts
-      run: |
-        Write-Host "Validating PowerShell scripts..." -ForegroundColor Cyan
-        .\validate-powershell.ps1 -Path install.ps1
-        if ($LASTEXITCODE -ne 0) { exit 1 }
-        Write-Host "✅ All PowerShell scripts validated successfully" -ForegroundColor Green
-      shell: pwsh
-      
   build:
     runs-on: windows-latest
-    needs: validate-powershell
     
     steps:
     - name: Checkout code
@@ -44,96 +25,151 @@ jobs:
         dotnet-version: '8.0.x'
         
     - name: Restore dependencies
-      run: dotnet restore
-      
-    - name: Build solution
-      run: dotnet build -c Release --no-restore
-      
-    - name: Publish Pick6.Loader as single-file
       run: |
-        dotnet publish src/Pick6.Loader/Pick6.Loader.csproj `
-        -c Release `
-        -r win-x64 `
-        --self-contained true `
-        -p:PublishSingleFile=true `
-        -p:IncludeNativeLibrariesForSelfExtract=true `
-        -p:PublishReadyToRun=true `
-        -p:PublishTrimmed=true `
-        -p:TrimMode=partial `
-        -p:EnableCompressionInSingleFile=true `
-        -p:InvariantGlobalization=true `
-        -p:DebugType=none `
-        -p:DebugSymbols=false
+        Write-Host "Restoring NuGet packages..." -ForegroundColor Cyan
+        dotnet restore src/Pick6.Loader/Pick6.Loader.csproj
+        if ($LASTEXITCODE -ne 0) { 
+          Write-Host "❌ Failed to restore dependencies" -ForegroundColor Red
+          exit 1 
+        }
+        Write-Host "✅ Dependencies restored successfully" -ForegroundColor Green
+      shell: pwsh
+      
+    - name: Build and publish as single-file executable
+      run: |
+        Write-Host "Building Pick6 Loader as single-file executable..." -ForegroundColor Cyan
+        Write-Host "This creates a fully self-contained .exe with all dependencies embedded" -ForegroundColor Yellow
         
+        dotnet publish src/Pick6.Loader/Pick6.Loader.csproj `
+          --configuration Release `
+          --runtime win-x64 `
+          --self-contained true `
+          --output dist `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
+          -p:IncludeAllContentForSelfExtract=true `
+          -p:PublishReadyToRun=true `
+          -p:EnableCompressionInSingleFile=true `
+          -p:DebugType=none `
+          -p:DebugSymbols=false
+        
+        if ($LASTEXITCODE -ne 0) { 
+          Write-Host "❌ Build failed" -ForegroundColor Red
+          exit 1 
+        }
+        
+        Write-Host "✅ Build completed successfully" -ForegroundColor Green
+        Write-Host "Output location: dist/loader.exe" -ForegroundColor Cyan
+        
+        # Verify the executable was created
+        if (Test-Path "dist/loader.exe") {
+          $fileSize = (Get-Item "dist/loader.exe").Length / 1MB
+          Write-Host "✅ Executable created: loader.exe ($([math]::Round($fileSize, 2)) MB)" -ForegroundColor Green
+        } else {
+          Write-Host "❌ Executable not found!" -ForegroundColor Red
+          exit 1
+        }
+      shell: pwsh
+
     - name: Get version from tag or input
       id: version
       run: |
+        Write-Host "Determining version..." -ForegroundColor Cyan
         if ("${{ github.event_name }}" -eq "push" -and "${{ github.ref_type }}" -eq "tag") {
           $version = "${{ github.ref_name }}" -replace "^v", ""
+          Write-Host "Using tag version: $version" -ForegroundColor Green
         } elseif ("${{ github.event_name }}" -eq "workflow_dispatch") {
           $version = "${{ github.event.inputs.version }}"
+          Write-Host "Using manual version: $version" -ForegroundColor Green
         } else {
           $version = "dev-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+          Write-Host "Using development version: $version" -ForegroundColor Yellow
         }
         echo "version=$version" >> $env:GITHUB_OUTPUT
-        echo "Version: $version"
-        
-    - name: Create distribution directory
-      run: |
-        New-Item -ItemType Directory -Path "dist" -Force
-        
-    - name: Copy executable to dist
-      run: |
-        $source = "src/Pick6.Loader/bin/Release/net8.0-windows/win-x64/publish/pick6_loader.exe"
-        $dest = "dist/pick6_loader-${{ steps.version.outputs.version }}.exe"
-        Copy-Item $source $dest
-        echo "Created: $dest"
-        
-    - name: Build payload using PowerShell script
-      run: |
-        .\Tools\Build-Payload.ps1 -Version "${{ steps.version.outputs.version }}" -OutputPath "dist"
       shell: pwsh
-      
-    - name: Upload loader artifact
+        
+    - name: Rename and prepare executable
+      run: |
+        Write-Host "Preparing release executable..." -ForegroundColor Cyan
+        $version = "${{ steps.version.outputs.version }}"
+        $source = "dist/loader.exe"
+        $dest = "dist/Pick6-v$version.exe"
+        
+        if (Test-Path $source) {
+          Copy-Item $source $dest
+          Write-Host "✅ Created: Pick6-v$version.exe" -ForegroundColor Green
+          
+          # Display file information
+          $fileInfo = Get-Item $dest
+          $fileSizeMB = [math]::Round($fileInfo.Length / 1MB, 2)
+          Write-Host "   Size: $fileSizeMB MB" -ForegroundColor Cyan
+          Write-Host "   Path: $dest" -ForegroundColor Cyan
+        } else {
+          Write-Host "❌ Source file not found: $source" -ForegroundColor Red
+          exit 1
+        }
+      shell: pwsh
+
+    - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
-        name: pick6-loader-${{ steps.version.outputs.version }}
+        name: Pick6-v${{ steps.version.outputs.version }}
         path: |
-          dist/pick6_loader-${{ steps.version.outputs.version }}.exe
-          dist/pick6-payload-${{ steps.version.outputs.version }}.zip
-          dist/manifest-${{ steps.version.outputs.version }}.json
+          dist/Pick6-v${{ steps.version.outputs.version }}.exe
+          dist/loader.exe
+        retention-days: 90
           
-    - name: Create release (on tag push)
+    - name: Create GitHub Release
       if: github.event_name == 'push' && github.ref_type == 'tag'
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          dist/pick6_loader-${{ steps.version.outputs.version }}.exe
-          dist/pick6-payload-${{ steps.version.outputs.version }}.zip
-          dist/manifest-${{ steps.version.outputs.version }}.json
+          dist/Pick6-v${{ steps.version.outputs.version }}.exe
         body: |
-          ## Pick6 Loader v${{ steps.version.outputs.version }}
+          ## Pick6 v${{ steps.version.outputs.version }}
           
-          ### Single-File Distribution
-          - `pick6_loader-${{ steps.version.outputs.version }}.exe` - Self-contained Windows executable (no dependencies required)
+          ### 📦 Single-File Executable
           
-          ### Auto-Update Payload
-          - `pick6-payload-${{ steps.version.outputs.version }}.zip` - Payload assemblies for auto-update system
-          - `manifest-${{ steps.version.outputs.version }}.json` - Update manifest (requires URL configuration)
+          **Download: `Pick6-v${{ steps.version.outputs.version }}.exe`**
           
-          ### Usage
-          1. Download `pick6_loader-${{ steps.version.outputs.version }}.exe`
-          2. Run directly on Windows (no installation required)
-          3. Use `--help` for command line options
+          This is a fully self-contained Windows executable with all dependencies embedded:
+          - ✅ No installation required - just download and run
+          - ✅ No .NET runtime installation needed - runtime is embedded
+          - ✅ All dependencies included in single .exe file
+          - ✅ Built with Costura.Fody for maximum compatibility
           
-          ### Auto-Update Setup
-          To enable auto-updates:
-          1. Upload the payload ZIP to your web server
-          2. Update the `payloadUrl` in the manifest JSON
-          3. Upload the manifest to your configured manifest URL
-          4. Enable dynamic payloads in the loader configuration
+          ### 🚀 Usage
           
-          See `docs/auto-update.md` for detailed instructions.
+          1. **Download** the .exe file from the assets below
+          2. **Run** the executable directly on Windows 10/11 x64
+          3. **Administrator privileges** are recommended for game injection features
+          
+          ### 📋 Features
+          
+          - Game capture and projection for FiveM
+          - Multi-strategy injection (direct + proxy DLL fallbacks)
+          - Support for DXGI, D3D11, and Vulkan graphics APIs
+          - Real-time borderless projection
+          - Automatic privilege elevation
+          - GUI interface with system tray support
+          
+          ### ⚙️ Command Line Options
+          
+          ```
+          Pick6.exe                    # Start with GUI interface
+          Pick6.exe --help            # Show help information
+          Pick6.exe --check-updates   # Check for updates at startup
+          ```
+          
+          ### 📝 System Requirements
+          
+          - Windows 10/11 (64-bit)
+          - No additional dependencies required
+          - Administrator privileges recommended for injection features
+          
+          ### 🐛 Issues & Feedback
+          
+          Please report any issues on the [GitHub Issues](https://github.com/isogloss/pick66/issues) page.
         draft: false
         prerelease: false
       env:
