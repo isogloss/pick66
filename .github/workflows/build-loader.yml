@@ -13,6 +13,11 @@ on:
         required: true
         default: '1.0.0'
 
+# Permissions required for creating/updating GitHub releases
+# The GITHUB_TOKEN needs write access to repository contents to upload release assets
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
