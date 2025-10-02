@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Weavers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="FodyWeavers.xsd">
+  <Costura>
+    <!-- Embed all dependencies -->
+    <IncludeAssemblies>
+      Pick6.Core
+      Pick6.Projection
+    </IncludeAssemblies>
+    <!-- Create temporary directory for native libraries -->
+    <CreateTemporaryAssemblies>true</CreateTemporaryAssemblies>
+    <!-- Don't preload assemblies - load on demand for better performance -->
+    <Preload32>false</Preload32>
+    <Preload64>false</Preload64>
+  </Costura>
+</Weavers>
