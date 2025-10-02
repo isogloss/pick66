@@ -33,6 +33,8 @@ public class WindowsProjectionForm
     private int _frameCount = 0;
     private DateTime _lastFpsLogTime = DateTime.Now;
     private bool _matchCaptureFPS = false;
+    private int _cachedFrameWidth = 0;
+    private int _cachedFrameHeight = 0;
 
     public event EventHandler? ProjectionStarted;
     public event EventHandler? ProjectionStopped;
@@ -196,6 +198,10 @@ public class WindowsProjectionForm
             DeleteDC(_memoryDC);
             _memoryDC = IntPtr.Zero;
         }
+        
+        // Reset cached dimensions
+        _cachedFrameWidth = 0;
+        _cachedFrameHeight = 0;
     }
 
     /// <summary>
@@ -232,14 +238,10 @@ public class WindowsProjectionForm
                     _memoryDC = CreateCompatibleDC(windowDC);
                 }
 
-                // Check if we need to recreate the bitmap (size changed)
-                var needNewBitmap = _currentHBitmap == IntPtr.Zero;
-                if (!needNewBitmap)
-                {
-                    // TODO: Check if frame size changed and recreate if necessary
-                    // For now, we'll recreate on every frame for simplicity but this could be optimized
-                    needNewBitmap = true;
-                }
+                // Check if we need to recreate the bitmap (size changed or first time)
+                var needNewBitmap = _currentHBitmap == IntPtr.Zero || 
+                                   frame.Width != _cachedFrameWidth || 
+                                   frame.Height != _cachedFrameHeight;
 
                 if (needNewBitmap)
                 {
@@ -260,14 +262,24 @@ public class WindowsProjectionForm
                     {
                         _oldBitmap = SelectObject(_memoryDC, _currentHBitmap);
                     }
+                    
+                    // Cache the frame dimensions
+                    _cachedFrameWidth = frame.Width;
+                    _cachedFrameHeight = frame.Height;
                 }
 
-                // Update the bitmap content with the new frame
+                // Update the bitmap content with the new frame using fast GDI operations
                 if (_memoryDC != IntPtr.Zero && _currentHBitmap != IntPtr.Zero)
                 {
                     using (var memoryGraphics = Graphics.FromHdc(_memoryDC))
                     {
-                        memoryGraphics.Clear(Color.Black); // Clear previous content
+                        // Use high-speed, low-quality rendering for better performance
+                        memoryGraphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                        memoryGraphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+                        memoryGraphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                        memoryGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
+                        memoryGraphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+                        
                         memoryGraphics.DrawImage(frame, 0, 0, frame.Width, frame.Height);
                     }
                 }
