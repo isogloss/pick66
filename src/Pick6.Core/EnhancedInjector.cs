@@ -311,18 +311,7 @@ public class EnhancedInjector : IDisposable
             }
         }
         
-        // Try the template from ProxyDLL project (if built)
-        var templateDir = Path.Combine(baseDir, "..", "src", "Pick6.ProxyDLL", "bin");
-        if (Directory.Exists(templateDir))
-        {
-            var templatePath = Path.Combine(templateDir, proxyDllName);
-            if (File.Exists(templatePath))
-            {
-                return templatePath;
-            }
-        }
-        
-        // Return the preferred path even if it doesn't exist (for logging)
+        // Return exact path as fallback (even if doesn't exist, for error message clarity)
         return exactPath;
     }
 

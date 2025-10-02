@@ -311,9 +311,6 @@ if %ERRORLEVEL% neq 0 (
     exit /b %ERRORLEVEL%
 )
 
-REM Build C++ proxy DLLs (non-critical, warnings only)
-call :BuildProxyDlls
-
 REM Verify installation before declaring success
 call :VerifyInstallation
 if %ERRORLEVEL% neq 0 (
@@ -398,116 +395,6 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 echo     ✓ .NET build successful
-goto :eof
-
-:BuildProxyDlls
-echo     Building C++ proxy DLLs...
-cd /d "%SOURCE_DIR%\src\Pick6.ProxyDLL"
-
-REM Check for compiler availability
-call :CheckCppCompiler
-if %ERRORLEVEL% neq 0 goto :skip_proxy_build
-
-REM Build all proxy DLLs
-call :CompileProxyDlls
-
-REM Copy DLLs to output
-if exist "bin\*.dll" (
-    copy bin\*.dll "%OUTPUT_DIR%" >nul 2>&1
-    echo     ✓ Proxy DLLs copied to output
-)
-
-REM Cleanup build artifacts
-call :CleanupBuildArtifacts
-goto :eof
-
-:skip_proxy_build
-echo     WARNING: Skipping proxy DLL build due to missing compiler
-goto :eof
-
-:CheckCppCompiler
-cl >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    call :InstallBuildTools
-    if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
-)
-goto :eof
-
-:InstallBuildTools
-echo     Visual C++ compiler not found, attempting to download Build Tools...
-
-set BUILD_TOOLS_URL=https://aka.ms/vs/17/release/vs_buildtools.exe
-set BUILD_TOOLS_EXE=%TEMP_DIR%\vs_buildtools.exe
-
-echo     Downloading Visual Studio Build Tools...
-powershell -Command "try { Invoke-WebRequest -Uri '%BUILD_TOOLS_URL%' -OutFile '%BUILD_TOOLS_EXE%'; exit 0 } catch { exit 1 }" >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo     WARNING: Failed to download Build Tools. Proxy DLLs will not be built.
-    echo     You can manually install Visual Studio Build Tools later and run:
-    echo     "%SOURCE_DIR%\src\Pick6.ProxyDLL\build_proxies.bat"
-    exit /b 1
-)
-
-echo     Installing Visual Studio Build Tools (this may take several minutes)...
-echo     Please wait for the installation to complete...
-"%BUILD_TOOLS_EXE%" --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.20348
-if %ERRORLEVEL% neq 0 (
-    echo     WARNING: Build Tools installation failed. Proxy DLLs will not be built.
-    exit /b 1
-)
-
-REM Locate and configure VS tools
-for /f "usebackq delims=" %%i in (`dir /b /s "C:\Program Files*\Microsoft Visual Studio\*\BuildTools\VC\Auxiliary\Build\vcvars64.bat" 2^>nul`) do (
-    call "%%i" >nul 2>&1
-    goto :found_vcvars
-)
-
-:found_vcvars
-cl >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo     WARNING: Could not configure C++ compiler. Proxy DLLs will not be built.
-    exit /b 1
-)
-goto :eof
-
-:CompileProxyDlls
-if not exist "bin" mkdir bin
-
-REM Build dxgi.dll proxy
-cl /LD /MT dxgi_proxy_template.cpp /Fe:bin\dxgi.dll /link /SUBSYSTEM:WINDOWS /MACHINE:X64 >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo     ✓ dxgi.dll proxy built
-) else (
-    echo     WARNING: Failed to build dxgi.dll proxy
-)
-
-REM Build d3d11.dll proxy
-copy dxgi_proxy_template.cpp d3d11_proxy_template.cpp >nul 2>&1
-powershell -Command "(gc d3d11_proxy_template.cpp) -replace 'dxgi', 'd3d11' | Out-File -encoding ASCII d3d11_proxy_template.cpp" >nul 2>&1
-cl /LD /MT d3d11_proxy_template.cpp /Fe:bin\d3d11.dll /link /SUBSYSTEM:WINDOWS /MACHINE:X64 >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo     ✓ d3d11.dll proxy built
-) else (
-    echo     WARNING: Failed to build d3d11.dll proxy
-)
-
-REM Build vulkan-1.dll proxy
-copy dxgi_proxy_template.cpp vulkan_proxy_template.cpp >nul 2>&1
-powershell -Command "(gc vulkan_proxy_template.cpp) -replace 'dxgi', 'vulkan-1' -replace 'CreateDXGIFactory', 'vkCreateInstance' | Out-File -encoding ASCII vulkan_proxy_template.cpp" >nul 2>&1
-cl /LD /MT vulkan_proxy_template.cpp /Fe:bin\vulkan-1.dll /link /SUBSYSTEM:WINDOWS /MACHINE:X64 >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo     ✓ vulkan-1.dll proxy built
-) else (
-    echo     WARNING: Failed to build vulkan-1.dll proxy
-)
-goto :eof
-
-:CleanupBuildArtifacts
-del *.obj >nul 2>&1
-del *.exp >nul 2>&1
-del *.lib >nul 2>&1
-del d3d11_proxy_template.cpp >nul 2>&1
-del vulkan_proxy_template.cpp >nul 2>&1
 goto :eof
 
 :VerifyInstallation
