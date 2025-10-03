@@ -1,0 +1,89 @@
+name: Build Native DLL
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/Pick6.Native/**'
+      - '.github/workflows/build-native.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/Pick6.Native/**'
+      - '.github/workflows/build-native.yml'
+  workflow_dispatch:
+
+jobs:
+  build-native-dll:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+    
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+    
+    - name: Configure CMake (Release)
+      run: |
+        cd src/Pick6.Native
+        mkdir build
+        cd build
+        cmake .. -G "Visual Studio 17 2022" -A x64
+      
+    - name: Build Release
+      run: |
+        cd src/Pick6.Native/build
+        cmake --build . --config Release
+    
+    - name: Build Debug
+      run: |
+        cd src/Pick6.Native/build
+        cmake --build . --config Debug
+      continue-on-error: true
+    
+    - name: Run Tests
+      run: |
+        cd src/Pick6.Native/build/Release
+        ./Pick6Test.exe
+      continue-on-error: true
+    
+    - name: Upload Release Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Pick6Native-Release
+        path: |
+          src/Pick6.Native/build/Release/Pick6Native.dll
+          src/Pick6.Native/build/Release/Pick6Native.lib
+          src/Pick6.Native/build/Release/Pick6Test.exe
+    
+    - name: Upload Debug Artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: Pick6Native-Debug
+        path: |
+          src/Pick6.Native/build/Debug/Pick6Native.dll
+          src/Pick6.Native/build/Debug/Pick6Native.lib
+          src/Pick6.Native/build/Debug/Pick6Native.pdb
+          src/Pick6.Native/build/Debug/Pick6Test.exe
+      continue-on-error: true
+    
+    - name: Verify DLL
+      run: |
+        Write-Host "Verifying Pick6Native.dll..."
+        $dllPath = "src/Pick6.Native/build/Release/Pick6Native.dll"
+        if (Test-Path $dllPath) {
+          $dll = Get-Item $dllPath
+          Write-Host "✅ DLL built successfully"
+          Write-Host "   Path: $dllPath"
+          Write-Host "   Size: $($dll.Length) bytes"
+          Write-Host "   Modified: $($dll.LastWriteTime)"
+        } else {
+          Write-Host "❌ DLL not found at $dllPath"
+          exit 1
+        }
+      shell: pwsh
