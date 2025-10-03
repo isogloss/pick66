@@ -2,6 +2,16 @@
 
 a game capture and projection tool for fivem with enhanced multi-strategy injection. features real-time borderless projection, automatic privilege elevation, and multi-dll proxy injection support for various graphics apis including dxgi, d3d11, and vulkan.
 
+## 🆕 Native C++ Injector
+
+Pick6 now includes a **native C++ DLL** (`Pick6Native.dll`) for improved DLL injection:
+- ✅ **Native, unmanaged code** - no .NET runtime required
+- ✅ **Minimal dependencies** - uses only Windows APIs
+- ✅ **Better suited for injection** - smaller footprint and less antivirus detection
+- ✅ **Full API support** - direct injection and proxy DLL deployment
+
+See [`src/Pick6.Native/README.md`](src/Pick6.Native/README.md) for build instructions and API documentation.
+
 ## Installation
 
 ### Option 1: Download Pre-Built Executable (Recommended)
@@ -108,3 +118,31 @@ loader.exe --check-updates-only # Check for updates and exit
 - Update checks can be enabled/disabled via the `ENABLE_LOADER_AUTO_UPDATE` flag
 - The update service uses the GitHub API to fetch release information
 - Version comparison is done by matching the release tag (without 'v' prefix) with the current version
+
+## Project Architecture
+
+Pick6 consists of three main components:
+
+### 1. Pick6.Loader (C#)
+The main application providing the user interface and orchestration:
+- GUI and console menu interfaces
+- Process detection and monitoring
+- Configuration and settings management
+- Auto-update functionality
+
+### 2. Pick6.Core (C#)
+Core business logic and injection orchestration:
+- Multi-strategy injection with fallback
+- Game capture engine
+- Projection window management
+- Frame statistics and diagnostics
+
+### 3. Pick6.Native (C++)
+**NEW**: Native injection DLL for better compatibility:
+- Unmanaged, native C++ code
+- Direct LoadLibrary injection
+- Proxy DLL deployment and management
+- Minimal dependencies (Windows APIs only)
+- Better suited for DLL injection scenarios
+
+The C# code can call into the C++ native DLL via P/Invoke for injection operations, combining the ease of C# development with the performance and compatibility advantages of native code.
