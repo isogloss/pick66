@@ -4,6 +4,7 @@ setlocal enabledelayedexpansion
 echo ============================================================
 echo Pick6 Complete Build Script
 echo Builds native components and prepares loader for deployment
+echo NOTE: For automated builds, see .github/workflows/build.yml
 echo ============================================================
 echo.
 
@@ -194,6 +195,8 @@ if %MISSING_COUNT% gtr 0 (
     echo.
     echo You can now build the loader:
     echo   dotnet publish src\Pick6.Loader\Pick6.Loader.csproj --configuration Release --runtime win-x64 --self-contained true
+    echo.
+    echo This will create pick6.exe with all DLLs embedded as resources.
     echo.
     echo Or use the installer script:
     echo   install.bat
