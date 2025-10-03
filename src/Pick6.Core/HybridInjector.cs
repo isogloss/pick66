@@ -50,7 +50,15 @@ public class HybridInjector : IDisposable
         var hookDllPath = GetHookDllPath();
         if (!File.Exists(hookDllPath))
         {
-            var errorMsg = $"Core hook DLL not found: {hookDllPath}. Please ensure Pick6VulkanHook.dll is in the application directory.";
+            var diagnosticInfo = PathResolver.GetDiagnosticInfo();
+            var errorMsg = $"Core hook DLL not found: {hookDllPath}\n\n" +
+                          "Please ensure Pick6VulkanHook.dll is deployed alongside the executable.\n\n" +
+                          $"Path Resolution Diagnostics:\n{diagnosticInfo}\n\n" +
+                          "Troubleshooting:\n" +
+                          "  1. Make sure Pick6VulkanHook.dll is in the same directory as the executable\n" +
+                          "  2. If using single-file publishing, ensure the DLL is properly deployed\n" +
+                          "  3. Check that the DLL file is not blocked by antivirus software\n" +
+                          "  4. Verify file permissions allow reading the DLL file";
             Log.Error(errorMsg);
             return InjectionResult.Failed(InjectionStrategy.Direct, errorMsg);
         }
@@ -262,8 +270,7 @@ public class HybridInjector : IDisposable
 
     private string GetHookDllPath()
     {
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        return Path.Combine(baseDir, "Pick6VulkanHook.dll");
+        return PathResolver.FindDll("Pick6VulkanHook.dll");
     }
 
     private async Task WaitForGraphicsModulesAsync(int processId, CancellationToken cancellationToken)
