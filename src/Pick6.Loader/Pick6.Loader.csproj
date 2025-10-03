@@ -40,4 +40,9 @@
     <ProjectReference Include="..\Pick6.Projection\Pick6.Projection.csproj" />
   </ItemGroup>
 
+  <!-- Embedded resources -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Monocraft.ttf" />
+  </ItemGroup>
+
 </Project>
