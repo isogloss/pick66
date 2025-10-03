@@ -35,6 +35,12 @@ namespace Pick6.Loader;
 /// </summary>
 public class Program
 {
+    // Current version of the loader - should match the GitHub release tag (without 'v' prefix)
+    private const string LOADER_VERSION = "1.0.0";
+    
+    // Feature flag to enable loader self-updates from GitHub releases
+    private const bool ENABLE_LOADER_AUTO_UPDATE = true;
+    
     // Feature flag to enable dynamic payload loading (disabled by default for stability)
     private const bool ENABLE_DYNAMIC_PAYLOAD = false;
     
@@ -55,9 +61,23 @@ public class Program
         if (args.Any(arg => arg.ToLower() == "--check-updates-only"))
         {
             Log.Info("Checking for updates...");
+            
+            // Check for loader updates first
+            if (ENABLE_LOADER_AUTO_UPDATE)
+            {
+                await CheckLoaderUpdates();
+            }
+            
+            // Then check for payload updates
             await ExecuteUpdateSequence();
             Log.Info("Update check completed.");
             return;
+        }
+
+        // Check for loader self-updates on startup (non-blocking with timeout)
+        if (ENABLE_LOADER_AUTO_UPDATE && !args.Any(arg => arg.ToLower() == "--skip-loader-update"))
+        {
+            await CheckLoaderUpdates();
         }
 
         // Execute update sequence before starting GUI (non-blocking with timeout)
@@ -84,6 +104,41 @@ public class Program
 
         // Always run GUI mode
         RunGuiMode();
+    }
+
+    private static async Task CheckLoaderUpdates()
+    {
+        try
+        {
+            Log.Info($"Current loader version: {LOADER_VERSION}");
+            
+            // Use timeout to prevent hanging on network issues
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            
+            var updateTask = UpdateService.CheckAndUpdateLoaderAsync(LOADER_VERSION);
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(30), cts.Token);
+            var completedTask = await Task.WhenAny(updateTask, timeoutTask);
+            
+            if (completedTask == updateTask)
+            {
+                var updateSuccess = await updateTask;
+                cts.Cancel(); // Cancel timeout
+                
+                if (!updateSuccess)
+                {
+                    Log.Info("Loader update check completed (no update needed or update failed)");
+                }
+                // Note: If update is successful, UpdateService will exit the application
+            }
+            else
+            {
+                Log.Info("Loader update check timed out (30s), continuing with current version");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Loader update check failed: {ex.Message}");
+        }
     }
 
     private static async Task ExecuteUpdateSequence()
@@ -168,14 +223,17 @@ public class Program
         Log.Info("Options:");
         Log.Info("  --check-updates           Check for updates at startup");
         Log.Info("  --check-updates-only      Check for updates and exit");
+        Log.Info("  --skip-loader-update      Skip loader self-update check");
         Log.Info("  --help, -h                Show this help message");
         Log.Info("");
         Log.Info("Default Behavior:");
         Log.Info("  Opens GUI mode with minimal black & white interface");
+        Log.Info("  Automatically checks for loader updates from GitHub releases");
         Log.Info("");
         Log.Info("Examples:");
-        Log.Info("  pick6.exe                             # GUI mode");
+        Log.Info("  pick6.exe                             # GUI mode with auto-update");
         Log.Info("  pick6.exe --check-updates             # GUI mode with update check");
         Log.Info("  pick6.exe --check-updates-only        # Check for updates and exit");
+        Log.Info("  pick6.exe --skip-loader-update        # GUI mode without loader update check");
     }
 }
