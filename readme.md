@@ -22,8 +22,9 @@ See [`src/Pick6.Native/README.md`](src/Pick6.Native/README.md) for build instruc
 
 The executable is fully self-contained:
 - ✅ **No .NET runtime installation needed** - all dependencies are embedded
-- ✅ **Single file** - just download and run
+- ✅ **Single file** - just download and run, no separate DLLs needed
 - ✅ **No installation required** - portable and ready to use
+- ✅ **Native DLLs embedded** - automatically extracted at runtime
 - ✅ **Built with Costura.Fody** - all managed dependencies embedded
 
 ### Option 2: Build from Source
