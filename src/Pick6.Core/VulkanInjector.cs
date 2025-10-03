@@ -124,8 +124,7 @@ public class VulkanInjector
 
     private string GetInjectionDllPath()
     {
-        var currentDir = AppDomain.CurrentDomain.BaseDirectory;
-        return Path.Combine(currentDir, INJECTION_DLL_NAME);
+        return PathResolver.FindDll(INJECTION_DLL_NAME);
     }
 
     private bool PerformDllInjection(string dllPath)

@@ -1,0 +1,156 @@
+# GitHub Actions Workflow for Pick6
+# This is a SUGGESTED workflow for building the complete Pick6 application
+# including native components
+
+name: Build Pick6
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-native:
+    name: Build Native Components
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup CMake
+        uses: lukka/get-cmake@latest
+      
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v1.1
+      
+      - name: Build Pick6Native.dll
+        run: |
+          cd src/Pick6.Native
+          ./build.bat
+      
+      - name: Upload Pick6Native.dll
+        uses: actions/upload-artifact@v3
+        with:
+          name: native-dlls
+          path: src/Pick6.Native/build/Release/Pick6Native.dll
+          if-no-files-found: error
+  
+  build-loader:
+    name: Build Loader Application
+    runs-on: windows-latest
+    needs: build-native
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Download native DLLs
+        uses: actions/download-artifact@v3
+        with:
+          name: native-dlls
+          path: src/Pick6.Loader/
+      
+      # NOTE: You need to add Pick6VulkanHook.dll to your repository
+      # or build it in a separate job and download it here
+      - name: Check for Pick6VulkanHook.dll
+        run: |
+          if (!(Test-Path "src/Pick6.Loader/Pick6VulkanHook.dll")) {
+            Write-Host "WARNING: Pick6VulkanHook.dll not found!"
+            Write-Host "The application requires this DLL to function."
+            Write-Host "Please add it to the repository or build it in a separate job."
+            exit 1
+          }
+        shell: pwsh
+      
+      - name: Restore dependencies
+        run: dotnet restore src/Pick6.Loader/Pick6.Loader.csproj
+      
+      - name: Build and publish
+        run: |
+          dotnet publish src/Pick6.Loader/Pick6.Loader.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output publish/
+      
+      - name: Verify DLL deployment
+        run: |
+          Write-Host "Checking deployed files..."
+          if (Test-Path "publish/loader.exe") {
+            Write-Host "[OK] loader.exe found"
+          } else {
+            Write-Host "[ERROR] loader.exe not found!"
+            exit 1
+          }
+          
+          if (Test-Path "publish/Pick6VulkanHook.dll") {
+            Write-Host "[OK] Pick6VulkanHook.dll deployed"
+          } else {
+            Write-Host "[ERROR] Pick6VulkanHook.dll not deployed!"
+            exit 1
+          }
+          
+          if (Test-Path "publish/Pick6Native.dll") {
+            Write-Host "[OK] Pick6Native.dll deployed"
+          } else {
+            Write-Host "[WARNING] Pick6Native.dll not deployed (optional)"
+          }
+        shell: pwsh
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: pick6-build
+          path: |
+            publish/loader.exe
+            publish/*.dll
+          if-no-files-found: error
+      
+      - name: Create release package
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $version = $env:GITHUB_REF -replace 'refs/tags/v', ''
+          Compress-Archive -Path publish/* -DestinationPath "Pick6-v$version.zip"
+        shell: pwsh
+      
+      - name: Upload release package
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-package
+          path: Pick6-v*.zip
+
+  # Optional: Run tests
+  test:
+    name: Run Tests
+    runs-on: windows-latest
+    needs: build-native
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Download native DLLs
+        uses: actions/download-artifact@v3
+        with:
+          name: native-dlls
+          path: src/Pick6.Loader/
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Run tests
+        run: dotnet test --configuration Release --no-restore --verbosity normal

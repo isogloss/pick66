@@ -36,7 +36,17 @@ public class EnhancedInjector : IDisposable
         var hookDllPath = GetHookDllPath();
         if (!File.Exists(hookDllPath))
         {
-            var errorMsg = $"Core hook DLL not found: {hookDllPath}. Please ensure Pick6VulkanHook.dll is in the application directory.";
+            var diagnosticInfo = PathResolver.GetDiagnosticInfo();
+            var errorMsg = $"Core hook DLL not found: {hookDllPath}\n\n" +
+                          "Please ensure Pick6VulkanHook.dll is deployed alongside the executable.\n\n" +
+                          $"Path Resolution Diagnostics:\n{diagnosticInfo}\n\n" +
+                          "Quick Fix:\n" +
+                          "  1. Make sure Pick6VulkanHook.dll is in the same directory as the executable\n" +
+                          "  2. If using single-file publishing, ensure the DLL is properly deployed\n" +
+                          "  3. Check that the DLL file is not blocked by antivirus software\n" +
+                          "  4. Verify file permissions allow reading the DLL file\n\n" +
+                          "For detailed troubleshooting, see: TROUBLESHOOTING_DLL_NOT_FOUND.md\n" +
+                          "Or visit: https://github.com/isogloss/pick66#troubleshooting";
             Log.Error(errorMsg);
             return InjectionResult.Failed(InjectionStrategy.Direct, errorMsg);
         }
@@ -367,37 +377,7 @@ public class EnhancedInjector : IDisposable
 
     private string GetProxyDllPath(string proxyDllName)
     {
-        // Check for proxy DLLs in multiple locations
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        
-        // Try exact filename first (pre-built)
-        var exactPath = Path.Combine(baseDir, proxyDllName);
-        if (File.Exists(exactPath))
-        {
-            return exactPath;
-        }
-        
-        // Try with Pick6 prefix naming convention
-        var prefixedName = $"Pick6{Path.GetFileNameWithoutExtension(proxyDllName)}Proxy.dll";
-        var prefixedPath = Path.Combine(baseDir, prefixedName);
-        if (File.Exists(prefixedPath))
-        {
-            return prefixedPath;
-        }
-        
-        // Try in proxy subdirectory
-        var proxyDir = Path.Combine(baseDir, "proxies");
-        if (Directory.Exists(proxyDir))
-        {
-            var proxySubPath = Path.Combine(proxyDir, proxyDllName);
-            if (File.Exists(proxySubPath))
-            {
-                return proxySubPath;
-            }
-        }
-        
-        // Return exact path as fallback (even if doesn't exist, for error message clarity)
-        return exactPath;
+        return PathResolver.FindProxyDll(proxyDllName);
     }
 
     private InjectionStrategy GetStrategyForProxyDll(string proxyDllName)
@@ -426,8 +406,7 @@ public class EnhancedInjector : IDisposable
     
     private string GetHookDllPath()
     {
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        return Path.Combine(baseDir, "Pick6VulkanHook.dll");
+        return PathResolver.FindDll("Pick6VulkanHook.dll");
     }
     
     private bool IsDirectoryWritable(string directoryPath)

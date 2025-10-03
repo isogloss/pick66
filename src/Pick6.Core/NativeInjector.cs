@@ -189,8 +189,7 @@ public static class NativeInjector
     /// </summary>
     public static string GetExpectedDllPath()
     {
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        return System.IO.Path.Combine(baseDir, DLL_NAME);
+        return PathResolver.FindDll(DLL_NAME);
     }
 
     #endregion

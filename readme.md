@@ -48,10 +48,21 @@ The installer requires:
 
 If you prefer to install .NET 8 SDK manually, you can download it from: https://dotnet.microsoft.com/download/dotnet/8.0
 
-Then build with:
+⚠️ **Important**: Before building, ensure native DLLs are present. See [DLL_DEPLOYMENT_GUIDE.md](DLL_DEPLOYMENT_GUIDE.md) for details.
+
 ```bash
+# Build native components first
+cd src/Pick6.Native
+build.bat
+copy build\Release\Pick6Native.dll ..\Pick6.Loader\
+
+# Build the loader (requires Pick6VulkanHook.dll to be present)
 dotnet publish src/Pick6.Loader/Pick6.Loader.csproj --configuration Release --runtime win-x64 --self-contained true
 ```
+
+For detailed build instructions, see:
+- [DLL_DEPLOYMENT_GUIDE.md](DLL_DEPLOYMENT_GUIDE.md) - Native DLL deployment guide
+- [src/Pick6.Loader/README_DLL_REQUIREMENTS.md](src/Pick6.Loader/README_DLL_REQUIREMENTS.md) - DLL requirements for building
 
 ## System Requirements
 
@@ -146,3 +157,31 @@ Core business logic and injection orchestration:
 - Better suited for DLL injection scenarios
 
 The C# code can call into the C++ native DLL via P/Invoke for injection operations, combining the ease of C# development with the performance and compatibility advantages of native code.
+
+## Troubleshooting
+
+### "Core hook DLL not found" Error
+
+If you see this error:
+```
+[Error] Core hook DLL not found: C:\Users\...\AppData\Local\Temp\.net\...
+```
+
+**Quick Fix:**
+1. Ensure `Pick6VulkanHook.dll` is in the same directory as `loader.exe`
+2. Right-click the DLL → Properties → Unblock (if option is present)
+3. Check that antivirus isn't blocking the file
+
+**Detailed Guide:** See [TROUBLESHOOTING_DLL_NOT_FOUND.md](TROUBLESHOOTING_DLL_NOT_FOUND.md)
+
+### Other Issues
+
+- **Application won't start**: Run as Administrator
+- **FiveM not detected**: Make sure FiveM is running before launching Pick6
+- **Injection fails**: Disable antivirus temporarily and try again
+- **Black screen in projection**: Check graphics settings and monitor configuration
+
+For more help:
+- Read [DLL_DEPLOYMENT_GUIDE.md](DLL_DEPLOYMENT_GUIDE.md)
+- Check existing [GitHub Issues](https://github.com/isogloss/pick66/issues)
+- Open a new issue with detailed logs
