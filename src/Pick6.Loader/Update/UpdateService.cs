@@ -9,7 +9,8 @@ using Pick6.Core;
 namespace Pick6.Loader.Update;
 
 /// <summary>
-/// Handles checking for and downloading loader.exe updates from GitHub releases
+/// Handles checking for and downloading executable updates from GitHub releases.
+/// Dynamically detects the first .exe asset in the release (e.g., Pick6-v0.2.6.exe).
 /// </summary>
 public class UpdateService
 {
@@ -18,7 +19,8 @@ public class UpdateService
     private const string GITHUB_REPO_NAME = "pick66";
     
     /// <summary>
-    /// Checks for loader.exe updates from GitHub releases and downloads if available
+    /// Checks for executable updates from GitHub releases and downloads if available.
+    /// Automatically detects the executable by finding the first .exe asset in the release.
     /// </summary>
     /// <param name="currentVersion">Current version of the loader</param>
     /// <returns>True if no update needed or update successful, false on error</returns>
@@ -52,13 +54,15 @@ public class UpdateService
             
             Log.Info($"Loader update available: {currentVersion} -> {latestVersion}");
             
-            // Find the loader.exe asset in the release
+            // Find the first .exe asset in the release (dynamic filename like Pick6-v0.2.6.exe)
             var loaderAsset = FindLoaderExeAsset(latestRelease);
             if (loaderAsset == null)
             {
-                Log.Warn("No loader.exe asset found in latest release");
+                Log.Warn("No .exe asset found in latest release");
                 return false;
             }
+            
+            Log.Info($"Found executable asset: {loaderAsset.Name}");
             
             // Download and prepare update
             var success = await DownloadAndPrepareUpdateAsync(loaderAsset.BrowserDownloadUrl, latestVersion);
@@ -112,9 +116,10 @@ public class UpdateService
         if (release.Assets == null || release.Assets.Length == 0)
             return null;
         
+        // Find the first asset with .exe extension (e.g., Pick6-v0.2.6.exe)
         foreach (var asset in release.Assets)
         {
-            if (asset.Name?.Equals("loader.exe", StringComparison.OrdinalIgnoreCase) == true)
+            if (asset.Name?.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) == true)
             {
                 return asset;
             }
@@ -129,7 +134,7 @@ public class UpdateService
         {
             Log.Info($"Downloading update from {downloadUrl}...");
             
-            // Download the loader.exe file directly
+            // Download the executable file directly (e.g., Pick6-v0.2.6.exe)
             using var response = await httpClient.GetAsync(downloadUrl);
             response.EnsureSuccessStatusCode();
             
