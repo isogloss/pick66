@@ -74,3 +74,37 @@ The application will:
 - 🔐 **Automatic privilege elevation**
 - 🎯 **GUI interface** with system tray support
 - 📦 **Single-file executable** - no installation needed
+- 🔄 **Automatic updates** - checks GitHub releases for new versions
+
+## Auto-Update Feature
+
+Pick6 includes an automatic update mechanism that checks for new releases on startup:
+
+- **Automatic**: Updates are checked automatically when you launch the application
+- **Safe**: Uses a helper script to safely replace the running executable
+- **Graceful**: Handles network failures without blocking the application
+- **Configurable**: Can be disabled with the `--skip-loader-update` flag
+
+### How It Works
+
+1. On startup, Pick6 checks the GitHub repository for the latest release
+2. If a newer version is available, it downloads the release `.zip` file
+3. The new `loader.exe` is extracted to a temporary location
+4. A batch script (`updater.bat`) is created to perform the file swap
+5. The updater script runs after the current application exits
+6. The application restarts automatically with the new version
+
+### Command-Line Options
+
+```bash
+loader.exe                      # Start with auto-update enabled
+loader.exe --skip-loader-update # Skip the update check
+loader.exe --check-updates-only # Check for updates and exit
+```
+
+### For Developers
+
+- The current version is defined in `Program.cs` as `LOADER_VERSION`
+- Update checks can be enabled/disabled via the `ENABLE_LOADER_AUTO_UPDATE` flag
+- The update service uses the GitHub API to fetch release information
+- Version comparison is done by matching the release tag (without 'v' prefix) with the current version
