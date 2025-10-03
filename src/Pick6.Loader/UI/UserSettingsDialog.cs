@@ -45,57 +45,65 @@ public partial class UserSettingsDialog : Form
 
     private void InitializeComponent()
     {
-        Text = "Pick6 Settings";
+        Text = "pick6 settings";
         Size = new Size(450, 350);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
-        BackColor = Color.White;
+        BackColor = Color.Black;
+        ForeColor = Color.White;
         
-        var font = new Font("Segoe UI", 9);
+        var font = FontLoader.GetMinecraftFont(9);
 
         // Auto-start projection checkbox
         var autoStartLabel = new Label
         {
-            Text = "Auto-start projection:",
+            Text = "auto-start projection:",
             Location = new Point(20, 20),
             Size = new Size(150, 23),
-            Font = font
+            Font = font,
+            ForeColor = Color.White
         };
         
         _autoStartProjectionCheckBox = new CheckBox
         {
             Location = new Point(180, 20),
-            Size = new Size(200, 23),
+            Size = new Size(220, 23),
             Font = font,
-            Text = "Start projection automatically on app launch"
+            Text = "start projection automatically on app launch",
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
         };
 
         // Verbose logging checkbox
         var verboseLabel = new Label
         {
-            Text = "Verbose logging:",
+            Text = "verbose logging:",
             Location = new Point(20, 50),
             Size = new Size(150, 23),
-            Font = font
+            Font = font,
+            ForeColor = Color.White
         };
         
         _verboseLoggingCheckBox = new CheckBox
         {
             Location = new Point(180, 50),
-            Size = new Size(200, 23),
+            Size = new Size(220, 23),
             Font = font,
-            Text = "Enable detailed logging output"
+            Text = "enable detailed logging output",
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
         };
 
         // Refresh interval
         var refreshLabel = new Label
         {
-            Text = "Refresh interval (ms):",
+            Text = "refresh interval (ms):",
             Location = new Point(20, 80),
             Size = new Size(150, 23),
-            Font = font
+            Font = font,
+            ForeColor = Color.White
         };
         
         _refreshIntervalNumeric = new NumericUpDown
@@ -105,55 +113,70 @@ public partial class UserSettingsDialog : Form
             Font = font,
             Minimum = 50,
             Maximum = 10000,
-            Increment = 50
+            Increment = 50,
+            BackColor = Color.Black,
+            ForeColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle
         };
 
         // Toggle hotkey
         var toggleHotkeyLabel = new Label
         {
-            Text = "Toggle hotkey:",
+            Text = "toggle hotkey:",
             Location = new Point(20, 110),
             Size = new Size(150, 23),
-            Font = font
+            Font = font,
+            ForeColor = Color.White
         };
         
         _toggleHotkeyTextBox = new TextBox
         {
             Location = new Point(180, 110),
             Size = new Size(200, 23),
-            Font = font
+            Font = font,
+            BackColor = Color.Black,
+            ForeColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle
         };
 
         // Stop and restore hotkey
         var stopHotkeyLabel = new Label
         {
-            Text = "Stop & restore hotkey:",
+            Text = "stop & restore hotkey:",
             Location = new Point(20, 140),
             Size = new Size(150, 23),
-            Font = font
+            Font = font,
+            ForeColor = Color.White
         };
         
         _stopHotkeyTextBox = new TextBox
         {
             Location = new Point(180, 140),
             Size = new Size(200, 23),
-            Font = font
+            Font = font,
+            BackColor = Color.Black,
+            ForeColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle
         };
 
         // Output directory
         var outputDirLabel = new Label
         {
-            Text = "Output directory:",
+            Text = "output directory:",
             Location = new Point(20, 170),
             Size = new Size(150, 23),
-            Font = font
+            Font = font,
+            ForeColor = Color.White
         };
         
         _outputDirectoryTextBox = new TextBox
         {
             Location = new Point(180, 170),
             Size = new Size(150, 23),
-            Font = font
+            Font = font,
+            BackColor = Color.Black,
+            ForeColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle
         };
 
         _browseButton = new Button
@@ -161,35 +184,45 @@ public partial class UserSettingsDialog : Form
             Text = "...",
             Location = new Point(340, 170),
             Size = new Size(30, 23),
-            Font = font
+            Font = font,
+            BackColor = Color.Black,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat
         };
+        _browseButton.FlatAppearance.BorderSize = 1;
+        _browseButton.FlatAppearance.BorderColor = Color.White;
+        _browseButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, 30, 30);
         _browseButton.Click += BrowseButton_Click;
 
         // Buttons
         _saveButton = new Button
         {
-            Text = "Save",
+            Text = "save",
             Location = new Point(180, 270),
             Size = new Size(75, 30),
             Font = font,
-            BackColor = Color.FromArgb(0, 122, 204),
+            BackColor = Color.Black,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat
         };
-        _saveButton.FlatAppearance.BorderSize = 0;
+        _saveButton.FlatAppearance.BorderSize = 1;
+        _saveButton.FlatAppearance.BorderColor = Color.White;
+        _saveButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, 30, 30);
         _saveButton.Click += SaveButton_Click;
 
         _cancelButton = new Button
         {
-            Text = "Cancel",
+            Text = "cancel",
             Location = new Point(270, 270),
             Size = new Size(75, 30),
             Font = font,
-            BackColor = Color.Gray,
+            BackColor = Color.Black,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat
         };
-        _cancelButton.FlatAppearance.BorderSize = 0;
+        _cancelButton.FlatAppearance.BorderSize = 1;
+        _cancelButton.FlatAppearance.BorderColor = Color.White;
+        _cancelButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, 30, 30);
         _cancelButton.Click += CancelButton_Click;
 
         // Add controls to form
@@ -219,7 +252,7 @@ public partial class UserSettingsDialog : Form
     {
         using var dialog = new FolderBrowserDialog
         {
-            Description = "Select output directory",
+            Description = "select output directory",
             SelectedPath = _outputDirectoryTextBox.Text
         };
 

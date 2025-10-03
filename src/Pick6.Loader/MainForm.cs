@@ -63,27 +63,27 @@ public partial class MainForm : Form
 
     private void InitializeComponent()
     {
-        // Form setup - enhanced for new menu functionality
-        Text = "Pick6 - Game Capture Menu";
+        // Form setup - Minecraft-style black and white theme
+        Text = "pick6 - game capture menu";
         Size = new Size(480, 400);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
         MinimizeBox = true;
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = Color.FromArgb(240, 240, 240);
-        ForeColor = Color.Black;
+        BackColor = Color.Black;
+        ForeColor = Color.White;
         Icon = SystemIcons.Application;
 
-        var headerFont = new Font("Segoe UI", 14, FontStyle.Bold);
-        var buttonFont = new Font("Segoe UI", 9);
-        var labelFont = new Font("Segoe UI", 9);
+        var headerFont = FontLoader.GetMinecraftFont(14, FontStyle.Bold);
+        var buttonFont = FontLoader.GetMinecraftFont(9);
+        var labelFont = FontLoader.GetMinecraftFont(9);
 
         // Header label
         _headerLabel = new Label
         {
-            Text = "Pick6 - Game Capture",
+            Text = "pick6 - game capture",
             Font = headerFont,
-            ForeColor = Color.FromArgb(0, 122, 204),
+            ForeColor = Color.White,
             BackColor = Color.Transparent,
             Location = new Point(20, 15),
             Size = new Size(300, 25),
@@ -93,9 +93,9 @@ public partial class MainForm : Form
         // Status label
         _statusLabel = new Label
         {
-            Text = "Idle",
+            Text = "idle",
             Font = labelFont,
-            ForeColor = Color.Black,
+            ForeColor = Color.White,
             BackColor = Color.Transparent,
             Location = new Point(20, 50),
             Size = new Size(200, 20),
@@ -113,62 +113,70 @@ public partial class MainForm : Form
         // Start button
         _startButton = new Button
         {
-            Text = "Start Injection",
+            Text = "start injection",
             Font = buttonFont,
             Location = new Point(0, 10),
-            Size = new Size(100, 30),
-            BackColor = Color.FromArgb(0, 122, 204),
+            Size = new Size(120, 30),
+            BackColor = Color.Black,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             UseVisualStyleBackColor = false
         };
-        _startButton.FlatAppearance.BorderSize = 0;
+        _startButton.FlatAppearance.BorderSize = 1;
+        _startButton.FlatAppearance.BorderColor = Color.White;
+        _startButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, 30, 30);
         _startButton.Click += StartButton_Click;
 
         // Stop button
         _stopButton = new Button
         {
-            Text = "Stop",
+            Text = "stop",
             Font = buttonFont,
-            Location = new Point(110, 10),
+            Location = new Point(130, 10),
             Size = new Size(80, 30),
-            BackColor = Color.FromArgb(220, 53, 69),
+            BackColor = Color.Black,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             UseVisualStyleBackColor = false,
             Enabled = false
         };
-        _stopButton.FlatAppearance.BorderSize = 0;
+        _stopButton.FlatAppearance.BorderSize = 1;
+        _stopButton.FlatAppearance.BorderColor = Color.White;
+        _stopButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, 30, 30);
         _stopButton.Click += StopButton_Click;
 
         // Settings button
         _settingsButton = new Button
         {
-            Text = "Settings",
+            Text = "settings",
             Font = buttonFont,
-            Location = new Point(200, 10),
-            Size = new Size(80, 30),
-            BackColor = Color.FromArgb(108, 117, 125),
+            Location = new Point(220, 10),
+            Size = new Size(90, 30),
+            BackColor = Color.Black,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             UseVisualStyleBackColor = false
         };
-        _settingsButton.FlatAppearance.BorderSize = 0;
+        _settingsButton.FlatAppearance.BorderSize = 1;
+        _settingsButton.FlatAppearance.BorderColor = Color.White;
+        _settingsButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, 30, 30);
         _settingsButton.Click += SettingsButton_Click;
 
         // Hide button (kept for compatibility)
         _hideButton = new Button
         {
-            Text = "Hide",
-            Font = new Font("Segoe UI", 8),
+            Text = "hide",
+            Font = FontLoader.GetMinecraftFont(8),
             Location = new Point(350, 10),
-            Size = new Size(50, 30),
-            BackColor = Color.Gray,
+            Size = new Size(60, 30),
+            BackColor = Color.Black,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             UseVisualStyleBackColor = false
         };
-        _hideButton.FlatAppearance.BorderSize = 0;
+        _hideButton.FlatAppearance.BorderSize = 1;
+        _hideButton.FlatAppearance.BorderColor = Color.White;
+        _hideButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, 30, 30);
         _hideButton.Click += HideButton_Click;
 
         _controlPanel.Controls.AddRange(new Control[] { _startButton, _stopButton, _settingsButton, _hideButton });
@@ -178,26 +186,27 @@ public partial class MainForm : Form
         {
             Location = new Point(20, 150),
             Size = new Size(430, 200),
-            BackColor = Color.White,
+            BackColor = Color.Black,
             BorderStyle = BorderStyle.FixedSingle
         };
 
         var logLabel = new Label
         {
-            Text = "Log Output:",
+            Text = "log output:",
             Font = labelFont,
             Location = new Point(5, 5),
             Size = new Size(100, 15),
-            BackColor = Color.Transparent
+            BackColor = Color.Transparent,
+            ForeColor = Color.White
         };
 
         _logListBox = new ListBox
         {
             Location = new Point(5, 25),
             Size = new Size(415, 165),
-            Font = new Font("Consolas", 8),
+            Font = FontLoader.GetMinecraftFont(8),
             BackColor = Color.Black,
-            ForeColor = Color.LimeGreen,
+            ForeColor = Color.White,
             BorderStyle = BorderStyle.None,
             ScrollAlwaysVisible = false
         };
@@ -224,7 +233,7 @@ public partial class MainForm : Form
         _guiLogSink.LogReceived += GuiLogSink_LogReceived;
         Log.AddSink(_guiLogSink);
         
-        AddLogMessage("Info", "Application started");
+        AddLogMessage("info", "application started");
     }
 
     private void GuiLogSink_LogReceived(object? sender, Pick6.Loader.Logging.LogEventArgs e)
@@ -292,7 +301,7 @@ public partial class MainForm : Form
         var success = _projectionController.Start(_userSettings);
         if (!success)
         {
-            AddLogMessage("Error", "Failed to start projection");
+            AddLogMessage("error", "failed to start projection");
         }
     }
 
@@ -309,7 +318,7 @@ public partial class MainForm : Form
         {
             _userSettings = dialog.Settings;
             SettingsService.Save(_userSettings);
-            AddLogMessage("Info", "Settings saved");
+            AddLogMessage("info", "settings saved");
         }
     }
 
@@ -317,26 +326,26 @@ public partial class MainForm : Form
     {
         string statusText = status switch
         {
-            ProjectionStatus.Idle => "Idle",
-            ProjectionStatus.Starting => "Starting...",
-            ProjectionStatus.Running => "Running",
-            ProjectionStatus.Stopping => "Stopping...",
-            ProjectionStatus.Error => "Error",
-            _ => "Unknown"
+            ProjectionStatus.Idle => "idle",
+            ProjectionStatus.Starting => "starting...",
+            ProjectionStatus.Running => "running",
+            ProjectionStatus.Stopping => "stopping...",
+            ProjectionStatus.Error => "error",
+            _ => "unknown"
         };
 
         if (!string.IsNullOrEmpty(message))
         {
-            statusText = $"{statusText} - {message}";
+            statusText = $"{statusText} - {message.ToLower()}";
         }
 
         _statusLabel.Text = statusText;
         _statusLabel.ForeColor = status switch
         {
-            ProjectionStatus.Running => Color.Green,
-            ProjectionStatus.Error => Color.Red,
-            ProjectionStatus.Starting or ProjectionStatus.Stopping => Color.Orange,
-            _ => Color.Black
+            ProjectionStatus.Running => Color.White,
+            ProjectionStatus.Error => Color.White,
+            ProjectionStatus.Starting or ProjectionStatus.Stopping => Color.White,
+            _ => Color.White
         };
     }
 

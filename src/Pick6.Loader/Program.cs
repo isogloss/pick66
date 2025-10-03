@@ -209,7 +209,7 @@ public class Program
         catch (Exception ex)
         {
             Log.Error($"Error: {ex.Message}");
-            MessageBox.Show($"Error: {ex.Message}", "Pick6 Error", 
+            MessageBox.Show($"error: {ex.Message}", "pick6 error", 
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
