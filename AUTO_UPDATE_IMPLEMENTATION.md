@@ -24,14 +24,13 @@ This document describes the implementation of the auto-update mechanism for `loa
 - Logs comparison result for debugging
 
 ### 3. ✅ Download
-**Requirement:** If the latest release is newer, it should download the release asset (the `.zip` file).
+**Requirement:** If the latest release is newer, it should download the release asset (the `loader.exe` file directly).
 
 **Implementation:**
-- `UpdateService.FindZipAsset()` locates the `.zip` file in release assets
-- `DownloadAndPrepareUpdateAsync()` downloads the zip file
+- `UpdateService.FindLoaderExeAsset()` locates the `loader.exe` file in release assets
+- `DownloadAndPrepareUpdateAsync()` downloads the loader.exe file directly
 - Uses HttpClient for reliable download
-- Extracts zip to temporary directory: `Path.GetTempPath()/Pick6Update_{guid}`
-- Validates that `loader.exe` exists in the extracted files
+- Saves to temporary directory: `Path.GetTempPath()/Pick6Update_{guid}/loader.exe`
 
 ### 4. ✅ Self-Replacement
 **Requirement:** After downloading, it needs to replace the currently running executable with the new one. This process should be handled gracefully, as a running file cannot overwrite itself.
@@ -86,7 +85,7 @@ This document describes the implementation of the auto-update mechanism for `loa
 
 #### File Replacement ✅
 **Implementation:**
-- `FindLoaderExe()` recursively searches for `loader.exe` in extracted files
+- `loader.exe` downloaded directly to temporary directory
 - Updater script creates backup before replacement
 - Restores backup if copy fails
 - Cleans up temporary directory after successful update
@@ -129,11 +128,11 @@ FetchLatestReleaseAsync() [GitHub API]
     ↓
 Compare versions
     ↓ [if update available]
-FindZipAsset()
+FindLoaderExeAsset()
     ↓
 DownloadAndPrepareUpdateAsync()
     ↓
-Extract to temp directory
+Save to temp directory
     ↓
 CreateUpdaterScript()
     ↓
@@ -167,11 +166,9 @@ Pause for user
 
 1. **No Releases Yet:** Application handles 404 gracefully
 2. **Network Offline:** Times out after 30s, continues normally
-3. **No Zip Asset:** Logs warning, continues normally
-4. **Invalid Zip:** Caught by exception handling
-5. **Missing loader.exe in Zip:** Validated before creating updater
-6. **File System Errors:** Try-catch with appropriate logging
-7. **Version Match:** No download occurs, logs "up to date"
+3. **No loader.exe Asset:** Logs warning, continues normally
+4. **File System Errors:** Try-catch with appropriate logging
+5. **Version Match:** No download occurs, logs "up to date"
 
 ## Compatibility
 
@@ -207,6 +204,6 @@ All requirements from the problem statement have been successfully implemented:
 - ✅ Uses updater.bat script
 - ✅ Modifies Program.cs
 - ✅ Handles network failures gracefully
-- ✅ Replaces loader.exe from downloaded zip
+- ✅ Replaces loader.exe from directly downloaded file
 
 The implementation is production-ready, well-documented, and thoroughly handles edge cases.

@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -53,16 +52,16 @@ public class UpdateService
             
             Log.Info($"Loader update available: {currentVersion} -> {latestVersion}");
             
-            // Find the .zip asset in the release
-            var zipAsset = FindZipAsset(latestRelease);
-            if (zipAsset == null)
+            // Find the loader.exe asset in the release
+            var loaderAsset = FindLoaderExeAsset(latestRelease);
+            if (loaderAsset == null)
             {
-                Log.Warn("No .zip asset found in latest release");
+                Log.Warn("No loader.exe asset found in latest release");
                 return false;
             }
             
             // Download and prepare update
-            var success = await DownloadAndPrepareUpdateAsync(zipAsset.BrowserDownloadUrl, latestVersion);
+            var success = await DownloadAndPrepareUpdateAsync(loaderAsset.BrowserDownloadUrl, latestVersion);
             return success;
         }
         catch (Exception ex)
@@ -108,14 +107,14 @@ public class UpdateService
         }
     }
     
-    private static GitHubAsset? FindZipAsset(GitHubRelease release)
+    private static GitHubAsset? FindLoaderExeAsset(GitHubRelease release)
     {
         if (release.Assets == null || release.Assets.Length == 0)
             return null;
         
         foreach (var asset in release.Assets)
         {
-            if (asset.Name?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) == true)
+            if (asset.Name?.Equals("loader.exe", StringComparison.OrdinalIgnoreCase) == true)
             {
                 return asset;
             }
@@ -130,33 +129,23 @@ public class UpdateService
         {
             Log.Info($"Downloading update from {downloadUrl}...");
             
-            // Download the zip file
+            // Download the loader.exe file directly
             using var response = await httpClient.GetAsync(downloadUrl);
             response.EnsureSuccessStatusCode();
             
-            var zipData = await response.Content.ReadAsByteArrayAsync();
+            var loaderData = await response.Content.ReadAsByteArrayAsync();
             
-            Log.Info($"Downloaded {zipData.Length} bytes, extracting...");
+            Log.Info($"Downloaded {loaderData.Length} bytes");
             
             // Create temporary directory for the update
             var tempUpdateDir = Path.Combine(Path.GetTempPath(), "Pick6Update_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempUpdateDir);
             
-            // Extract the zip
-            using var zipStream = new MemoryStream(zipData);
-            using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
-            archive.ExtractToDirectory(tempUpdateDir);
+            // Save the downloaded loader.exe to temp directory
+            var newLoaderPath = Path.Combine(tempUpdateDir, "loader.exe");
+            await File.WriteAllBytesAsync(newLoaderPath, loaderData);
             
-            // Find loader.exe in the extracted files
-            var newLoaderPath = FindLoaderExe(tempUpdateDir);
-            if (newLoaderPath == null)
-            {
-                Log.Warn("loader.exe not found in downloaded update");
-                CleanupDirectory(tempUpdateDir);
-                return false;
-            }
-            
-            Log.Info($"Found new loader.exe at: {newLoaderPath}");
+            Log.Info($"Saved new loader.exe to: {newLoaderPath}");
             
             // Prepare the updater script
             var currentLoaderPath = Process.GetCurrentProcess().MainModule?.FileName;
@@ -193,13 +182,6 @@ public class UpdateService
             Log.Warn($"Failed to download and prepare update: {ex.Message}");
             return false;
         }
-    }
-    
-    private static string? FindLoaderExe(string directory)
-    {
-        // Search for loader.exe recursively
-        var files = Directory.GetFiles(directory, "loader.exe", SearchOption.AllDirectories);
-        return files.Length > 0 ? files[0] : null;
     }
     
     private static void CreateUpdaterScript(string scriptPath, string oldLoaderPath, string newLoaderPath, string tempDir)
