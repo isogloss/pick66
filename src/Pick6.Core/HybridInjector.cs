@@ -54,11 +54,13 @@ public class HybridInjector : IDisposable
             var errorMsg = $"Core hook DLL not found: {hookDllPath}\n\n" +
                           "Please ensure Pick6VulkanHook.dll is deployed alongside the executable.\n\n" +
                           $"Path Resolution Diagnostics:\n{diagnosticInfo}\n\n" +
-                          "Troubleshooting:\n" +
+                          "Quick Fix:\n" +
                           "  1. Make sure Pick6VulkanHook.dll is in the same directory as the executable\n" +
                           "  2. If using single-file publishing, ensure the DLL is properly deployed\n" +
                           "  3. Check that the DLL file is not blocked by antivirus software\n" +
-                          "  4. Verify file permissions allow reading the DLL file";
+                          "  4. Verify file permissions allow reading the DLL file\n\n" +
+                          "For detailed troubleshooting, see: TROUBLESHOOTING_DLL_NOT_FOUND.md\n" +
+                          "Or visit: https://github.com/isogloss/pick66#troubleshooting";
             Log.Error(errorMsg);
             return InjectionResult.Failed(InjectionStrategy.Direct, errorMsg);
         }
