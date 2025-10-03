@@ -108,3 +108,48 @@ loader.exe --check-updates-only # Check for updates and exit
 - Update checks can be enabled/disabled via the `ENABLE_LOADER_AUTO_UPDATE` flag
 - The update service uses the GitHub API to fetch release information
 - Version comparison is done by matching the release tag (without 'v' prefix) with the current version
+
+## Project Structure
+
+Pick6 consists of four main components:
+
+### Pick6.Core
+Core library containing game capture engine and injection mechanisms:
+- **FiveMDetector** - Identifies running FiveM processes
+- **VulkanInjector** - Handles DLL injection into target processes
+- **EnhancedInjector** - Multi-strategy injector with automatic fallback
+- **GameCaptureEngine** - Coordinates frame capture and processing
+- **VulkanFrameCapture** - Manages frame capture via injected DLL
+- **SharedMemoryBuffer** - IPC mechanism for receiving frames
+
+### Pick6.VulkanHook
+Injectable DLL that hooks into FiveM's rendering pipeline:
+- **VulkanHookEntryPoint** - DLL initialization and lifecycle management
+- **HookManager** - Installs DirectX/Vulkan hooks on Present function
+- **FrameWriter** - Writes captured frames to shared memory
+
+This DLL is injected into the FiveM process and automatically hooks the graphics API to capture each frame.
+
+### Pick6.Projection
+Window projection system for displaying captured frames:
+- Borderless window rendering
+- Multi-monitor support
+- Frame display and scaling
+
+### Pick6.Loader
+Main application with GUI interface:
+- User interface (WinForms)
+- Settings management
+- Auto-update functionality
+
+For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## How It Works
+
+1. **Process Detection**: FiveMDetector scans for running FiveM processes
+2. **DLL Injection**: VulkanInjector injects Pick6VulkanHook.dll into FiveM
+3. **Hook Installation**: The injected DLL hooks DirectX/Vulkan Present function
+4. **Frame Capture**: Each frame is captured and sent via shared memory
+5. **Display**: Frames are projected to a borderless window on the selected monitor
+
+The system uses Windows memory-mapped files for high-performance inter-process communication.
