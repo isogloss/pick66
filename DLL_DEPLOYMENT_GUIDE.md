@@ -1,73 +1,57 @@
 # DLL Deployment Guide for Pick6
 
-## Critical Issue: Native DLLs Required
+## Overview
 
-The Pick6 application requires several native DLL files to function properly:
+The Pick6 application embeds native DLL files as resources within the single executable for truly portable distribution. The DLLs are automatically extracted to a temporary directory at runtime when needed for injection.
 
-### Required DLLs
-1. **Pick6VulkanHook.dll** - Core Vulkan frame capture hook
+### Embedded DLLs
+1. **Pick6VulkanHook.dll** - Core Vulkan frame capture hook (REQUIRED)
 2. **Pick6Native.dll** - Native C++ injection library (optional, but recommended)
 3. **Proxy DLLs** (optional, for proxy injection strategies):
    - `dxgi.dll` or `Pick6DxgiProxy.dll`
    - `d3d11.dll` or `Pick6D3d11Proxy.dll`
    - `vulkan-1.dll` or `Pick6VulkanProxy.dll`
 
-## The Problem
+## How It Works
 
-The application uses **single-file publishing** which:
-- Extracts the executable to `C:\Users\...\AppData\Local\Temp\.net\...`
-- Native DLLs cannot be bundled into the single-file package
-- DLLs must be deployed separately in the same directory as the executable
+The application uses **single-file publishing with embedded resources**:
+- All native DLLs are embedded as resources within `pick6.exe`
+- On first use, DLLs are automatically extracted to `%TEMP%/Pick6/Native/`
+- The extracted DLLs are used for injection into target processes
+- This provides a truly single-file distribution while maintaining full functionality
 
-## Solutions
+## Distribution
 
-### Option 1: Deploy DLLs Alongside Executable (Recommended)
-
-The DLLs must be placed in the same directory as `loader.exe`:
+Simply distribute the single `pick6.exe` file. No additional DLLs are needed:
 
 ```
 Pick6/
-├── loader.exe
-├── Pick6VulkanHook.dll  (REQUIRED)
-├── Pick6Native.dll       (optional)
-├── dxgi.dll             (optional)
-├── d3d11.dll            (optional)
-└── vulkan-1.dll         (optional)
+└── pick6.exe  (contains all embedded DLLs)
 ```
 
-### Option 2: Multi-File Publishing
+### Option 3: Embed DLLs as Resources (Current Implementation)
 
-Modify `Pick6.Loader.csproj` to disable single-file publishing:
-
-```xml
-<PropertyGroup>
-  <PublishSingleFile>false</PublishSingleFile>
-  <!-- Remove or set to false: -->
-  <!-- <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract> -->
-</PropertyGroup>
-```
-
-This will publish all DLLs in the output directory, making deployment simpler.
-
-### Option 3: Mark DLLs to Extract Next to Executable
-
-Add to `Pick6.Loader.csproj`:
+The project is configured to embed DLLs as resources:
 
 ```xml
 <ItemGroup>
-  <!-- Native DLLs that must be extracted next to the executable -->
-  <Content Include="Pick6VulkanHook.dll">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-  </Content>
-  <Content Include="Pick6Native.dll" Condition="Exists('Pick6Native.dll')">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-  </Content>
+  <!-- Native DLLs embedded as resources -->
+  <EmbeddedResource Include="Pick6VulkanHook.dll" Condition="Exists('Pick6VulkanHook.dll')">
+    <LogicalName>Pick6VulkanHook.dll</LogicalName>
+  </EmbeddedResource>
+  <EmbeddedResource Include="Pick6Native.dll" Condition="Exists('Pick6Native.dll')">
+    <LogicalName>Pick6Native.dll</LogicalName>
+  </EmbeddedResource>
 </ItemGroup>
 ```
 
-When `ExcludeFromSingleFile` is set to true, these DLLs will be extracted to the same directory as the executable, not to the temp directory.
+**Benefits:**
+- True single-file distribution (no separate DLLs)
+- DLLs are automatically extracted at runtime
+- Works correctly with DLL injection
+
+**How it works:**
+The `ResourceExtractor` class extracts embedded DLLs to `%TEMP%/Pick6/Native/` at runtime, and the `PathResolver` class locates them for injection.
 
 ## Build Instructions
 
@@ -91,7 +75,7 @@ copy src\Pick6.Native\build\Release\Pick6Native.dll src\Pick6.Loader\
 copy path\to\Pick6VulkanHook.dll src\Pick6.Loader\
 ```
 
-Then build the loader:
+Then build the loader (DLLs will be embedded as resources):
 
 ```bash
 dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
@@ -100,6 +84,8 @@ dotnet publish src\Pick6.Loader\Pick6.Loader.csproj ^
   --self-contained true ^
   --output output\
 ```
+
+The result is a single `pick6.exe` file with all DLLs embedded. The DLLs are automatically extracted to `%TEMP%/Pick6/Native/` at runtime when needed for injection.
 
 ## .gitignore Considerations
 
@@ -132,18 +118,19 @@ Update `.gitignore` to allow essential DLLs:
 
 ### Error: "Core hook DLL not found"
 
-This error occurs when `Pick6VulkanHook.dll` is missing. The error message now includes:
-- Full path where the DLL was expected
-- Path resolution diagnostics
-- Troubleshooting steps
+This error occurs when `Pick6VulkanHook.dll` is missing or failed to extract from embedded resources.
 
-**Solution**: Ensure `Pick6VulkanHook.dll` is in the same directory as `loader.exe`.
+**Solution**: 
+1. Ensure `Pick6VulkanHook.dll` was embedded during the build
+2. Check that you have write permissions to `%TEMP%/Pick6/Native/`
+3. Run as administrator
+4. Check application logs for extraction errors
 
 ### Error: "Pick6Native.dll not found"
 
 This is a warning, not a fatal error. The application will fall back to managed C# injection.
 
-**Solution**: If you want to use native injection, place `Pick6Native.dll` in the same directory as `loader.exe`.
+**Solution**: If you want to use native injection, ensure `Pick6Native.dll` was embedded during the build.
 
 ## Automated Deployment
 

@@ -4,6 +4,7 @@ setlocal enabledelayedexpansion
 echo ============================================================
 echo Pick6 Complete Build Script
 echo Builds native components and prepares loader for deployment
+echo NOTE: For automated builds, see .github/workflows/build.yml
 echo ============================================================
 echo.
 
@@ -27,7 +28,6 @@ call :ShowSummary
 
 echo.
 echo Build completed successfully!
-pause
 exit /b 0
 
 ::=============================================================
@@ -42,7 +42,6 @@ dotnet --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo ERROR: .NET SDK not found. Please install .NET 8 SDK.
     echo Download from: https://dotnet.microsoft.com/download/dotnet/8.0
-    pause
     exit /b 1
 )
 echo   [OK] .NET SDK found
@@ -77,7 +76,6 @@ cd /d "%START_DIR%\src\Pick6.Native"
 if not exist "build.bat" (
     echo ERROR: build.bat not found in src\Pick6.Native
     cd /d "%START_DIR%"
-    pause
     exit /b 1
 )
 
@@ -87,7 +85,6 @@ call build.bat
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Native DLL build failed
     cd /d "%START_DIR%"
-    pause
     exit /b 1
 )
 
@@ -105,7 +102,6 @@ set NATIVE_BUILD_DIR=%START_DIR%\src\Pick6.Native\build\Release
 :: Create loader directory if it doesn't exist
 if not exist "%LOADER_DIR%" (
     echo ERROR: Loader directory not found: %LOADER_DIR%
-    pause
     exit /b 1
 )
 
@@ -199,6 +195,8 @@ if %MISSING_COUNT% gtr 0 (
     echo.
     echo You can now build the loader:
     echo   dotnet publish src\Pick6.Loader\Pick6.Loader.csproj --configuration Release --runtime win-x64 --self-contained true
+    echo.
+    echo This will create pick6.exe with all DLLs embedded as resources.
     echo.
     echo Or use the installer script:
     echo   install.bat
