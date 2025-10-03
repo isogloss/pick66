@@ -349,6 +349,36 @@ goto :eof
 :BuildDotNetApplication
 cd /d "%SOURCE_DIR%"
 
+echo     Checking for required DLLs...
+if not exist "src\Pick6.Loader\Pick6VulkanHook.dll" (
+    echo.
+    echo     ========================================
+    echo     WARNING: Pick6VulkanHook.dll NOT FOUND
+    echo     ========================================
+    echo.
+    echo     The built application will NOT work without this DLL!
+    echo     Pick6VulkanHook.dll is required for game capture functionality.
+    echo.
+    echo     You have two options:
+    echo       1. Obtain Pick6VulkanHook.dll and place it in src\Pick6.Loader\
+    echo       2. Continue build anyway (executable will fail at runtime)
+    echo.
+    set /p CONTINUE_WITHOUT_DLL="Continue without Pick6VulkanHook.dll? (y/n): "
+    if /i "!CONTINUE_WITHOUT_DLL!" neq "y" (
+        echo.
+        echo     Build cancelled. Please add Pick6VulkanHook.dll and retry.
+        echo     See: DLL_DEPLOYMENT_GUIDE.md for more information
+        pause
+        exit /b 1
+    )
+    echo.
+    echo     Continuing build without Pick6VulkanHook.dll...
+    echo     Note: The application will fail when you try to use it.
+    echo.
+) else (
+    echo     [OK] Pick6VulkanHook.dll found
+)
+
 echo     Restoring .NET dependencies...
 %DOTNET_CMD% restore src\Pick6.Loader\Pick6.Loader.csproj --verbosity quiet >nul 2>&1
 if %ERRORLEVEL% neq 0 (
