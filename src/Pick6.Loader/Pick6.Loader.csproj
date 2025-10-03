@@ -45,4 +45,49 @@
     <EmbeddedResource Include="Resources\Monocraft.ttf" />
   </ItemGroup>
 
+  <!-- Native DLLs that must be extracted alongside the executable for injection -->
+  <!-- These DLLs cannot be bundled into the single-file package because they need -->
+  <!-- to be accessible for DLL injection into other processes -->
+  <ItemGroup>
+    <!-- Core hook DLL - REQUIRED for application to work -->
+    <Content Include="Pick6VulkanHook.dll" Condition="Exists('Pick6VulkanHook.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    
+    <!-- Native injector DLL - optional but recommended -->
+    <Content Include="Pick6Native.dll" Condition="Exists('Pick6Native.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    
+    <!-- Proxy DLLs - optional, for alternative injection strategies -->
+    <Content Include="dxgi.dll" Condition="Exists('dxgi.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="d3d11.dll" Condition="Exists('d3d11.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="vulkan-1.dll" Condition="Exists('vulkan-1.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    
+    <!-- Alternative naming convention for proxy DLLs -->
+    <Content Include="Pick6DxgiProxy.dll" Condition="Exists('Pick6DxgiProxy.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="Pick6D3d11Proxy.dll" Condition="Exists('Pick6D3d11Proxy.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="Pick6VulkanProxy.dll" Condition="Exists('Pick6VulkanProxy.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+
 </Project>

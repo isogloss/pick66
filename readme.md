@@ -48,10 +48,21 @@ The installer requires:
 
 If you prefer to install .NET 8 SDK manually, you can download it from: https://dotnet.microsoft.com/download/dotnet/8.0
 
-Then build with:
+⚠️ **Important**: Before building, ensure native DLLs are present. See [DLL_DEPLOYMENT_GUIDE.md](DLL_DEPLOYMENT_GUIDE.md) for details.
+
 ```bash
+# Build native components first
+cd src/Pick6.Native
+build.bat
+copy build\Release\Pick6Native.dll ..\Pick6.Loader\
+
+# Build the loader (requires Pick6VulkanHook.dll to be present)
 dotnet publish src/Pick6.Loader/Pick6.Loader.csproj --configuration Release --runtime win-x64 --self-contained true
 ```
+
+For detailed build instructions, see:
+- [DLL_DEPLOYMENT_GUIDE.md](DLL_DEPLOYMENT_GUIDE.md) - Native DLL deployment guide
+- [src/Pick6.Loader/README_DLL_REQUIREMENTS.md](src/Pick6.Loader/README_DLL_REQUIREMENTS.md) - DLL requirements for building
 
 ## System Requirements
 

@@ -6,6 +6,15 @@ dist/
 *.dll
 *.pdb
 
+# EXCEPT: Allow essential native DLLs for the application
+# These must be deployed alongside the executable
+!Pick6VulkanHook.dll
+!Pick6Native.dll
+!Pick6*Proxy.dll
+!src/Pick6.Loader/Pick6VulkanHook.dll
+!src/Pick6.Loader/Pick6Native.dll
+!src/Pick6.Loader/*Proxy.dll
+
 # Visual Studio
 .vs/
 *.user
