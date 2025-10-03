@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -289,6 +290,13 @@ public class ProcessWatcher : IDisposable
             
             // On 32-bit systems, all processes are 32-bit
             return Environment.Is64BitOperatingSystem;
+        }
+        catch (Win32Exception ex) when (ex.Message.Contains("Access is denied"))
+        {
+            // When access is denied (e.g., FiveM with protective measures),
+            // assume the process is compatible to allow injection to proceed
+            Log.Debug($"Access denied when checking process architecture - assuming compatible");
+            return Environment.Is64BitProcess;
         }
         catch
         {
