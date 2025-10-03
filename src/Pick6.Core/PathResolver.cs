@@ -61,6 +61,13 @@ public static class PathResolver
             return primaryPath;
         }
         
+        // Try extracting from embedded resources
+        var extractedPath = ResourceExtractor.TryExtractDll(dllFileName);
+        if (extractedPath != null && File.Exists(extractedPath))
+        {
+            return extractedPath;
+        }
+        
         // Try additional search paths
         foreach (var searchPath in additionalSearchPaths)
         {

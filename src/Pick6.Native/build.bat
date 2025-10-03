@@ -11,7 +11,6 @@ where cmake >nul 2>&1
 if %errorlevel% neq 0 (
     echo ERROR: CMake not found. Please install CMake and add it to PATH.
     echo Download from: https://cmake.org/download/
-    pause
     exit /b 1
 )
 
@@ -36,7 +35,6 @@ cmake .. -G "Visual Studio 16 2019" -A x64
 if %errorlevel% neq 0 (
     echo ERROR: CMake configuration failed
     cd ..
-    pause
     exit /b 1
 )
 
@@ -47,7 +45,6 @@ cmake --build . --config Release
 if %errorlevel% neq 0 (
     echo ERROR: Build failed
     cd ..
-    pause
     exit /b 1
 )
 
@@ -93,4 +90,3 @@ if exist "%BUILD_DIR%\Release\Pick6Test.exe" (
 
 echo.
 echo Build script completed successfully.
-pause

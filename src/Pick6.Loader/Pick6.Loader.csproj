@@ -4,7 +4,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>
-    <AssemblyName>loader</AssemblyName>
+    <AssemblyName>pick6</AssemblyName>
   </PropertyGroup>
   
   <!-- Single-file publishing settings for Windows x64 -->
@@ -45,49 +45,40 @@
     <EmbeddedResource Include="Resources\Monocraft.ttf" />
   </ItemGroup>
 
-  <!-- Native DLLs that must be extracted alongside the executable for injection -->
-  <!-- These DLLs cannot be bundled into the single-file package because they need -->
-  <!-- to be accessible for DLL injection into other processes -->
+  <!-- Native DLLs that must be embedded as resources for single-file distribution -->
+  <!-- These DLLs are extracted at runtime to enable DLL injection into other processes -->
   <ItemGroup>
     <!-- Core hook DLL - REQUIRED for application to work -->
-    <Content Include="Pick6VulkanHook.dll" Condition="Exists('Pick6VulkanHook.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
+    <EmbeddedResource Include="Pick6VulkanHook.dll" Condition="Exists('Pick6VulkanHook.dll')">
+      <LogicalName>Pick6VulkanHook.dll</LogicalName>
+    </EmbeddedResource>
     
     <!-- Native injector DLL - optional but recommended -->
-    <Content Include="Pick6Native.dll" Condition="Exists('Pick6Native.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
+    <EmbeddedResource Include="Pick6Native.dll" Condition="Exists('Pick6Native.dll')">
+      <LogicalName>Pick6Native.dll</LogicalName>
+    </EmbeddedResource>
     
     <!-- Proxy DLLs - optional, for alternative injection strategies -->
-    <Content Include="dxgi.dll" Condition="Exists('dxgi.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-    <Content Include="d3d11.dll" Condition="Exists('d3d11.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-    <Content Include="vulkan-1.dll" Condition="Exists('vulkan-1.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
+    <EmbeddedResource Include="dxgi.dll" Condition="Exists('dxgi.dll')">
+      <LogicalName>dxgi.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="d3d11.dll" Condition="Exists('d3d11.dll')">
+      <LogicalName>d3d11.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="vulkan-1.dll" Condition="Exists('vulkan-1.dll')">
+      <LogicalName>vulkan-1.dll</LogicalName>
+    </EmbeddedResource>
     
     <!-- Alternative naming convention for proxy DLLs -->
-    <Content Include="Pick6DxgiProxy.dll" Condition="Exists('Pick6DxgiProxy.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-    <Content Include="Pick6D3d11Proxy.dll" Condition="Exists('Pick6D3d11Proxy.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-    <Content Include="Pick6VulkanProxy.dll" Condition="Exists('Pick6VulkanProxy.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
+    <EmbeddedResource Include="Pick6DxgiProxy.dll" Condition="Exists('Pick6DxgiProxy.dll')">
+      <LogicalName>Pick6DxgiProxy.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Pick6D3d11Proxy.dll" Condition="Exists('Pick6D3d11Proxy.dll')">
+      <LogicalName>Pick6D3d11Proxy.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Pick6VulkanProxy.dll" Condition="Exists('Pick6VulkanProxy.dll')">
+      <LogicalName>Pick6VulkanProxy.dll</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>
