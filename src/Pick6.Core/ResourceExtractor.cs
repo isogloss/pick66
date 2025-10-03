@@ -82,7 +82,7 @@ public static class ResourceExtractor
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed to extract embedded DLL '{resourceName}': {ex.Message}");
+                Console.Error.WriteLine($"Failed to extract embedded DLL '{resourceName}': {ex.Message}");
                 return targetPath;
             }
         }
