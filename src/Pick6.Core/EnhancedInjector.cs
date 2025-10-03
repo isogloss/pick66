@@ -32,6 +32,17 @@ public class EnhancedInjector : IDisposable
     {
         Log.Info("Starting FiveM process detection and injection");
 
+        // Pre-flight validation: Check if core hook DLL exists
+        var hookDllPath = GetHookDllPath();
+        if (!File.Exists(hookDllPath))
+        {
+            var errorMsg = $"Core hook DLL not found: {hookDllPath}. Please ensure Pick6VulkanHook.dll is in the application directory.";
+            Log.Error(errorMsg);
+            return InjectionResult.Failed(InjectionStrategy.Direct, errorMsg);
+        }
+        
+        Log.Verbose($"Core hook DLL verified: {hookDllPath}");
+
         // Start process watcher
         _processWatcher.StartWatching();
 
@@ -72,6 +83,7 @@ public class EnhancedInjector : IDisposable
     private async Task<InjectionResult> AttemptInjectionWithFallbackAsync(ProcessInfo process, CancellationToken cancellationToken)
     {
         var results = new List<InjectionResult>();
+        var failureInfos = new List<StrategyFailureInfo>();
 
         foreach (var strategy in _config.InjectionOrder)
         {
@@ -96,6 +108,14 @@ public class EnhancedInjector : IDisposable
                 {
                     Log.Warn($"❌ {strategy} injection failed: {result.Message}");
                     
+                    // Record failure information
+                    failureInfos.Add(new StrategyFailureInfo
+                    {
+                        Strategy = strategy,
+                        ErrorMessage = result.Message,
+                        Exception = result.Exception
+                    });
+                    
                     // If not the last strategy, log fallback message
                     if (strategy != _config.InjectionOrder.Last())
                     {
@@ -108,6 +128,12 @@ public class EnhancedInjector : IDisposable
             {
                 var result = InjectionResult.Failed(strategy, $"Exception during {strategy} injection: {ex.Message}", ex);
                 results.Add(result);
+                failureInfos.Add(new StrategyFailureInfo
+                {
+                    Strategy = strategy,
+                    ErrorMessage = $"Exception during {strategy} injection: {ex.Message}",
+                    Exception = ex
+                });
                 Log.Error($"Exception during {strategy} injection: {ex.Message}");
             }
 
@@ -115,10 +141,18 @@ public class EnhancedInjector : IDisposable
             await Task.Delay(500, cancellationToken);
         }
 
-        // All strategies failed
+        // All strategies failed - create comprehensive error message
         var lastResult = results.LastOrDefault() ?? InjectionResult.Failed(InjectionStrategy.Direct, "No injection strategies attempted");
-        Log.Error($"All injection strategies failed. Last error: {lastResult.Message}");
-        return lastResult;
+        var comprehensiveMessage = "All injection strategies failed. Please check:\n" +
+                                   "  1. Run the application as Administrator\n" +
+                                   "  2. Disable antivirus/security software temporarily\n" +
+                                   "  3. Ensure Pick6VulkanHook.dll and proxy DLLs are present\n" +
+                                   "  4. Check that the game directory is writable";
+        
+        Log.Error(comprehensiveMessage);
+        
+        // Return result with detailed failure information
+        return InjectionResult.FailedWithDetails(lastResult.Strategy, comprehensiveMessage, failureInfos);
     }
 
     private async Task<InjectionResult> AttemptSingleStrategyAsync(ProcessInfo process, InjectionStrategy strategy, CancellationToken cancellationToken)
@@ -170,6 +204,10 @@ public class EnhancedInjector : IDisposable
     {
         await Task.Yield(); // Make method async-compatible
 
+        string? targetProxyPath = null;
+        string? originalBackupPath = null;
+        bool needsCleanup = false;
+
         try
         {
             // Get the target process directory
@@ -187,8 +225,17 @@ public class EnhancedInjector : IDisposable
                     $"Invalid process directory for {proxyDllName} proxy");
             }
 
-            var targetProxyPath = Path.Combine(processDir, proxyDllName);
-            var originalBackupPath = Path.Combine(processDir, $"{Path.GetFileNameWithoutExtension(proxyDllName)}.original.dll");
+            Log.Verbose($"Target process directory: {processDir}");
+
+            // Check if directory is writable
+            if (!IsDirectoryWritable(processDir))
+            {
+                return InjectionResult.Failed(GetStrategyForProxyDll(proxyDllName), 
+                    $"Process directory is not writable: {processDir}. Please run as Administrator or check permissions.");
+            }
+
+            targetProxyPath = Path.Combine(processDir, proxyDllName);
+            originalBackupPath = Path.Combine(processDir, $"{Path.GetFileNameWithoutExtension(proxyDllName)}.original.dll");
 
             // Check if proxy deployment is needed
             if (!IsProxyDeploymentNeeded(targetProxyPath))
@@ -199,9 +246,14 @@ public class EnhancedInjector : IDisposable
             }
 
             // Deploy proxy DLL
+            Log.Verbose($"Starting proxy deployment for {proxyDllName}");
+            needsCleanup = true;  // Enable cleanup on failure from this point
+            
             var deployResult = await DeployProxyDllAsync(proxyDllName, targetProxyPath, originalBackupPath, cancellationToken);
             if (!deployResult.Success)
             {
+                // Cleanup on failure
+                await CleanupFailedProxyDeploymentAsync(targetProxyPath, originalBackupPath);
                 return deployResult;
             }
 
@@ -211,6 +263,12 @@ public class EnhancedInjector : IDisposable
         }
         catch (Exception ex)
         {
+            // Cleanup on exception
+            if (needsCleanup && targetProxyPath != null && originalBackupPath != null)
+            {
+                await CleanupFailedProxyDeploymentAsync(targetProxyPath, originalBackupPath);
+            }
+            
             return InjectionResult.Failed(GetStrategyForProxyDll(proxyDllName), 
                 $"Proxy {proxyDllName} deployment failed: {ex.Message}", ex);
         }
@@ -222,13 +280,6 @@ public class EnhancedInjector : IDisposable
 
         try
         {
-            // Create backup of original if it exists and backup doesn't exist yet
-            if (File.Exists(targetPath) && !File.Exists(backupPath))
-            {
-                Log.Info($"Creating backup: {Path.GetFileName(targetPath)} -> {Path.GetFileName(backupPath)}");
-                File.Copy(targetPath, backupPath, false);
-            }
-
             // Get our proxy DLL path
             var ourProxyPath = GetProxyDllPath(proxyDllName);
             if (!File.Exists(ourProxyPath))
@@ -236,10 +287,44 @@ public class EnhancedInjector : IDisposable
                 return InjectionResult.Failed(GetStrategyForProxyDll(proxyDllName), 
                     $"Proxy DLL not found: {ourProxyPath}");
             }
+            
+            Log.Verbose($"Source proxy DLL: {ourProxyPath}");
+            
+            // Create backup of original if it exists and backup doesn't exist yet
+            if (File.Exists(targetPath) && !File.Exists(backupPath))
+            {
+                Log.Info($"Creating backup: {Path.GetFileName(targetPath)} -> {Path.GetFileName(backupPath)}");
+                Log.Verbose($"Backup path: {backupPath}");
+                
+                try
+                {
+                    File.Copy(targetPath, backupPath, false);
+                    Log.Verbose("Backup created successfully");
+                }
+                catch (Exception ex)
+                {
+                    return InjectionResult.Failed(GetStrategyForProxyDll(proxyDllName), 
+                        $"Failed to create backup of original {proxyDllName}: {ex.Message}", ex);
+                }
+            }
+            else if (File.Exists(backupPath))
+            {
+                Log.Verbose($"Backup already exists: {backupPath}");
+            }
 
             // Copy our proxy DLL to target location
-            Log.Info($"Deploying proxy DLL: {ourProxyPath} -> {targetPath}");
-            File.Copy(ourProxyPath, targetPath, true);
+            Log.Info($"Deploying proxy DLL: {Path.GetFileName(ourProxyPath)} -> {targetPath}");
+            
+            try
+            {
+                File.Copy(ourProxyPath, targetPath, true);
+                Log.Verbose("Proxy DLL copied successfully");
+            }
+            catch (Exception ex)
+            {
+                return InjectionResult.Failed(GetStrategyForProxyDll(proxyDllName), 
+                    $"Failed to copy proxy DLL to target location: {ex.Message}", ex);
+            }
 
             return InjectionResult.Succeeded(GetStrategyForProxyDll(proxyDllName), 
                 $"Proxy {proxyDllName} deployed successfully");
@@ -336,6 +421,70 @@ public class EnhancedInjector : IDisposable
         catch
         {
             return null;
+        }
+    }
+    
+    private string GetHookDllPath()
+    {
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        return Path.Combine(baseDir, "Pick6VulkanHook.dll");
+    }
+    
+    private bool IsDirectoryWritable(string directoryPath)
+    {
+        try
+        {
+            // Try to create a temporary file to test write access
+            var testFile = Path.Combine(directoryPath, $".pick6_write_test_{Guid.NewGuid()}.tmp");
+            
+            try
+            {
+                File.WriteAllText(testFile, "test");
+                File.Delete(testFile);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    
+    private async Task CleanupFailedProxyDeploymentAsync(string targetProxyPath, string originalBackupPath)
+    {
+        await Task.Yield();
+        
+        try
+        {
+            Log.Verbose("Cleaning up failed proxy deployment");
+            
+            // If we created a new proxy file, try to remove it
+            if (File.Exists(targetProxyPath))
+            {
+                try
+                {
+                    // Restore original if backup exists
+                    if (File.Exists(originalBackupPath))
+                    {
+                        Log.Verbose($"Restoring original file from backup: {originalBackupPath}");
+                        File.Copy(originalBackupPath, targetProxyPath, true);
+                        File.Delete(originalBackupPath);
+                        Log.Verbose("Original file restored successfully");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn($"Failed to restore original file during cleanup: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Error during proxy deployment cleanup: {ex.Message}");
         }
     }
 

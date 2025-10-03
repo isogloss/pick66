@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Pick6.Core;
 
@@ -10,7 +11,7 @@ public class InjectionConfig
     /// <summary>
     /// Maximum time to search for processes (milliseconds)
     /// </summary>
-    public int ProcessSearchTimeoutMs { get; set; } = 60000; // 60 seconds
+    public int ProcessSearchTimeoutMs { get; set; } = 90000; // 90 seconds (increased for stability)
 
     /// <summary>
     /// Polling interval for process search (milliseconds)
@@ -20,7 +21,7 @@ public class InjectionConfig
     /// <summary>
     /// Time to wait for graphics modules to load (milliseconds)
     /// </summary>
-    public int ModuleWaitTimeoutMs { get; set; } = 15000; // 15 seconds
+    public int ModuleWaitTimeoutMs { get; set; } = 20000; // 20 seconds (increased for stability)
 
     /// <summary>
     /// Ordered list of injection strategies to attempt
@@ -79,6 +80,11 @@ public class InjectionResult
     public InjectionStrategy Strategy { get; set; }
     public string Message { get; set; } = "";
     public Exception? Exception { get; set; }
+    
+    /// <summary>
+    /// Detailed error information from all failed attempts (if applicable)
+    /// </summary>
+    public List<StrategyFailureInfo>? FailedAttempts { get; set; }
 
     public static InjectionResult Failed(InjectionStrategy strategy, string message, Exception? ex = null)
     {
@@ -100,4 +106,56 @@ public class InjectionResult
             Message = message
         };
     }
+    
+    /// <summary>
+    /// Create a failed result with aggregated failure information
+    /// </summary>
+    public static InjectionResult FailedWithDetails(InjectionStrategy lastStrategy, string message, List<StrategyFailureInfo> failedAttempts)
+    {
+        return new InjectionResult
+        {
+            Success = false,
+            Strategy = lastStrategy,
+            Message = message,
+            FailedAttempts = failedAttempts
+        };
+    }
+    
+    /// <summary>
+    /// Get a comprehensive error summary including all failed strategies
+    /// </summary>
+    public string GetDetailedErrorMessage()
+    {
+        if (Success)
+            return Message;
+            
+        var details = new System.Text.StringBuilder();
+        details.AppendLine(Message);
+        
+        if (FailedAttempts != null && FailedAttempts.Count > 0)
+        {
+            details.AppendLine();
+            details.AppendLine("Failed injection strategies:");
+            foreach (var failure in FailedAttempts)
+            {
+                details.AppendLine($"  • {failure.Strategy}: {failure.ErrorMessage}");
+                if (failure.Exception != null)
+                {
+                    details.AppendLine($"    Exception: {failure.Exception.GetType().Name} - {failure.Exception.Message}");
+                }
+            }
+        }
+        
+        return details.ToString();
+    }
+}
+
+/// <summary>
+/// Information about a failed injection strategy attempt
+/// </summary>
+public class StrategyFailureInfo
+{
+    public InjectionStrategy Strategy { get; set; }
+    public string ErrorMessage { get; set; } = "";
+    public Exception? Exception { get; set; }
 }
