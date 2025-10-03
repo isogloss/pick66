@@ -14,6 +14,15 @@ public static class Log
     private static readonly object _lock = new();
 
     /// <summary>
+    /// Log a verbose message
+    /// </summary>
+    /// <param name="message">Message to log</param>
+    public static void Verbose(string message)
+    {
+        LogMessage(LogLevel.Verbose, message);
+    }
+
+    /// <summary>
     /// Log an informational message
     /// </summary>
     /// <param name="message">Message to log</param>
@@ -116,6 +125,7 @@ public static class Log
 /// </summary>
 public enum LogLevel
 {
+    Verbose,
     Debug,
     Info,
     Warning,
