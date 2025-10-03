@@ -38,7 +38,7 @@ public static class FontLoader
                 else
                 {
                     // Fallback to Courier New if custom font fails to load
-                    Log.Warning("Minecraft font not available, using Courier New fallback");
+                    Log.Warn("Minecraft font not available, using Courier New fallback");
                     _minecraftFont = new Font("Courier New", size, style);
                 }
             }
@@ -61,7 +61,7 @@ public static class FontLoader
             {
                 if (stream == null)
                 {
-                    Log.Warning($"Could not find embedded font resource: {resourceName}");
+                    Log.Warn($"Could not find embedded font resource: {resourceName}");
                     return;
                 }
 
