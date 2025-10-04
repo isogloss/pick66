@@ -86,8 +86,25 @@ jobs:
     
     - name: Run Tests
       run: |
-        cd src/Pick6.Native/build/Release
-        ./Pick6Test.exe
+        $testExePath = "src/Pick6.Native/build/Release/Pick6Test.exe"
+        if (Test-Path $testExePath) {
+          Write-Host "Running Pick6Test.exe..." -ForegroundColor Green
+          cd src/Pick6.Native/build/Release
+          ./Pick6Test.exe
+        } else {
+          Write-Host "❌ ERROR: Pick6Test.exe not found at $testExePath" -ForegroundColor Red
+          Write-Host "Searching for alternative locations..." -ForegroundColor Yellow
+          $found = Get-ChildItem -Path "src/Pick6.Native/build" -Recurse -Filter "Pick6Test.exe" -ErrorAction SilentlyContinue
+          if ($found) {
+            Write-Host "Found Pick6Test.exe at: $($found.FullName)" -ForegroundColor Cyan
+            Write-Host "Attempting to run from found location..." -ForegroundColor Yellow
+            & $found.FullName
+          } else {
+            Write-Host "❌ Pick6Test.exe not found anywhere in build directory" -ForegroundColor Red
+            exit 1
+          }
+        }
+      shell: pwsh
       continue-on-error: true
     
     - name: Upload Release Artifacts
